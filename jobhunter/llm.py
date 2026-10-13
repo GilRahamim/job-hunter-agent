@@ -35,5 +35,8 @@ def get_llm(cfg: dict[str, Any]) -> Any | None:
         return None
     from langchain.chat_models import init_chat_model
 
+    kwargs: dict[str, Any] = {}
+    if provider == "anthropic" and llm_cfg.get("anthropic_workspace_id"):
+        kwargs["default_headers"] = {"anthropic-workspace-id": llm_cfg["anthropic_workspace_id"]}
     return init_chat_model(llm_cfg["model"], model_provider=provider,
-                           temperature=llm_cfg.get("temperature", 0))
+                           temperature=llm_cfg.get("temperature", 0), **kwargs)

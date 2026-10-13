@@ -132,3 +132,5 @@ llm:
   model: claude-haiku-5-5
   temperature: 0
   max_workers: 6
+  # Anthropic only: set when the API key is not scoped to a workspace (an ID, not a secret)
+  anthropic_workspace_id: wrkspc_014GDNpoWdzWhuf7Zkkh15My

@@ -163,7 +163,7 @@ def main() -> None:
         sys.exit(str(e))
     print(profile.model_dump_json(indent=2))
     print(f"cv_hash: {cv_hash}\ncache: {'hit' if hit else 'miss'}\n"
-          f"extractor: {'llm' if llm else 'heuristic'}")
+          f"extractor: {'llm' if llm and db.load_profile(cv_hash) else 'heuristic'}")
 
 
 if __name__ == "__main__":
