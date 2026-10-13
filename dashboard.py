@@ -15,8 +15,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from jobhunter import db
-from jobhunter.config import ROOT
-from ui.components import chips, inject_theme, kpi_row, score_box, section_label, title
+from jobhunter.config import ROOT, load_config
+from ui.components import (brand_header, chips, inject_theme, kpi_row, question, score_box,
+                           section_label, theme_toggle, title)
 from ui.tokens import DARK, LIGHT
 
 IL = ZoneInfo("Asia/Jerusalem")
@@ -52,6 +53,7 @@ def to_il(ts: str | None) -> datetime | None:
 
 @st.cache_data(ttl=30)
 def load_jobs() -> pd.DataFrame:
+    db.backfill_required_years()      # jobs saved before the experience filter existed
     rows = db.jobs_table()
     if not rows:
         return pd.DataFrame()
@@ -68,6 +70,7 @@ def load_jobs() -> pd.DataFrame:
     df["where"] = df.apply(lambda r: r["location"] or r["remote_region"] or ("Remote" if r["is_remote"] else ""), axis=1)
     df["score"] = df["score"].fillna(0).astype(float)
     df["notes"] = df["notes"].fillna("")
+    df["required_years"] = pd.to_numeric(df["required_years"], errors="coerce")
     for col in ("matching_skills", "missing_skills"):
         df[col] = df[col].map(lambda v: v if isinstance(v, list) else [])
     return df.set_index("id", drop=False)
@@ -109,35 +112,65 @@ def run_panel() -> None:
         load_jobs.clear()
         st.rerun()
     else:
-        if st.button("מצא משרה חדשה", type="primary", width="stretch"):
+        if st.button("בואו נמצא את המשרה הבאה", type="primary", width="stretch"):
             start_run()
             st.rerun()
 
 
 def sidebar(df: pd.DataFrame) -> pd.DataFrame:
+    max_years = load_config()["filters"].get("max_required_years")
     with st.sidebar:
-        st.html('<div class="jh-brand">Job Hunter</div>')
-        run_panel()
-        runs = db.last_runs(1)
-        if runs:
-            r, s = runs[0], runs[0]["stats"]
-            when = to_il(r["finished"] or r["started"])
-            failed = len(s.get("errors", []))
-            st.html(f'<div class="jh-run-summary">ריצה אחרונה: {when:%d/%m %H:%M} · {s.get("duration_s", "?")} שנ׳ · '
-                    f'{s.get("kept", 0)} חדשות · {failed} מקורות עם תקלה</div>')
-        st.divider()
+        brand_header()
+        st.html('<div class="jh-hello">הצעד הבא שלך מתחיל כאן.</div>'
+                '<div class="jh-hello-sub">מכוונים את החיפוש, והסוכן יוצא למצוא הזדמנויות.</div>')
+        with st.container(key="sb-launch"):
+            run_panel()
+            runs = db.last_runs(1)
+            if runs:
+                r, s = runs[0], runs[0]["stats"]
+                when = to_il(r["finished"] or r["started"])
+                failed = len(s.get("errors", []))
+                st.html(f'<div class="jh-run-summary">ריצה אחרונה: {when:%d/%m %H:%M} · {s.get("duration_s", "?")} שנ׳ · '
+                        f'{s.get("kept", 0)} חדשות · {failed} מקורות עם תקלה</div>')
         if df.empty:
+            with st.container(key="sb-prefs"):
+                theme_toggle()
             return df
-        min_score = st.slider("ציון מינימלי", 0, 100, 60)
-        sources = st.multiselect("מקור", sorted(df["source"].unique()), placeholder="בחרו אפשרויות")
-        statuses = st.pills("סטטוס", list(STATUS_HE.values()), selection_mode="multi",
-                            default=[v for k, v in STATUS_HE.items() if k != "not_relevant"])
-        loc = st.radio("מיקום", ["הכול", "ישראל", "מרחוק"], horizontal=True)
-        days = st.slider("פורסמו ב-N הימים האחרונים", 1, 90, 60)
-        query = st.text_input("חיפוש חופשי (כותרת / חברה)")
-        only_new = st.toggle("רק חדשות (24 שעות)")
+
+        with st.container(key="sb-search"):
+            question("מה מחפשים?")
+            query = st.text_input("חיפוש חופשי (כותרת / חברה)", placeholder="כותרת משרה או שם חברה",
+                                  label_visibility="collapsed")
+        with st.container(key="sb-match"):
+            st.html('<div class="jh-q-sub">ההתאמה שלך</div>'
+                    f'<div class="jh-range"><span class="jh-range-num">{st.session_state.get("min_score", 60)}</span>'
+                    '<span class="jh-range-label">ציון מינימלי</span></div>')
+            min_score = st.slider("ציון מינימלי", 0, 100, 60, key="min_score", label_visibility="collapsed")
+        with st.container(key="sb-source"):
+            question("מאיפה מגיעות המשרות?")
+            sources = st.multiselect("מקור", sorted(df["source"].unique()), placeholder="כל המקורות",
+                                     label_visibility="collapsed")
+        with st.container(key="sb-stage"):
+            question("איפה אנחנו בתהליך?")
+            statuses = st.pills("סטטוס", list(STATUS_HE.values()), selection_mode="multi",
+                                default=[v for k, v in STATUS_HE.items() if k != "not_relevant"],
+                                label_visibility="collapsed")
+        with st.container(key="sb-where"):
+            question("איפה תרצו לעבוד?")
+            loc = st.pills("מיקום", ["הכול", "ישראל", "מרחוק"], selection_mode="single", default="הכול",
+                           label_visibility="collapsed") or "הכול"
+        with st.container(key="sb-recency"):
+            question("פורסמו לאחרונה", "במספר הימים האחרונים")
+            days = st.number_input("ימים", 1, 90, 60, step=5, format="%d", label_visibility="collapsed")
+        with st.container(key="sb-prefs"):
+            junior = st.toggle("רק משרות ללא דרישת ניסיון", value=True,
+                               help="מסתיר משרות שמציינות שנות ניסיון נדרשות")
+            only_new = st.toggle("רק חדשות ב־24 השעות האחרונות")
+            theme_toggle()
 
     out = df[df["score"] >= min_score]
+    if junior and max_years is not None:
+        out = out[out["required_years"].fillna(0) <= max_years]
     if sources:
         out = out[out["source"].isin(sources)]
     if statuses:

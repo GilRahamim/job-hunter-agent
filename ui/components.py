@@ -20,11 +20,50 @@ from .tokens import DARK, LIGHT, css_vars
 _CSS = (Path(__file__).parent / "theme.css").read_text(encoding="utf-8")
 
 
+def current_scheme() -> str:
+    """'dark' or 'light', as the browser actually renders it."""
+    return getattr(getattr(st.context, "theme", None), "type", None) or "light"
+
+
 def inject_theme() -> None:
     """Call once at the top of the page, after st.set_page_config."""
-    scheme = getattr(getattr(st.context, "theme", None), "type", None) or "light"
-    tokens = DARK if scheme == "dark" else LIGHT
+    tokens = DARK if current_scheme() == "dark" else LIGHT
     st.html(f"<style>{css_vars(tokens)}\n{_CSS}</style>")
+
+
+def brand_header() -> None:
+    """Sidebar masthead: brand name with the sparkles mark (Figma 7:2430) and the kit badge.
+
+    The mark is a CSS background image: st.html's sanitizer strips inline <svg>."""
+    import re
+    from urllib.parse import quote
+
+    tokens = DARK if current_scheme() == "dark" else LIGHT
+    svg = (Path(__file__).parent / "assets" / "sparkles.svg").read_text(encoding="utf-8")
+    svg = re.sub(r'stroke="[^"]*"', f'stroke="{tokens["sb_on_accent"]}"', svg)
+    svg = re.sub(r' (style|overflow|preserveAspectRatio)="[^"]*"', "", svg)
+    uri = "data:image/svg+xml;utf8," + quote(svg)
+    st.html('<div class="jh-brand-row"><span class="jh-kit-badge">ערכת החיפוש שלך</span>'
+            '<div class="jh-brand"><span>Job Hunter</span>'
+            f'<span class="jh-brand-mark" style="background-image:url(&quot;{uri}&quot;)"></span></div></div>')
+
+
+def question(text: str, sub: str | None = None) -> None:
+    st.html(f'<div class="jh-q">{html.escape(text)}</div>'
+            + (f'<div class="jh-q-sub">{html.escape(sub)}</div>' if sub else ""))
+
+
+def theme_toggle() -> None:
+    """Light/dark switch. Streamlit keeps the chosen theme in localStorage; set it and reload."""
+    import streamlit.components.v1 as components
+
+    is_dark = current_scheme() == "dark"
+    want_dark = st.toggle("מצב כהה", value=is_dark, key="dark_mode")
+    if want_dark != is_dark:
+        name = "Dark" if want_dark else "Light"
+        components.html(
+            f"<script>parent.localStorage.setItem('stActiveTheme-/-v2', JSON.stringify('{name}'));"
+            "parent.location.reload();</script>", height=0)
 
 
 def title(text: str) -> None:

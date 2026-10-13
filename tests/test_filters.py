@@ -110,3 +110,38 @@ def test_israel_and_remote_switches(cfg):
     il = Job("t", "Python Developer", "A", "https://a/1", location="Tel Aviv, Israel")
     kept, dropped = filter_jobs([il], only_remote)
     assert not kept and dropped["location"] == 1
+
+
+# ---------------------------------------------------------------- junior mode (no experience required)
+
+from jobhunter.filters import experience_ok, required_years  # noqa: E402
+
+
+def j(title="Python Developer", desc=""):
+    return Job("t", title, "A", "https://a/x", location="Tel Aviv, Israel", description=desc)
+
+
+def test_required_years_parsing():
+    assert required_years("3+ years of experience") == 3
+    assert required_years("1-2 years") == 1                 # lower bound of a range
+    assert required_years("0-1 years, will train") == 0
+    assert required_years("דרושים 4 שנות ניסיון") == 4
+    assert required_years("no stated requirement") == 0
+
+
+def test_experience_filter_modes():
+    assert experience_ok(j(desc="Python and SQL"), 0)
+    assert not experience_ok(j(desc="3+ years of Python experience"), 0)
+    assert not experience_ok(j(desc="1-2 years"), 0)
+    assert experience_ok(j(desc="1-2 years"), 1)
+    assert experience_ok(j(desc="10 years"), None)         # filter off
+
+
+def test_filter_jobs_drops_with_experience_reason(cfg):
+    kept, dropped = filter_jobs([j(desc="Python"), j("Data Analyst", "2+ years experience")], cfg)
+    assert [x.title for x in kept] == ["Python Developer"] and dropped["experience"] == 1
+
+
+def test_experienced_titles_are_dropped(cfg):
+    assert not seniority_ok("Experienced Python Developer", cfg)
+    assert not seniority_ok("Mid-Level Backend Engineer", cfg)

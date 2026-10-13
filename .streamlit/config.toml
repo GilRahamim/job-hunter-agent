@@ -1,69 +1,76 @@
 # Job Hunter — Streamlit theme generated from Figma file xqkcOg1yGvJWFKwS14sEqf
-# Light  = "Sea"   (frame 2:30  "Dashboard / Jobs", variables color/*)
-# Dark   = "Night" (frame 8:27  "Variation 1 / Dark Moody Split")
-# Streamlit follows the OS light/dark setting; the user can override it in the ⋮ menu.
+# Light = "Sea"       (frame 2:30 "Dashboard / Jobs"; sidebar from "Playful career toolkit" 7:2424)
+# Dark  = "Teal Night" (deep green-charcoal with a mint accent; replaces the old violet "Night")
+# The theme follows the OS setting; the sidebar toggle "מצב כהה" overrides it.
+# Keep ui/tokens.py in sync with the colors here.
 
 [client]
-toolbarMode = "minimal"     # hide the Deploy button
+toolbarMode = "minimal"     # hide the Deploy button and the settings menu (the sidebar toggle replaces it)
 
 [theme]
 font = "Heebo:https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap"
 headingFont = "Heebo"
 baseFontSize = 15
-baseRadius = "10px"        # KPI card radius
-buttonRadius = "8px"       # Button/Primary, Button/Secondary
+baseRadius = "10px"
+buttonRadius = "8px"
 showWidgetBorder = true
 showSidebarBorder = false
-metricValueFontSize = "36px"   # KPI Card value: Heebo ExtraBold 36
+metricValueFontSize = "36px"
 metricValueFontWeight = 800
 headingFontWeights = [800, 700, 700, 600, 600, 600]
 
 [theme.light]
 primaryColor = "#0f766e"                 # color/sea
-backgroundColor = "#ffffff"              # white so data-grid rows are white; page color #f4f6f5 (color/bg) is set in theme.css
+backgroundColor = "#ffffff"              # white so data-grid rows are white; page color #f4f6f5 is set in theme.css
 secondaryBackgroundColor = "#e6ecea"     # color/mist
-textColor = "#16232b"                    # color/ink
-borderColor = "#d5dedb"                  # color/line
+textColor = "#16232b"
+borderColor = "#d5dedb"
 linkColor = "#0f766e"
 dataframeBorderColor = "#d5dedb"
 dataframeHeaderBackgroundColor = "#e6ecea"
-dataframeHeaderTextColor = "#51636b"     # color/slate
-greenBackgroundColor = "#d6efea"         # color/chip-good-bg   → st.badge(color="green")
-greenTextColor = "#0b5a53"               # color/chip-good-text
-redBackgroundColor = "#f6dad6"           # color/chip-gap-bg    → st.badge(color="red")
-redTextColor = "#8e2f26"                 # color/chip-gap-text
-grayBackgroundColor = "#e6ecea"          # Chip/Plain
+dataframeHeaderTextColor = "#51636b"
+greenBackgroundColor = "#d6efea"
+greenTextColor = "#0b5a53"
+redBackgroundColor = "#f6dad6"
+redTextColor = "#8e2f26"
+grayBackgroundColor = "#e6ecea"
 grayTextColor = "#51636b"
-blueBackgroundColor = "#d6efea"          # tip box (st.info) uses the sea tint, not blue
+blueBackgroundColor = "#d6efea"          # tip box (st.info) uses the sea tint
 blueTextColor = "#0b5a53"
 chartCategoricalColors = ["#0f766e", "#51636b", "#8e2f26", "#d5dedb", "#0b5a53"]
-chartSequentialColors = ["#e6ecea", "#c2e0da", "#8fc7bd", "#4fa69a", "#0f766e", "#0b5a53"]
+chartSequentialColors = ["#e6ecea", "#cedcd9", "#b5ccc8", "#9dbbb8", "#85aba7", "#6c9b96", "#548b85", "#3c7a75", "#236a64", "#0b5a53"]
 
-[theme.light.sidebar]
-backgroundColor = "#e6ecea"              # Sidebar frame fill (color/mist)
-secondaryBackgroundColor = "#ffffff"     # inputs on the sidebar are white
+[theme.light.sidebar]                    # "Playful career toolkit": lavender canvas, violet accent
+backgroundColor = "#f5f1ff"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#282045"
+primaryColor = "#7046e8"
+borderColor = "#d9cfea"
 
 [theme.dark]
-primaryColor = "#7c3aed"                 # violet accent: score box, bars, active tab
-backgroundColor = "#11161d"              # table rows; page #0b0f14 is set in theme.css
-secondaryBackgroundColor = "#11161d"     # KPI cards, detail panel
-textColor = "#e2e8f0"
-borderColor = "#2a2f36"
-linkColor = "#a78bfa"
-dataframeBorderColor = "#2a2f36"
-dataframeHeaderBackgroundColor = "#27303c"
-dataframeHeaderTextColor = "#cbd5e1"
-greenBackgroundColor = "#0f172a"
-greenTextColor = "#93c5fd"
-redBackgroundColor = "#2a1414"
+primaryColor = "#2dd4bf"                 # mint
+backgroundColor = "#101a1c"              # table rows; page #0a1214 is set in theme.css
+secondaryBackgroundColor = "#142226"
+textColor = "#e6f2f0"
+borderColor = "#223639"
+linkColor = "#5eead4"
+dataframeBorderColor = "#223639"
+dataframeHeaderBackgroundColor = "#1b2f33"
+dataframeHeaderTextColor = "#a9c4c0"
+greenBackgroundColor = "#12352f"
+greenTextColor = "#7ee7d4"
+redBackgroundColor = "#3a1d1b"
 redTextColor = "#fca5a5"
-grayBackgroundColor = "#1b222b"
-grayTextColor = "#cbd5e1"
-blueBackgroundColor = "#111a2e"
-blueTextColor = "#93c5fd"
-chartCategoricalColors = ["#7c3aed", "#a78bfa", "#fca5a5", "#475569", "#93c5fd"]
-chartSequentialColors = ["#1b222b", "#3b2a63", "#5b31a8", "#7c3aed", "#a78bfa", "#ddd6fe"]
+grayBackgroundColor = "#1b2f33"
+grayTextColor = "#b5cdca"
+blueBackgroundColor = "#12302e"
+blueTextColor = "#7ee7d4"
+chartCategoricalColors = ["#2dd4bf", "#f59e0b", "#fca5a5", "#64748b", "#7ee7d4"]
+chartSequentialColors = ["#142226", "#203839", "#2c4e4d", "#376460", "#437a73", "#4f8f87", "#5ba59a", "#66bbad", "#72d1c1", "#7ee7d4"]
 
 [theme.dark.sidebar]
-backgroundColor = "#0f1318"
-secondaryBackgroundColor = "#11161d"
+backgroundColor = "#0c1517"
+secondaryBackgroundColor = "#101a1c"
+textColor = "#e6f2f0"
+primaryColor = "#2dd4bf"
+borderColor = "#223639"

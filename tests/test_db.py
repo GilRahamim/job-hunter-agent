@@ -97,3 +97,12 @@ def test_env_override(tmp_path, monkeypatch):
     monkeypatch.setenv("JOBHUNTER_DB", str(tmp_path / "env.db"))
     db.upsert_jobs([make_row()])
     assert (tmp_path / "env.db").exists()
+
+
+def test_backfill_required_years(path):
+    old = make_row(title="Dev", description="We need 3+ years of Python")
+    db.upsert_jobs([old], path)
+    assert db.all_jobs(path=path)[0]["required_years"] is None
+    assert db.backfill_required_years(path) == 1
+    assert db.all_jobs(path=path)[0]["required_years"] == 3
+    assert db.backfill_required_years(path) == 0           # nothing left to fill

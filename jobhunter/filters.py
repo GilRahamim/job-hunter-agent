@@ -8,6 +8,8 @@ from typing import Any
 
 from jobhunter.models import Job
 
+_YEARS = re.compile(r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:years|yrs|שנות|שנים)", re.I)
+
 ISRAEL_EN = (
     r"\bisrael\b|tel[\s-]?aviv|\btlv\b|jaffa|herzli?ya|haifa|jerusalem|petah?[\s-]?tikva|petach|"
     r"ramat[\s-]?gan|givatayim|bnei[\s-]?brak|ra'?anana|netanya|rehovot|ness?[\s-]?ziona|"
@@ -96,6 +98,19 @@ def seniority_ok(title: str, cfg: dict[str, Any]) -> bool:
     return not (f.get("exclude_senior") and word_match(title, f.get("senior_keywords", [])))
 
 
+def required_years(text: str) -> float:
+    """Largest 'N years' lower bound mentioned in the text (0 if none)."""
+    found = [int(m.group(1)) for m in _YEARS.finditer(text)]
+    return float(max(found)) if found else 0.0
+
+
+def experience_ok(job: Job, max_years: float | None) -> bool:
+    """Junior mode: keep jobs that state no more than `max_years` of required experience."""
+    if max_years is None:
+        return True
+    return required_years(f"{job.title}\n{job.description}") <= max_years
+
+
 def age_ok(date_posted: str | None, max_age_days: int | None, today: date | None = None) -> bool:
     if not date_posted or not max_age_days:
         return True                     # unknown dates are kept
@@ -118,6 +133,8 @@ def drop_reason(job: Job, cfg: dict[str, Any], ok: re.Pattern[str], today: date 
         return "role"
     if not seniority_ok(job.title, cfg):
         return "senior"
+    if not experience_ok(job, f.get("max_required_years")):
+        return "experience"
     if not age_ok(job.date_posted, f.get("max_age_days"), today):
         return "age"
     return None

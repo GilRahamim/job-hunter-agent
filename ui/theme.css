@@ -35,7 +35,7 @@
 .jh-job-meta { font-size: 14px; color: var(--jh-slate); direction: ltr; text-align: left; margin-top: 6px; }
 .jh-score {
   display: inline-flex; align-items: center; justify-content: center; min-width: 106px; height: 78px; padding: 0 18px;
-  background: var(--jh-accent); color: #fff; border-radius: 10px; font-size: 40px; font-weight: 800; letter-spacing: -0.5px;
+  background: var(--jh-accent); color: var(--jh-on-accent); border-radius: 10px; font-size: 40px; font-weight: 800; letter-spacing: -0.5px;
 }
 .jh-section-label { font-size: 14px; font-weight: 700; color: var(--jh-ink); margin: 0 0 6px; }
 .jh-note { font-size: 13px; color: var(--jh-slate); }
@@ -50,7 +50,66 @@
 /* ---------- Tip box (st.info) ---------- */
 [data-testid="stAlertContainer"] { border-radius: 8px; }
 
-/* ---------- Sidebar ---------- */
-.jh-brand { font-size: 22px; font-weight: 800; color: var(--jh-ink); text-align: right; direction: ltr; margin: 4px 0 18px; }
-.jh-run-summary { font-size: 12.5px; color: var(--jh-slate); line-height: 1.5; }
-[data-testid="stSidebar"] hr { margin: 14px 0; border-color: var(--jh-line); }
+/* ---------- Sidebar: "Playful career toolkit" (Figma 7:2424) ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* Wider sidebar when open, like the Figma layer. */
+[data-testid="stSidebar"][aria-expanded="true"] { width: 360px !important; min-width: 360px !important; }
+
+/* Collapsed sidebar: Streamlit shrinks it to width 0 but the (RTL, right-hand) content keeps painting as a sliver. Hide it. */
+[data-testid="stSidebar"][aria-expanded="false"] { visibility: hidden !important; overflow: hidden !important; pointer-events: none; }
+[data-testid="stSidebar"][aria-expanded="false"] * { visibility: hidden !important; }
+
+[data-testid="stSidebar"] { font-family: 'Rubik', 'Heebo', sans-serif; background: var(--jh-sb-bg); }
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding: 4px 4px 24px; }
+[data-testid="stSidebar"] hr { margin: 10px 0; border-color: var(--jh-sb-line); }
+[data-testid="stSidebar"] label, [data-testid="stSidebar"] p { color: var(--jh-sb-ink); }
+
+.jh-brand-row { display: flex; align-items: center; justify-content: space-between; direction: rtl; margin: 6px 0 14px; }
+.jh-brand { display: flex; align-items: center; gap: 10px; direction: ltr; font-size: 22px; font-weight: 700; color: var(--jh-sb-ink); white-space: nowrap; }
+.jh-brand-mark { width: 38px; height: 38px; border-radius: 14px; background-color: var(--jh-sb-accent); background-repeat: no-repeat; background-position: center; background-size: 22px 22px; flex: none; }
+.jh-kit-badge { white-space: nowrap; background: var(--jh-sb-lilac); color: var(--jh-sb-accent); font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 999px; }
+.jh-hello { font-size: 30px; font-weight: 700; line-height: 1.2; color: var(--jh-sb-ink); margin: 6px 0 4px; text-align: right; }
+.jh-hello-sub { font-size: 14px; color: var(--jh-sb-muted); text-align: right; margin-bottom: 14px; }
+.jh-run-summary { font-size: 12px; color: var(--jh-sb-muted); line-height: 1.5; text-align: right; }
+
+/* colored blocks */
+[class*="st-key-sb-"] { border-radius: 24px; padding: 16px 18px !important; margin-bottom: 4px; }
+.st-key-sb-launch, .st-key-sb-stage { background: var(--jh-sb-card); }
+.st-key-sb-match { background: var(--jh-sb-peach); }
+.st-key-sb-source, .st-key-sb-prefs { background: var(--jh-sb-lilac); }
+.st-key-sb-recency { background: var(--jh-sb-lime); }
+.st-key-sb-search, .st-key-sb-where { padding: 0 2px !important; }
+.jh-q { font-size: 15px; font-weight: 600; color: var(--jh-sb-ink); text-align: right; margin: 0 0 8px; }
+.jh-q-sub { font-size: 12px; color: var(--jh-sb-muted); text-align: right; margin: -4px 0 8px; }
+.jh-range { display: flex; align-items: center; justify-content: space-between; direction: ltr; margin-bottom: 4px; }
+.jh-range-num { font-family: 'IBM Plex Mono', monospace; font-size: 26px; color: var(--jh-sb-accent); }
+.jh-range-label { font-size: 15px; font-weight: 600; color: var(--jh-sb-ink); direction: rtl; }
+
+/* pill controls */
+[data-testid="stSidebar"] [data-baseweb="input"], [data-testid="stSidebar"] [data-baseweb="select"] > div,
+[data-testid="stSidebar"] [data-testid="stNumberInputContainer"] {
+  border-radius: 999px !important; background: var(--jh-sb-card) !important; border: 1px solid var(--jh-sb-line) !important; min-height: 46px;
+}
+[data-testid="stSidebar"] input { color: var(--jh-sb-ink); }
+[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+  border-radius: 999px; min-height: 52px; font-size: 16px; font-weight: 700; background: var(--jh-sb-accent); color: var(--jh-sb-on-accent); border: 0;
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-pills"], [data-testid="stSidebar"] [data-testid="stBaseButton-pillsActive"] {
+  border-radius: 999px; padding: 6px 13px; font-size: 14px; background: var(--jh-sb-card); border: 1px solid var(--jh-sb-line); color: var(--jh-sb-ink);
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-pillsActive"] {
+  background: var(--jh-sb-lilac); border-color: var(--jh-sb-accent); color: var(--jh-sb-accent); font-weight: 700;
+}
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button { border-radius: 999px; }
+.st-key-sb-prefs [data-testid="stToggle"] label { color: var(--jh-sb-ink); font-size: 14px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) { .jh-hello { font-size: 24px; } .jh-title { font-size: 34px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+:focus-visible { outline: 3px solid var(--jh-accent); outline-offset: 2px; border-radius: 6px; }
+.stButton > button, [data-testid="stLinkButton"] a { min-height: 44px; }
+button, [role="tab"], [role="radio"], label { cursor: pointer; }
+
+.st-key-sb-match [data-testid="stSliderThumbValue"] { display: none; }  /* the big mono number above replaces it */
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] p, [data-testid="stSidebar"] [data-testid="stBaseButton-primary"] { color: var(--jh-sb-on-accent) !important; }

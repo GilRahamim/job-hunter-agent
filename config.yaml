@@ -21,9 +21,12 @@ filters:
   # … and remote jobs that are open to candidates in Israel / EMEA / worldwide
   remote: true
   remote_regions_ok: [worldwide, anywhere, global, emea, europe, israel, "middle east", international]
+  # Junior mode: drop postings that state a years-of-experience requirement above this.
+  # 0 = only jobs without an experience requirement; null = do not filter by years.
+  max_required_years: 0
   # Drop titles that are clearly above your level (set to false to keep them)
   exclude_senior: true
-  senior_keywords: [senior, "sr.", "sr ", staff, principal, lead, head of, director, manager, architect, "vp ", chief, "בכיר", "ראש צוות", "מנהל"]
+  senior_keywords: [experienced, "mid-level", "mid level", senior, "sr.", "sr ", staff, principal, lead, head of, director, manager, architect, "vp ", chief, "בכיר", "ראש צוות", "מנהל"]
   # A job must match at least one of these (title) to count as a development / data role
   role_keywords:
     - developer

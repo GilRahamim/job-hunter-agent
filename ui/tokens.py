@@ -3,35 +3,43 @@
 Single source of truth for anything .streamlit/config.toml cannot express.
 Keep the two in sync: config.toml colors == these values.
 
-LIGHT = "Sea"   — frame 2:30 "Dashboard / Jobs", Figma variables color/*
-DARK  = "Night" — frame 8:27 "Variation 1 / Dark Moody Split"
+LIGHT = "Sea"        — frame 2:30 "Dashboard / Jobs"; the sb_* tokens come from "Playful career toolkit" (7:2424)
+DARK  = "Teal Night" — deep green-charcoal with a mint accent (replaces the old violet "Night")
 """
 
 LIGHT = {
     "ink": "#16232b",        # color/ink          — primary text
     "slate": "#51636b",      # color/slate        — secondary text, labels
     "accent": "#0f766e",     # color/sea          — primary actions, score, active tab
+    "on_accent": "#ffffff",  # text on the accent color
     "line": "#d5dedb",       # color/line         — borders, rules
-    "mist": "#e6ecea",       # color/mist         — KPI cards, sidebar, table header
+    "mist": "#e6ecea",       # color/mist         — KPI cards, table header
     "bg": "#f4f6f5",         # color/bg           — page
     "surface": "#ffffff",    # color/surface      — cards, inputs
     "good_bg": "#d6efea", "good_text": "#0b5a53",   # color/chip-good-*
     "gap_bg": "#f6dad6", "gap_text": "#8e2f26",     # color/chip-gap-*
     "kpi_bg": "#e6ecea", "kpi_border": "0", "kpi_radius": "10px", "kpi_shadow": "none",
+    # sidebar: Playful career toolkit
+    "sb_bg": "#f5f1ff", "sb_card": "#ffffff", "sb_ink": "#282045", "sb_muted": "#706581",
+    "sb_line": "#d9cfea", "sb_accent": "#7046e8", "sb_on_accent": "#ffffff",
+    "sb_lilac": "#e8deff", "sb_peach": "#ffe0cd", "sb_lime": "#dff6a5",
 }
 
 DARK = {
-    "ink": "#f8fafc",
-    "slate": "#cbd5e1",
-    "accent": "#7c3aed",
-    "line": "#2a2f36",
-    "mist": "#27303c",
-    "bg": "#0b0f14",
-    "surface": "#11161d",
-    "good_bg": "#0f172a", "good_text": "#93c5fd",
-    "gap_bg": "#2a1414", "gap_text": "#fca5a5",
-    "kpi_bg": "#11161d", "kpi_border": "1px solid #2a2f36", "kpi_radius": "16px",
-    "kpi_shadow": "0 10px 12px rgba(0,0,0,.4)",
+    "ink": "#e6f2f0",
+    "slate": "#a9c4c0",
+    "accent": "#2dd4bf",
+    "on_accent": "#06201d",   # dark text on the mint accent keeps contrast above 7:1
+    "line": "#223639",
+    "mist": "#1b2f33",
+    "bg": "#0a1214",
+    "surface": "#101a1c",
+    "good_bg": "#12352f", "good_text": "#7ee7d4",
+    "gap_bg": "#3a1d1b", "gap_text": "#fca5a5",
+    "kpi_bg": "#101a1c", "kpi_border": "1px solid #223639", "kpi_radius": "10px", "kpi_shadow": "none",
+    "sb_bg": "#0c1517", "sb_card": "#101a1c", "sb_ink": "#e6f2f0", "sb_muted": "#a9c4c0",
+    "sb_line": "#223639", "sb_accent": "#2dd4bf", "sb_on_accent": "#06201d",
+    "sb_lilac": "#12302e", "sb_peach": "#3a2a1d", "sb_lime": "#25301a",   # teal / amber / olive tints
 }
 
 # Type scale (Heebo) — from Figma text styles

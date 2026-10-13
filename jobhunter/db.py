@@ -225,7 +225,7 @@ def latest_profile(path: str | Path | None = None) -> dict | None:
 # ---------------------------------------------------------------- dashboard helpers
 
 _TABLE_COLUMNS = ("id, source, title, company, location, is_remote, remote_region, url, date_posted, "
-                  "first_seen, last_seen, prescore, score, verdict, seniority_fit, matching_skills, "
+                  "first_seen, last_seen, prescore, score, verdict, seniority_fit, required_years, matching_skills, "
                   "missing_skills, scored_by, status, notes, status_updated")
 
 
@@ -255,3 +255,14 @@ def health_history(n_runs: int = 14, path: str | Path | None = None) -> list[dic
             "JOIN runs r ON r.id = h.run_id WHERE h.run_id IN "
             "(SELECT id FROM runs ORDER BY id DESC LIMIT ?) ORDER BY h.run_id", (n_runs,)).fetchall()
     return [dict(r) for r in rows]
+
+
+def backfill_required_years(path: str | Path | None = None) -> int:
+    """Fill required_years (from the stored description) for jobs scored before it was recorded."""
+    from jobhunter.filters import required_years
+
+    with connect(path) as con:
+        rows = con.execute("SELECT id, title, description FROM jobs WHERE required_years IS NULL").fetchall()
+        con.executemany("UPDATE jobs SET required_years = ? WHERE id = ?",
+                        [(required_years(f"{r['title']}\n{r['description'] or ''}"), r["id"]) for r in rows])
+    return len(rows)

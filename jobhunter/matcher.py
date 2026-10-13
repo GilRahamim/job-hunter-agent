@@ -20,13 +20,7 @@ MAX_DESCRIPTION_CHARS = 6000
 LLM_ATTEMPTS = 3
 BACKOFF_SECONDS = 1.0                 # doubled on each retry; tests set it to 0
 
-_YEARS = re.compile(r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:years|yrs|שנות|שנים)", re.I)
-
-
-def required_years(text: str) -> float:
-    """Largest 'N years' lower bound mentioned in the text (0 if none)."""
-    found = [int(m.group(1)) for m in _YEARS.finditer(text)]
-    return float(max(found)) if found else 0.0
+from jobhunter.filters import required_years  # noqa: E402  (shared with the experience filter)
 
 
 def prescore(profile: CandidateProfile, jobs: list[Job]) -> list[float]:
@@ -108,10 +102,11 @@ def llm_score(llm: Any, profile: CandidateProfile, jobs: list[Job],
 def scored_row(job: Job, pre: float, match: JobMatch | None, cv_hash: str, model: str) -> dict[str, Any]:
     """DB row: the posting plus its scoring fields. score = LLM score when present."""
     row = job.to_dict()
-    row.update(prescore=round(pre, 1), cv_hash=cv_hash, scored_at=now_utc())
+    years = required_years(f"{job.title}\n{job.description}")
+    row.update(prescore=round(pre, 1), cv_hash=cv_hash, scored_at=now_utc(), required_years=years)
     if match:
         row.update(score=float(match.score), verdict=match.verdict, seniority_fit=match.seniority_fit,
-                   required_years=match.required_years, matching_skills=match.matching_skills,
+                   required_years=match.required_years if match.required_years is not None else years, matching_skills=match.matching_skills,
                    missing_skills=match.missing_skills, reasons=match.reasons, cv_tip=match.cv_tip,
                    scored_by=f"llm:{model}")
     else:
