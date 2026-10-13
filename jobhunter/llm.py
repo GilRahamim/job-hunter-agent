@@ -1,0 +1,39 @@
+"""Provider-agnostic chat model. Returns None when the LLM is disabled or has no key."""
+from __future__ import annotations
+
+import logging
+import os
+from typing import Any
+
+from jobhunter.config import load_env
+
+log = logging.getLogger(__name__)
+
+_KEY_ENV = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "google_genai": "GOOGLE_API_KEY",
+    "ollama": None,                    # local, no key
+}
+
+
+def _has_key(provider: str) -> bool:
+    if provider not in _KEY_ENV:
+        return False
+    env = _KEY_ENV[provider]
+    return env is None or bool(os.environ.get(env))
+
+
+def get_llm(cfg: dict[str, Any]) -> Any | None:
+    """A LangChain chat model, or None -> callers fall back to heuristics."""
+    load_env()
+    llm_cfg = cfg["llm"]
+    provider = llm_cfg["provider"]
+    if provider == "none" or not _has_key(provider):
+        if provider != "none":
+            log.warning("LLM provider %r has no API key in .env; using heuristics only", provider)
+        return None
+    from langchain.chat_models import init_chat_model
+
+    return init_chat_model(llm_cfg["model"], model_provider=provider,
+                           temperature=llm_cfg.get("temperature", 0))
