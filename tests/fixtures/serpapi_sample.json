@@ -1,0 +1,23 @@
+{
+  "jobs_results": [
+    {
+      "title": "Junior Python Developer",
+      "company_name": "Acme Israel",
+      "location": "Tel Aviv, Israel",
+      "description": "Build backend services in Python.",
+      "detected_extensions": {"posted_at": "2 days ago"},
+      "apply_options": [{"title": "Company site", "link": "https://acme.example/jobs/1"}],
+      "share_link": "https://www.google.com/search?q=acme&ibp=htl;jobs#fpstate=tldetail&htidocid=abc",
+      "job_id": "abc"
+    },
+    {
+      "title": "Data Analyst (Remote)",
+      "company_name": "Beta Ltd",
+      "location": "Remote",
+      "description": "Analyze data.",
+      "apply_options": [],
+      "share_link": "https://www.google.com/search?q=beta&htidocid=def",
+      "job_id": "def"
+    }
+  ]
+}

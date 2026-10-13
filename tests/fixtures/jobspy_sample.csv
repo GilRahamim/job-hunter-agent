@@ -1,0 +1,269 @@
+id,site,job_url,job_url_direct,title,company,location,date_posted,job_type,salary_source,interval,min_amount,max_amount,currency,is_remote,job_level,job_function,listing_type,emails,description,company_industry,company_url,company_logo,company_url_direct,company_addresses,company_num_employees,company_revenue,company_description,skills,experience_range,company_rating,company_reviews_count,vacancy_count,work_from_home_type
+in-934947034af543eb,indeed,https://il.indeed.com/viewjob?jk=934947034af543eb,https://elbitsystemscareer.com/job/?jid=21100,Software Engineer student position,אלביט מערכות,"חולון, TA, Israel",2026-10-13,,,,,,,False,,,,,"###### **מזהה דרישה: 7255**
+
+###### **מיקום: חולון**
+
+**תיאור המשרה**
+---------------
+
+We are looking for a **Software Engineering student** to join our engineering team in Holon
+
+The role focuses on defining, designing, reviewing, and integrating software tools for engineering and laboratory environments
+
+You will work closely with system engineers, R&D teams, and software developers
+
+**Responsibilities**
+
+Design technical solutions and workflows for engineering software tools, supported by modern AI-assisted development methods
+
+Define software requirements and acceptance criteria
+
+Design interfaces, APIs, data formats, and integration methods
+
+Review software tools against their requirements and identify architectural, integration, performance, and usability gaps
+
+Support application integration, testing, and debugging in engineering and laboratory environments
+
+**Requirements**
+
+Second-year Software Engineering student
+
+Certified Practical Software Engineer with relevant development experience – an advantage
+
+Good knowledge of Python and software-design principles
+
+Knowledge of client-server architecture, REST APIs, and service integration
+
+Familiarity with Linux, Git, and server environments
+
+Ability to read and write technical documentation in English
+
+Ability to work effectively with system engineers, R&D teams, and software developers
+
+Ability to learn new technologies and complete assigned tasks independently
+
+Availability for two to three working days per week
+
+**Advantages**
+
+Projects involving backend systems, data pipelines, or distributed applications
+
+Familiarity with databases, big-data concepts, and S3-compatible object storage
+
+Familiarity with Docker, CI/CD, message queues, caching, or containerized services
+
+Practical use of AI-assisted tools for software design, requirements analysis, coding, testing, and documentation
+
+Only qualified candidates will be contacted\*",,https://il.indeed.com/cmp/%D7%90%D7%9C%D7%91%D7%99%D7%98-%D7%9E%D7%A2%D7%A8%D7%9B%D7%95%D7%AA,,,,,,,,,,,,
+in-5e5343194d73c856,indeed,https://il.indeed.com/viewjob?jk=5e5343194d73c856,https://grnh.se/g356qjtf1us,Developer Support Engineer,JFrog,"נתניה, M, Israel",2026-10-13,,,,,,,False,,,,,"At JFrog, we're reinventing DevSecOps to help the world's greatest companies innovate. Our team of industry-leading software security experts is a true pioneer, constantly pushing the boundaries with original research and technological innovation. JFrog is a special place with a unique combination of brilliance, spirit, and just all-around great people. Thousands of customers, including the majority of the Fortune 100, trust JFrog to manage, accelerate, and secure their software delivery from code to production – a concept we call ""liquid software"". Wouldn't it be amazing if you could join us on our journey?  
+  
+We are looking for top-notch Developer Support Engineers, to be partners rather than just employees and be the technical focal point for JFrog customers.
+
+##### **As a Developer Support Engineer at JFrog you will...**
+
+* Troubleshoot and investigate complex customer CI/CD scenarios and provide innovative solutions for their requirements
+* Develop scripts in Bash, Python, and Groovy for debugging and automating
+* Set up JFrog applications and 3rd party products in various development environments
+* Analyze log files, thread dumps, HTTP traffic, JVM and OS parameters
+* Reproduce customer scenarios and fill relevant bugs/features
+* Maintain and improve a knowledge base of known issues and solutions
+* Integrate and collaborate with JFrog's R&D, QA, Release and Sales teams
+* Availability to work flexible hours and weekends when needed
+
+##### **To be a Developer Support Engineer at JFrog you need…**
+
+* B.Sc. or equivalent in Computer Science, Computer Engineering, or a related technical field
+* 2+ years of hands-on experience in technical roles (e.g., Tier 3 Support, NOC, Production Engineer, or Junior DevOps/SRE)
+* Proven ability to manage complex, escalated cases involving multiple architectures across multiple platforms
+* Deep experience in Linux (Systems Administration, Bash scripting, file systems).
+* Strong technical software-related debugging skills (Log analysis, root cause analysis, stack trace reading)
+* Ability to read and debug code in Java or another compiled language
+* Excellent spoken and written English
+* Knowledge/experience with: Databases (SQL), LDAP, NGINX, Apache Tomcat
+* Familiarity with the modern DevOps stack and lifecycle, including experience with CI/CD tools (Jenkins, GitHub Actions), Containerization (Docker, Kubernetes), Cloud Infrastructure (AWS/Azure), and IaC (Terraform)
+* Graduate of an advanced DevOps certification program",Internet And Software,https://il.indeed.com/cmp/Jfrog,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/0bccd928779ec155abaa08d2848d4d87,https://www.jfrog.com/,,201 to 500,,JFrog’s mission is to provide better tech and tools for the everyday use and to increase the effectiveness of the software development!,,,2.9,11.0,,
+in-0bddb682e4b13f73,indeed,https://il.indeed.com/viewjob?jk=0bddb682e4b13f73,https://elbitsystemscareer.com/job/?jid=21032,Real Time Computer Vision Developer,אלביט מערכות,"רחובות, M, Israel",2026-10-13,,,,,,,False,,,,,"###### **מזהה דרישה: 7191**
+
+###### **מיקום: רחובות**
+
+**תיאור המשרה**
+---------------
+
+Join our Computer Vision, Signal Processing and AI Group within ISTAR & EW Division at our Rehovot site and become part of a team pushing the boundaries of what's possible in defense technology
+
+We're seeking a strong real-time/signal processing software developer familiar with the implementation of computer vision algorithms. Our systems require the efficient and reliable implementation of advanced algorithms, pushing far beyond the publicly known algorithmic solutions - this is your opportunity to make a real impact
+
+Implement and optimize algorithms for real-time processing in operational environments
+
+Collaborate with system engineering and software development teams to integrate solutions
+
+Perform deep operations-research of algorithms as they operate on real and synthetic data
+
+Contribute to system-level understanding and integration of complex solutions
+
+**Requirements**
+
+B.Sc. in Computer Science, Computer Engineering, or a related field from a recognized university
+
+At least 5 years of hands-on C++ programming experience, including optimization for parallel processing
+
+At least 3 years of hands-on experience in Embedded or Edge computing environments, particularly Embedded Linux
+
+Practical experience in deep learning frameworks and model implementation
+
+High-level communication skills and ability to work effectively in multi-interface environments
+
+Ability to manage multiple concurrent projects and tasks
+
+Experience with standard development tools: Git, GitHub Copilot, and Jira
+
+Experience working with hardware peripherals such as FPGA and PCIe devices - advantage
+
+Experience with Gen-AI based code generation, optimization and testing - advantage
+
+Significant experience in image processing algorithm implementation - advantage
+
+Expertise in writing and optimizing substantial codebases using CUDA - advantage
+
+Experience deploying deep learning models using TensorRT or ONNX Runtime - advantage
+
+Proficiency in Python - advantage
+
+* Only relevant applications will be answered
+
+#Rehovot",,https://il.indeed.com/cmp/%D7%90%D7%9C%D7%91%D7%99%D7%98-%D7%9E%D7%A2%D7%A8%D7%9B%D7%95%D7%AA,,,,,,,,,,,,
+in-2eaeea1efb0b97e8,indeed,https://il.indeed.com/viewjob?jk=2eaeea1efb0b97e8,https://jobs.eu.lever.co/mobileye/4445a729-d5ec-4ae4-b1f6-5bea979b4dce?lever-source=Indeed,Algorithm Developer - Vision Algorithms,Mobileye,"ירושלים, JM, Israel",2026-10-12,,,,,,,False,,,,,"Mobileye is seeking an Algorithm Developer to solve real-world problems using Computer Vision and Signal Processing.
+
+The role involves developing and maintaining algorithms in Python and C++, with a focus on both existing products and new features.
+
+You'll work hands-on throughout the process, from research to production, collaborating with other teams.
+
+The position has a direct impact on autonomous driving technologies and saving lives.
+
+### **What will your job look like:**
+
+* A combination of algorithm development and production software engineering
+* Development in both C++ and Python
+* Maintaining the product and developing new features and algorithms to meet evolving perception needs
+* Validating your work using metrics and tests on real-world data
+
+### **All you need is:**
+
+* B.Sc. in Computer Science or equivalent; M.Sc. is an advantage
+* 2+ years of hands-on software or algorithm engineering experience
+* Excellent C++ and Python skills with strong software-engineering foundations
+* Familiarity with computer vision or signal processing (academic or industry)
+* Familiarity with ML workflows (datasets, training, evaluation) — an advantage
+* Strong ownership, independent problem-solving, and cross-team collaboration skills
+
+Mobileye changes the way we drive, from preventing accidents to semi and fully autonomous vehicles. If you are an excellent, bright, hands-on person with a passion to make a difference come to lead the revolution!
+
+We may use artificial intelligence (AI) tools to support parts of the hiring process, such as reviewing applications, analyzing resumes, or assessing responses and identifying potential inconsistencies or verification signals in application materials based on available information. These tools assist our recruitment team but do not replace human judgment. Final hiring decisions are ultimately made by humans. If you would like more information about how your data is processed, please contact us.",,https://il.indeed.com/cmp/Mobileye,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/e1d7e8a477a7bb529e0d41adc6e726b8,https://www.mobileye.com,"Jerusalem, IS",201 to 500,$25M to $100M (USD),,,,4.0,2.0,,
+in-2a4f6ded8fd5d83e,indeed,https://il.indeed.com/viewjob?jk=2a4f6ded8fd5d83e,http://www.jobnet.co.il/positionresults.aspx?returned=true&positionid=13521453,Backend Developer,SQLink Group,"רעננה, M, Israel",2026-10-12,,,,,,,False,,,,,"Backend Developer עבור חברה טכנולוגית באזור תל אביב התפקיד כולל: עבודה עם/ב-Backend לפיתוח מערכות לעיבוד כמויות מידע גדולות, בנייה ואופטימיזציה של Data Pipelines, פיתוח תהליכי AI ו-Agentic Workflows, עבודה עם פלטפורמות Data מתקדמות, פתרונות Cloud ו-Private Cloud, וכן עבודה ישירה מול לקוחות ומפעילי פלטפורמות בסביבות Cloud ו-On-Premise ועוד. - שנתיים ניסיון כ-Backend Developer ב-Python ו-Node.js - ניסיון בעבודה עם Relational Databases ו-SQL - ניסיון בסביבות Cloud, עדיפות ל-AWS -יתרון - ניסיון עם Snowflake ו/או Databricks, AI או Agentic Workflows – יתרון - תואר ראשון במדעי המחשב, Data Science או תחום טכנולוגי רלוונטי",,https://il.indeed.com/cmp/Sqlink-Group,,,,,,,,,,,,
+in-5035de6f45d191c0,indeed,https://il.indeed.com/viewjob?jk=5035de6f45d191c0,https://www.ibi.co.il/career/developer-bi-junior/,Junior BI Developer,IBI בית השקעות,"תל אביב -יפו, TA, Israel",2026-10-08,,,,,,,False,,,,,"**איך ייראה היומיום שלכם בתפקיד?**
+----------------------------------
+
+**IBI** **מחפשת מפתח/ת** **BI** **ג’וניור/ית** עם כשנתיים ניסיון, יכולות טכניות חזקות ומוטיבציה גבוהה ללמידה ולהתפתחות מקצועית.
+
+* פיתוח ותחזוקה של דוחות ודשבורדים ב-Power BI לצורך ניתוח נתונים, הפקת תובנות ותמיכה בקבלת החלטות.
+* אופטימיזציה של שאילתות ותהליכי Dataלהבטחת ביצועי מערכת גבוהים.
+* אינטגרציה של נתונים ממערכות מקור מגוונות לסביבת ה-BI הארגונית.
+* תמיכה ושיפור תהליכי דיווח ואנליטיקה עבור צוותים פנימיים ומנהלי פרויקטים.
+* עבודה צמודה עם גורמים עסקיים וטכנולוגיים לצורך הבנת צרכים ותרגומם לפתרונות BI.
+
+**מה חשוב לנו?**
+----------------
+
+* תואר ראשון רלוונטי – מדעי המחשב / הנדסת תעשייה וניהול / מערכות מידע / הנדסת תוכנה.
+* שנתיים ניסיון בתפקיד BI Developer.
+* ניסיון מעשי בעבודה עם Power BI.
+* שליטה ב-SQL כולל כתיבת שאילתות מורכבות וניתוח נתונים – חובה.
+* ניסיון או היכרות עם סביבת Data Warehouse (DWH) – יתרון.
+* ניסיון או היכרות עם Python או dbt – יתרון.
+
+**צריך שתביאו אתכם גם...**
+--------------------------
+
+* חשיבה אנליטית חזקה
+* ירידה לפרטים
+* תקשורת בין אישית גבוהה
+* רצון ויכולת ללמוד ולהתפתח",,https://il.indeed.com/cmp/Ibi-%D7%91%D7%99%D7%AA-%D7%94%D7%A9%D7%A7%D7%A2%D7%95%D7%AA,,,,,,,,,,,,
+in-00b5a41919e29b3a,indeed,https://il.indeed.com/viewjob?jk=00b5a41919e29b3a,https://jobs.eu.lever.co/mobileye/83504cce-0f0c-4893-8c09-c9a21a3aeaa5?lever-source=Indeed,Data Analyst – Automotive Lighting Systems - Temporary position for 9 months,Mobileye,"ירושלים, JM, Israel",2026-10-08,,,,,,,False,,,,,"Are you passionate about cutting-edge technology, data-driven decision making, and making a real impact on road safety?
+
+Join our innovative team and help power the next generation of smart automotive lighting systems.
+
+As a Data Analyst on the team, you will evaluate the performance of the technology that decides how millions of vehicles light the road at night.
+
+You will analyze large-scale night-drive data, investigate system behavior, generate actionable insights, and develop tools that improve analysis processes and operational efficiency.
+
+You will work closely with algorithm developers, software engineers, and product teams to ensure high reliability, strong data quality, and scalable workflows, and to make sure our performance holds up in real world and regulatory scenarios.
+
+This role includes designing solutions and AI-driven tools that help streamline processes, reduce manual work, and improve the productivity of our analysis and data production environment.
+
+The role also requires conducting in-depth investigations developing AI-powered analysis tools, extracting actionable insights from complex data, and translating these findings into recommendations that drive improvements in our technology and products.
+
+  
+
+**Temporary position for 9 months**
+
+### **What will your job look like:**
+
+* Analyze large-scale night-driving datasets to evaluate the performance of our lighting technology, own and evolve the KPI picture, false-positive and false-negative rates, mean time and distance between false events, over a labeled scene catalog spanning countries, road types and weather conditions.
+* Investigate complex issues down to a specific frame, light source or classifier decision, identify root causes, and provide actionable insights to the algorithm and software teams.
+* Develop AI-powered tools and automation solutions to improve analysis efficiency and shorten the path from a failed drive to an understood root cause.
+* Support product and algorithmic decisions through data-driven analysis, including regression analysis between versions and validation of new developments before release.
+* Define and refine the data we need: labeling requests, scenario coverage, and edge cases, and monitor the quality of what comes back.
+* Collaborate with algorithm, software, research and product teams to validate new developments and verify regulatory scenarios.
+* Present findings and recommendations through clear reports, dashboards and summaries.
+
+### **All you need is:**
+
+* B.Sc. in Industrial Engineering, Data Science, mathematics, physics etc.
+* 2+ years of experience in data analysis, research, or a similar analytical role
+* Strong technical ability, and scripting abilities
+* Experience in using AI tools
+* Fluent English.
+* Hands-on experience with Python - an advantage.
+* Familiarity with AI tools, machine learning concepts, or data-driven technologies - an advantage.
+* Experience analyzing perception, computer vision, or sensor-based systems - an advantage.
+
+Mobileye changes the way we drive, from preventing accidents to semi and fully autonomous vehicles. If you are an excellent, bright, hands-on person with a passion to make a difference come to lead the revolution!
+
+We may use artificial intelligence (AI) tools to support parts of the hiring process, such as reviewing applications, analyzing resumes, or assessing responses and identifying potential inconsistencies or verification signals in application materials based on available information. These tools assist our recruitment team but do not replace human judgment. Final hiring decisions are ultimately made by humans. If you would like more information about how your data is processed, please contact us.",,https://il.indeed.com/cmp/Mobileye,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/e1d7e8a477a7bb529e0d41adc6e726b8,https://www.mobileye.com,"Jerusalem, IS",201 to 500,$25M to $100M (USD),,,,4.0,2.0,,
+in-a6b05fb4ff472bd8,indeed,https://il.indeed.com/viewjob?jk=a6b05fb4ff472bd8,https://careers.google.com/jobs/results/134469159198040774-junior-cad-engineer/,"Junior CAD Engineer, University Graduate, Google Cloud",Google,"חיפה, HA, Israel",2026-10-07,,,,,,,False,,,,,"In most instances, this position requires in-person interviews as part of the hiring process.  
+Note: By applying to this position you will have an opportunity to share your preferred working location from the following: **Tel Aviv, Israel; Haifa, Israel**.
+
+### **Minimum qualifications:**
+
+* Bachelor’s degree in Electrical Engineering, Computer Science, or equivalent practical experience.
+* Experience with coding and scripting (e.g. Perl, TCL, or Python), or similar.
+
+  
+
+### **Preferred qualifications:**
+
+* 1 year of experience with software development in one or more programming languages, and with data structures and algorithms.
+* 1 year of experience building developer tools that improve developer velocity, code quality and code health (e.g., compilers, automated).
+* 1 year of experience testing, maintaining, or launching software products.
+
+**About the job**
+-----------------
+
+Be part of a team that pushes boundaries, developing custom silicon solutions that power the future of Google's direct-to-consumer products. You'll contribute to the innovation behind products loved by millions worldwide. Your expertise will shape the next generation of hardware experiences, delivering unparalleled performance, efficiency, and integration.
+
+As a CAD Engineer, you will drive the architecture, development, and optimization of hardware design flows and infrastructure. You will collaborate with silicon design, verification, and architecture teams to build robust front-end CAD tooling, automated workflows and continuous integration/presubmit frameworks. In this role, you will address complex hardware design technology challenges, streamline CAD workflows for high-impact silicon projects, and ensure high quality and scalability across global engineering teams.
+
+The ML, Systems, & Cloud AI (MSCA) organization at Google designs, implements, and manages the hardware, software, machine learning, and systems infrastructure for all Google services (Search, YouTube, etc.) and Google Cloud. Our end users are Googlers, Cloud customers and the billions of people who use Google services around the world.
+
+We prioritize security, efficiency, and reliability across everything we do - from developing our latest TPUs to running a global network, while driving towards shaping the future of hyperscale computing. Our global impact spans software and hardware, including Google Cloud’s Vertex AI, the leading AI platform for bringing Gemini models to enterprise customers.
+
+**Responsibilities**
+--------------------
+
+* Work with partner teams to provide the compute, storage and methodology needs of the chip design, verification and physical design teams.
+* Design and implement CAD tools, solutions and methodologies for ASIC development.
+* Create software solutions that improve the hardware design process through automation.
+* Propose, design and implement software automation that directly addresses bottlenecks in today's ASIC and SoC EDA flow.
+* Leverage AI to both speed the development of tools and development flows, providing more natural and higher-efficiency ways for users to interact with developed technologies.
+
+Google is proud to be an equal opportunity workplace and is an affirmative action employer. We are committed to equal employment opportunity regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity or Veteran status. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. See also Google's EEO Policy and EEO is the Law. If you have a disability or special need that requires accommodation, please let us know by completing our Accommodations for Applicants form.",,https://il.indeed.com/cmp/Google,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/d778456838f54580d43f7dd78b3b0d9c,http://goo.gle/3ygdkgv,"Mountain View, CA","10,000+",more than $10B (USD),Our mission is to organize the world’s information and make it universally accessible and useful. ,,,4.3,6277.0,,

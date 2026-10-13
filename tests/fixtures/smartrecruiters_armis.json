@@ -1,0 +1,307 @@
+{
+ "offset": 0,
+ "limit": 100,
+ "totalFound": 2,
+ "content": [
+  {
+   "id": "743999654168811",
+   "name": "QA Team Leader",
+   "uuid": "6a9450df-c3be-4eb6-b167-965c111d84e9",
+   "jobAdId": "d1feb85e-22da-41af-b201-a46d808b8199",
+   "defaultJobAd": true,
+   "refNumber": "REF3U",
+   "company": {
+    "identifier": "Armis",
+    "name": "Armis"
+   },
+   "releasedDate": "2017-06-26T09:36:21.000Z",
+   "location": {
+    "city": "Tel Aviv-Yafo",
+    "region": "Tel Aviv District",
+    "country": "il",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "32.0852999",
+    "longitude": "34.78176759999997",
+    "fullLocation": "Tel Aviv-Yafo, Tel Aviv District, Israel"
+   },
+   "industry": {
+    "id": "computer_and_network_security",
+    "label": "Computer And Network Security"
+   },
+   "department": {},
+   "function": {
+    "id": "quality_assurance",
+    "label": "Quality Assurance"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "director",
+    "label": "Director"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "il",
+     "valueLabel": "Israel"
+    },
+    {
+     "fieldId": "5950d433e4b03cda1604b5f6",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Armis"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/armis/postings/743999654168811",
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  },
+  {
+   "id": "743999654168337",
+   "name": "DevOps Engineer",
+   "uuid": "c50ac415-ba80-47fd-bfc1-acb860b3dcb9",
+   "jobAdId": "0d5eed04-d707-492b-be89-a40a2faf0352",
+   "defaultJobAd": true,
+   "refNumber": "REF2S",
+   "company": {
+    "identifier": "Armis",
+    "name": "Armis"
+   },
+   "releasedDate": "2017-06-26T09:31:08.000Z",
+   "location": {
+    "city": "Tel Aviv-Yafo",
+    "region": "Tel Aviv District",
+    "country": "il",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "32.0852999",
+    "longitude": "34.78176759999997",
+    "fullLocation": "Tel Aviv-Yafo, Tel Aviv District, Israel"
+   },
+   "industry": {
+    "id": "computer_and_network_security",
+    "label": "Computer And Network Security"
+   },
+   "department": {},
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "not_applicable",
+    "label": "Not Applicable"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "il",
+     "valueLabel": "Israel"
+    },
+    {
+     "fieldId": "5950d433e4b03cda1604b5f6",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Armis"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/armis/postings/743999654168337",
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  }
+ ],
+ "details": {
+  "743999654168811": {
+   "id": "743999654168811",
+   "name": "QA Team Leader",
+   "uuid": "6a9450df-c3be-4eb6-b167-965c111d84e9",
+   "jobId": "311b3485-d967-48a3-85d6-289ef3ecda79",
+   "jobAdId": "d1feb85e-22da-41af-b201-a46d808b8199",
+   "defaultJobAd": true,
+   "refNumber": "REF3U",
+   "company": {
+    "name": "Armis",
+    "identifier": "Armis"
+   },
+   "location": {
+    "city": "Tel Aviv-Yafo",
+    "region": "Tel Aviv District",
+    "country": "il",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "32.0852999",
+    "longitude": "34.78176759999997",
+    "fullLocation": "Tel Aviv-Yafo, Tel Aviv District, Israel"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "il",
+     "valueLabel": "Israel"
+    },
+    {
+     "fieldId": "5950d433e4b03cda1604b5f6",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Armis"
+    }
+   ],
+   "releasedDate": "2017-06-26T09:36:21.000Z",
+   "creator": {
+    "name": "",
+    "avatarUrl": ""
+   },
+   "postingUrl": "https://jobs.smartrecruiters.com/Armis/743999654168811-qa-team-leader",
+   "applyUrl": "https://jobs.smartrecruiters.com/Armis/743999654168811-qa-team-leader?oga=true",
+   "referralUrl": "https://jobs.smartrecruiters.com/external-referrals/company/Armis/publication/6a9450df-c3be-4eb6-b167-965c111d84e9?dcr_ci=Armis",
+   "jobAd": {
+    "sections": {
+     "companyDescription": {
+      "title": "Company Description",
+      "text": "<p>...</p>"
+     },
+     "jobDescription": {
+      "title": "Job Description",
+      "text": "<p>...</p>"
+     },
+     "qualifications": {
+      "title": "Qualifications",
+      "text": "<p>...</p>"
+     },
+     "additionalInformation": {
+      "title": "Additional Information",
+      "text": ""
+     }
+    }
+   },
+   "active": true,
+   "visibility": "PUBLIC",
+   "industry": {
+    "id": "computer_and_network_security",
+    "label": "Computer And Network Security"
+   },
+   "function": {
+    "id": "quality_assurance",
+    "label": "Quality Assurance"
+   },
+   "experienceLevel": {
+    "id": "director",
+    "label": "Director"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  },
+  "743999654168337": {
+   "id": "743999654168337",
+   "name": "DevOps Engineer",
+   "uuid": "c50ac415-ba80-47fd-bfc1-acb860b3dcb9",
+   "jobId": "581da5ab-7107-4392-a1c9-c9796972d066",
+   "jobAdId": "0d5eed04-d707-492b-be89-a40a2faf0352",
+   "defaultJobAd": true,
+   "refNumber": "REF2S",
+   "company": {
+    "name": "Armis",
+    "identifier": "Armis"
+   },
+   "location": {
+    "city": "Tel Aviv-Yafo",
+    "region": "Tel Aviv District",
+    "country": "il",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "32.0852999",
+    "longitude": "34.78176759999997",
+    "fullLocation": "Tel Aviv-Yafo, Tel Aviv District, Israel"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "il",
+     "valueLabel": "Israel"
+    },
+    {
+     "fieldId": "5950d433e4b03cda1604b5f6",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Armis"
+    }
+   ],
+   "releasedDate": "2017-06-26T09:31:08.000Z",
+   "creator": {
+    "name": "",
+    "avatarUrl": ""
+   },
+   "postingUrl": "https://jobs.smartrecruiters.com/Armis/743999654168337-devops-engineer",
+   "applyUrl": "https://jobs.smartrecruiters.com/Armis/743999654168337-devops-engineer?oga=true",
+   "referralUrl": "https://jobs.smartrecruiters.com/external-referrals/company/Armis/publication/c50ac415-ba80-47fd-bfc1-acb860b3dcb9?dcr_ci=Armis",
+   "jobAd": {
+    "sections": {
+     "companyDescription": {
+      "title": "Company Description",
+      "text": "<p>...</p>"
+     },
+     "jobDescription": {
+      "title": "Job Description",
+      "text": "<p>Responsibilities<br /><br />- Build automation tools to provision environments and applications to support our development, staging, and production environments. The focus will be on improving deployments using docker and related technologies.<br />- Work across functional (development/testing, deployment, systems/infrastructure) and project teams to ensure continuous delivery<br />- Work to continuously improve speed, efficiency and scalability of software delivery<br />- Automate wherever feasible<br /></p>"
+     },
+     "qualifications": {
+      "title": "Qualifications",
+      "text": "<p>Experience and passion working in a DevOps culture</p><p><span>Excellent knowledge and extensive experience of Linux, e.g. Debian/Ubuntu</span><br /></p><p>Experience with SQL- (Postgres) databases</p><p>Experience with Jenkins or other CI tools.</p><p>Experience with virtualization stacks like qemu and kvm.</p><p>Perfect understanding of webserver technologies (Apache, nginx) and HTTP</p><p>Skills with automation, using Bash, Python and tools like Terraform, Ansible</p><p></p><p>Worked with distributed version control in Git.</p><p><span>Experience in monitoring tools such as Prometheus, Grafana, ELK.</span></p><p></p><p>Experience in tools such as Mesos, Docker<span> are considered a plus.</span></p><p></p><p></p><p></p>"
+     },
+     "additionalInformation": {
+      "title": "Additional Information",
+      "text": ""
+     }
+    }
+   },
+   "active": true,
+   "visibility": "PUBLIC",
+   "industry": {
+    "id": "computer_and_network_security",
+    "label": "Computer And Network Security"
+   },
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "experienceLevel": {
+    "id": "not_applicable",
+    "label": "Not Applicable"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  }
+ }
+}

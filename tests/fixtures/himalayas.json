@@ -1,0 +1,233 @@
+{
+ "comments": "21/08/2026: Cursor pagination is now available and is the preferred way to page through the feed. Pass the nextCursor value from each response back as ?cursor=. It is faster than offset and will never return the same job twice. The offset parameter is deprecated and will be removed in a future release. 13/03/2026: The API has been updated to include the companySlug field in the response.",
+ "updatedAt": 1791898610,
+ "offset": 0,
+ "limit": 20,
+ "totalCount": 124521,
+ "nextCursor": "MjAyNi0xMC0xM1QxMzoyOTo1MC4yMDAxNzBafDIzMzM4Njc",
+ "jobs": [
+  {
+   "title": "Summer 2027 UCD Business PMO Undergraduate Internship",
+   "excerpt": "Company :United Concordia DentalJob Description : Applicants must be authorized to work in the U.",
+   "companyName": "Highmark Health",
+   "companySlug": "highmark-health",
+   "companyLogo": "https://cdn-images.himalayas.app/hm0cxl7gpqm79vns491v5oz1s5zz",
+   "employmentType": "Intern",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Entry-level"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Business-Analyst-Intern",
+    "Project-Management-Intern",
+    "Data-Analytics-Intern",
+    "PMO-Intern",
+    "Business-Intelligence-Intern",
+    "Project-Management-Internship",
+    "Business-Operations-Internship",
+    "Project-Manager-Intern",
+    "Operations"
+   ],
+   "parentCategories": [
+    "Operations"
+   ],
+   "description": "<h3><b>Company :</b></h3>United Concordia Dental<h3><b>Job Description : </b></h3><p>Applicants must be authorized to work in the U.S. independently. At this time, we do not offer visa sponsorship for this role.</p><br><p>The <b>Summer 2027 UCD Business PMO Undergraduate Internship</b> provides students with an opportunity to gain hands-on experience supporting strategic business, automation, and artificial intelligence initiatives within the UCD Business Project Management Office (PMO). This internship is designed to develop the next generation of diverse business and technology professionals through direct exposure to project management, process automation, analytics, and AI-driven business transformation efforts.</p><p>As a member of the UCD Business PMO team, the intern will contribute to a high-impact summer project supporting the organization's Automation and Artificial Intelligence portfolio. Working alongside project leaders, business stakeholders, and technical teams, the intern will assist in identifying opportunities to enhance efficiency, streamline processes, and support the implementation of innovative solutions that drive business value.</p><br><p>The internship provides hands-on exposure to project management practices, AI use case development, business process improvement, automation technologies, and data analytics. Interns will have the opportunity to work with tools such as Microsoft Power Automate and Power BI while gaining practical experience supporting automation initiatives, business intelligence reporting, and digital transformation efforts. Additionally, the role will include supporting the translation and conversion of existing SAS programs and code into modern analytics languages such as R and Python, helping advance organizational analytics capabilities.</p><br><p>Typical responsibilities include supporting the day-to-day operating objectives of the UCD Business PMO, participating in automation and AI-related projects, assisting with project planning and coordination activities, conducting research and analysis, developing reports and dashboards, contributing to AI use case development, and providing recommendations that support operational efficiency and strategic decision-making. Through mentorship, collaboration, and project-based learning, interns will strengthen their technical, analytical, business, and project management skills while gaining valuable exposure to enterprise transformation initiatives.</p><h3>SUMMARY OF JOB RESPONSIBILITIES </h3><p>This job has the goal of providing the opportunity to acquire practical experience through direct exposure to the related business line(s) and to develop the next generation of diverse business professionals.  To that end, the program will provide hands-on training and experience in the business line, expose the various career opportunities in the business line and related areas, and prepare participants for positions in the business.</p><p>Typical responsibilities include, providing services to the day-to-day operating objectives of the assigned area, participating in projects and programs appropriate to the needs of the assigned area, participating in the planning and implementation of projects and initiatives, conducting research and reporting including recommendations or proposals for action.</p><br><h3>REQUIRED QUALIFICATIONS </h3><ul><li>Full or part-time enrollment in an accredited college or university baccalaureate program.</li></ul><br><h3>PREFERRED QUALIFICATIONS </h3><ul><li>Pursuing a degree in <b>Data Analytics, Computer Science, Management Information Systems (MIS), Business Analytics, Project Management</b>, or a related field.</li></ul><p><b>ESSENTIAL JOB FUNCTIONS </b><br>1. Communicate effectively while interacting directly with colleagues, clientele, and/or other internal or external constituencies in the planning of assignments and the resolution of day-to-day operational problems. </p><br><p>2. Under supervision, provide entry-level professional services as appropriate to the day-to-day operating objectives of the area.  Receives guidance, training, and mentoring from senior personnel in planning and carrying out activities and assignments.</p><br><p>3. Undertake and/or participates in projects and programs designed to develop professional skills and expertise appropriate to the needs of the organization. </p><br><p>4.  Participate in the planning and implementation of unit projects and initiatives within area of expertise and ability. </p><br><p>5. As specifically requested by management, conduct research and reporting inclusive of recommendations or alternative proposals for action. </p><br><p>6. Undertake related studies or enrichment programs as appropriate to the specific objectives of the operating unit. </p><br><p>7. Perform miscellaneous job-related duties as assigned. </p><p><i><b>Disclaimer: </b>The job description has been designed to indicate the general nature and essential duties and responsibilities of work performed by employees within this job title. It may not contain a comprehensive inventory of all duties, responsibilities, and qualifications required of employees to do this job.</i></p><br><p><i><b>Compliance Requirement:</b> This position adheres to the ethical and legal standards and behavioral expectations as set forth in the code of business conduct and company policies</i></p><br><p>As a component of job responsibilities, employees may have access to covered information, cardholder data, or other confidential customer information that must be protected at all times. In connection with this, all employees must comply with both the Health Insurance Portability Accountability Act of 1996 (HIPAA) as described in the Notice of Privacy Practices and Privacy Policies and Procedures as well as all data security guidelines established within the Company’s Handbook of Privacy Policies and Practices and Information Security Policy. Furthermore, it is every employee’s responsibility to comply with the company’s Code of Business Conduct. This includes but is not limited to adherence to applicable federal and state laws, rules, and regulations as well as company policies and training requirements. </p><br><h3>Pay Range Minimum:</h3><h3>Pay Range Maximum:</h3><p><i>Base pay is determined by a variety of factors including a candidate’s qualifications, experience, and expected contributions, as well as internal peer equity, market, and business considerations.  The displayed salary range does not reflect any geographic differential Highmark may apply for certain locations based upon comparative markets.</i></p><br><p><a href=\"https://himalayas.app/companies/highmark-health\">Highmark Health</a> and its affiliates prohibit discrimination against qualified individuals based on their status as protected veterans or individuals with disabilities and prohibit discrimination against all individuals based on any category protected by applicable federal, state, or local law.</p><p>California Consumer Privacy Act Employees, Contractors, and Applicants Notice</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1791898610,
+   "expiryDate": 1797082609,
+   "applicationLink": "https://himalayas.app/companies/highmark-health/jobs/summer-2027-ucd-business-pmo-undergraduate-internship",
+   "guid": "https://himalayas.app/companies/highmark-health/jobs/summer-2027-ucd-business-pmo-undergraduate-internship"
+  },
+  {
+   "title": "Growth Lead",
+   "excerpt": "We are looking for a Growth Lead to work with us remotely.",
+   "companyName": "CXG",
+   "companySlug": "cxg",
+   "companyLogo": "https://cdn-images.himalayas.app/ffkv0at7nze6qzs2d4cqd70rhhgy",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "Taiwan"
+   ],
+   "timezoneRestrictions": [
+    8
+   ],
+   "categories": [
+    "Growth-Marketing",
+    "User-Acquisition",
+    "Digital-Marketing",
+    "Recruitment-Marketing",
+    "Community-Management",
+    "Growth-Lead",
+    "Growth-Team-Lead",
+    "Growth-Marketing-Lead",
+    "Product-Growth-Lead",
+    "Head-of-Growth",
+    "Growth-and-Performance-Lead",
+    "Growth-Director",
+    "Growth-Optimization-Lead"
+   ],
+   "parentCategories": [
+    "Growth"
+   ],
+   "description": "<p>We are looking for a <strong>Growth Lead </strong>to work with us remotely. </p><h3>About Us</h3><p>Founded in 2006, <a href=\"https://himalayas.app/companies/cxg\">CXG</a> is a global customer experience uniquely positioned at the intersection of <strong>data-driven retail performance, customer experience transformation, and operational execution across 200+ luxury brands worldwide.</strong></p><p>The mission of our 270 collaborators is to help brands transform customer and employee experiences through tailored insights, strategy, and implementation. We are passionate about delivering impact.</p><p>Our clients include the world’s most admired luxury houses, and our solutions combine research, technology, and human expertise to elevate every customer interaction.</p><h3>Your role</h3><p>As <strong>Growth Lead, </strong> you lead and manage the full acquisition process for Evaluators in Japan. Your mandate is to design, test, and scale acquisition channels by blending global brand positioning with strong local adaptation across Japanese platforms, digital culture, and community engagement practices. You will combine strategic planning with hands-on execution: building local playbooks, running campaigns, owning key growth metrics. This role operates in a matrix reporting to both the local and global teams.</p><h3>Key Responsibilities:</h3><h3>1. Local Growth Strategy &amp; Planning</h3><ul>\n<li>Own the Japan growth strategy for Evaluator acquisition, aligned with profile needs and country targets.</li>\n<li>Localize global playbooks for Japanese platforms, culture, and applicable guidelines, in collaboration with relevant stakeholders.</li>\n<li>Identify, prioritize, and test new channels (campus programs, communities, influencers, niche platforms).</li>\n</ul><h3>2. Lead Generation &amp; User Acquisition</h3><ul>\n<li>Design and run multi-channel acquisition campaigns (online, offline, social, partnerships).</li>\n<li>Lead social recruiting on LINE, Instagram, TikTok and other relevant local platforms.</li>\n<li>Build and manage university, travel, and auto community programs to source qualified Evaluators.</li>\n<li>Implement direct recruitment campaigns and processes with full autonomy to design and execute strategies.</li>\n<li>Own performance and budget across channels, optimizing for volume, quality, and cost per qualified lead.</li>\n</ul><h3>3. Funnel Management &amp; Optimization</h3><ul>\n<li>Own the acquisition funnel from first touch to qualified Evaluator.</li>\n<li>Diagnose drop-offs in the funnel and partner with Operations and Growth &amp; Engagement teams to adjust targeting, messaging, and incentives.</li>\n<li>Run structured A/B tests (audiences, creatives, offers, sequencing, timing) to improve sign-up and qualification rates.</li>\n<li>Build and maintain clear, simple processes so the funnel can be scaled.</li>\n</ul><h3>4. Data, Reporting &amp; Continuous Improvement</h3><ul>\n<li>Define, track, and report on core acquisition KPIs</li>\n<li>Maintain dashboards and campaign reports; turn data into concrete next steps, not just slides.</li>\n<li>Use CRM/marketing tools (Clay, HubSpot, etc.) to structure outreach lists, automations, and follow-ups.</li>\n<li>Build repeatable playbooks and documentation so Japan can scale beyond a single operator.</li>\n</ul><h3>5. Communication &amp; Collaboration</h3><ul>\n<li>Partner closely with the Operations team to ensure a smooth handover from qualified Evaluator to first mission.</li>\n<li>Share funnel insights with Operations (profile quality, channel differences, expectations) to help them optimize activation.</li>\n<li>Develop and execute targeted communication to nurture potential Evaluators through qualification (email, messaging, content).</li>\n<li>Write clear, concise marketing and recruiting materials in English and Japanese.</li>\n<li>Take ownership of projects end-to-end, managing multiple initiatives and stakeholders at once.</li>\n</ul><h3>Requirements</h3><h3>What you bring along:</h3><ul>\n<li>Bachelor’s degree in business, marketing, communications, or related field (Master’s is a plus).</li>\n<li>3+ years in growth, recruiting, and community engagement in Japan, with clear examples of owning targets.</li>\n<li>Native-level Japanese and strong business English (written and spoken).</li>\n<li>Hands-on experience in at least two of: University/campus recruiting or Gig/platform or marketplace recruiting</li>\n<li>Experience with influencer/social media campaigns</li>\n<li>Strong analytical skills; comfortable with funnel metrics and campaign reporting.</li>\n<li>Practical experience with CRM and marketing tools (e.g., HubSpot, Zoho, Salesforce), design tools (e.g., Canva), and AI tools (e.g., ChatGPT, Midjourney, Bard).</li>\n</ul><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1791898230,
+   "expiryDate": 1797082230,
+   "applicationLink": "https://himalayas.app/companies/cxg/jobs/growth-lead",
+   "guid": "https://himalayas.app/companies/cxg/jobs/growth-lead"
+  },
+  {
+   "title": "SEO Innovation Content Specialist (Sports & iGaming Focus)",
+   "excerpt": "About Advision Development We are a growing company in the sports technology sector with a product that has achieved product-market fit.",
+   "companyName": "Advision Development",
+   "companySlug": "advision-development",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": 65000,
+   "maxSalary": 75000,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Mid-level"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "SEO",
+    "Content-Strategy",
+    "Content-Marketing",
+    "Sports-Marketing",
+    "IGaming",
+    "SEO-Content-Specialist",
+    "Content-SEO-Specialist",
+    "SEO-Content-Strategist"
+   ],
+   "parentCategories": [],
+   "description": "<p><b><strong>About <a href=\"https://himalayas.app/companies/advision-development\">Advision Development</a></strong></b></p><p>We are a growing company in the sports technology sector with a product that has achieved product-market fit. We are now investing in our core infrastructure to support future growth, and this role is central to that effort.</p><h3>About the Role</h3><p><a href=\"https://himalayas.app/companies/advision-development\">Advision Development</a> is looking for a strategic, detail-oriented SEO Innovation Content Specialist with a strong background in sports, sports betting, and iGaming to join our growing SEO innovation team. You’ll play a key role in driving organic growth through smart SEO strategies, high-quality content execution, and editorial leadership across various websites and experiments we conduct.</p><p>This role combines on-page SEO acumen with content editorial skills—perfect for someone who can identify ranking opportunities, create keyword-driven content briefs, and help build topical authority in the U.S. sports betting and online casino space.</p><p><i><b><strong>_____</strong></b></i><b><strong>_</strong></b></p><h3>Key Responsibilities</h3><ul>\n<li>Conduct keyword research and competitive analysis to identify ranking gaps and high-intent search opportunities\n</li>\n<li>Develop and execute innovative SEO content strategies for sports betting and online casino verticals\n</li>\n<li>Write, edit, and optimize content for clarity, search intent, and accuracy\n</li>\n<li>Build and manage content briefs, templates, and editorial guidelines that support SEO goals\n</li>\n<li>Collaborate with internal writers and freelance contributors to ensure content quality and consistency\n</li>\n<li>Oversee the publishing process and maintain SEO optimized practices across pages (meta tags, headers, internal linking)\n</li>\n<li>Monitor and report on keyword rankings, organic traffic performance, and user engagement\n</li>\n<li>Stay up to date with Google algorithm updates, E-E-A-T practices, and affiliate SEO trends\n</li>\n</ul><p><i><b><strong>_____</strong></b></i><b><strong>_</strong></b></p><h3>Qualifications</h3><ul>\n<li>4+ years of experience in SEO with a strong understanding of both on-page and off-page principles\n</li>\n<li>Prior experience working in sports media, sports betting, or iGaming affiliate SEO is strongly preferred\n</li>\n<li>Strong editorial and content marketing skills — must be comfortable writing and editing long-form articles\n</li>\n<li>Experience managing freelancers or content teams, and creating clear briefs/templates for outsourced work\n</li>\n<li>Proficiency with key SEO tools: Google Search Console, Ahrefs, SEMrush, Screaming Frog\n</li>\n<li>Comfortable working in WordPress or similar CMS environments\n</li>\n<li>Understanding of link-building strategy and how content supports backlink acquisition\n</li>\n<li>Bonus: Familiarity with AI tools like ChatGPT for ideation, keyword expansion, and workflow efficiency\n</li>\n<li>Bonus: Knowledge and experience with online casino-related content.\n</li>\n</ul><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1791898228,
+   "expiryDate": 1797082228,
+   "applicationLink": "https://himalayas.app/companies/advision-development/jobs/seo-innovation-content-specialist-sports-igaming-focus",
+   "guid": "https://himalayas.app/companies/advision-development/jobs/seo-innovation-content-specialist-sports-igaming-focus"
+  },
+  {
+   "title": "Sales Executive Senior, Account Executive",
+   "excerpt": "Job DescriptionWe are FIS.  Our technology powers the world’s economy and our teams bring innovation to life.",
+   "companyName": "FIS",
+   "companySlug": "fis",
+   "companyLogo": "https://cdn-images.himalayas.app/g81hzz13vz6d7me1qbemcxkiphuj",
+   "employmentType": "Full Time",
+   "minSalary": 112960,
+   "maxSalary": 162020,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Account-Executive",
+    "Sales-Executive",
+    "Enterprise-Sales",
+    "Business-Development",
+    "Fintech-Sales",
+    "Senior-Sales-Account-Executive",
+    "Senior-Sales-Executive",
+    "Senior-Account-Executive",
+    "Senior-Solutions-Sales-Executive",
+    "Senior-Account-Sales",
+    "Sales:-Account-Executives",
+    "Sales"
+   ],
+   "parentCategories": [
+    "Sales"
+   ],
+   "description": "<h3>Job Description</h3><div>\n<p>We are <a href=\"https://himalayas.app/companies/fis\">FIS</a>. Our technology powers the world’s economy and our teams bring innovation to life. We champion diversity to deliver the best products and solutions for our colleagues, clients and communities. If you’re ready to start learning, growing and making an impact with a career in fintech, we’d like to know: Are you <a href=\"https://himalayas.app/companies/fis\">FIS</a>?​</p>\n<h3>​</h3>\n<p><b>About the role:​</b></p>\n<p>As an Account Executive / Sales Executive Senior supporting Regional &amp; Community Banking clients, you’ll act as a strategic partner and primary commercial relationship owner for assigned banks. You will simplify the client journey, build executive relationships, maximize the value <a href=\"https://himalayas.app/companies/fis\">FIS</a> delivers, and grow and retain revenue for a defined book of business.​</p>\n<h3>​</h3>\n<p><b>About the team:​</b></p>\n<p>You will join a regional and community banking sales organization focused on existing <a href=\"https://himalayas.app/companies/fis\">FIS</a> clients. The team works across commercial, renewal, product and executive partners to win as one <a href=\"https://himalayas.app/companies/fis\">FIS</a> and align solutions to each client’s business objectives.​</p>\n<h3>​</h3>\n<p><b>What you will be doing:​</b></p>\n<ul>\n<li>Build deep knowledge of each client’s vision, strategy and financial objectives, then translate those insights into an account plan supporting client and <a href=\"https://himalayas.app/companies/fis\">FIS</a> goals.​</li>\n<li>Own executive and critical relationship alignment across assigned accounts, serving as the primary commercial point of contact.​</li>\n<li>Originate, develop and execute sales opportunities for <a href=\"https://himalayas.app/companies/fis\">FIS</a> products and services; cultivate new business and grow revenue over the short, medium and long term.​</li>\n<li>Partner with renewal teams and internal stakeholders to retain revenue, simplify engagement and deliver on strategic client needs.​</li>\n</ul>\n<p><b>What you will need:​</b></p>\n<ul>\n<li>Experience interacting with, influencing and partnering with senior management and executive stakeholders.​</li>\n<li>Experience as a Sales Executive, Account Executive or account manager in financial technology or financial services.​</li>\n<li>Deep knowledge of the financial services market, <a href=\"https://himalayas.app/companies/fis\">FIS</a> products and services, and the fintech competitive landscape.​</li>\n<li>Ability to collaborate in a shared-account environment, orchestrating product, renewal, delivery and executive teams to win as one <a href=\"https://himalayas.app/companies/fis\">FIS</a>.​</li>\n<li>Expert negotiation, communication and presentation skills with confidence in all levels of customer engagement.​</li>\n<li>Bachelor’s degree or equivalent relevant experience; ability to travel 15%–25%.​</li>\n</ul>\n<h3>​</h3>\n<p><b>What we offer you:​</b></p>\n<p>At <a href=\"https://himalayas.app/companies/fis\">FIS</a>, we are as committed to growing our employees’ careers as our own business. We offer:​</p>\n<h3>·Flexible work environment​</h3>\n<h3>·Opportunities to innovate in fintech​</h3>\n<h3>·Inclusive and diverse team atmosphere​</h3>\n<h3>·Professional and personal development​</h3>\n<ul>\n<li>Resources to contribute to your community​</li>\n</ul>\n<h3>·       Competitive salary and benefits​</h3>\n<p><a href=\"https://himalayas.app/companies/fis\">FIS</a> is committed to providing its employees with an exciting career opportunity and competitive compensation. The pay range for this full-time position is $112,960.00 - $162,020.00 and reflects the minimum and maximum target for new hire salaries for this position based on the posted role, level, and location. Within the range, actual individual starting pay is determined by additional factors, including job-related skills, experience, and relevant education or training. Any changes in work location will also impact actual individual starting pay. Please consult with your recruiter about the specific salary range for your preferred location during the hiring process.</p>\n</div><h3>Privacy Statement</h3><p><a href=\"https://himalayas.app/companies/fis\">FIS</a> is committed to protecting the privacy and security of all personal information that we process in order to provide services to our clients. For specific information on how <a href=\"https://himalayas.app/companies/fis\">FIS</a> protects personal information online, please see the Online Privacy Notice.</p><h3>EEOC Statement</h3><p><a href=\"https://himalayas.app/companies/fis\">FIS</a> is an equal opportunity employer. We evaluate qualified applicants without regard to race, color, religion, sex, sexual orientation, gender identity, marital status, genetic information, national origin, disability, veteran status, and other protected characteristics. The EEO is the Law poster is available here supplement document available here</p><p>For positions located in the US, the following conditions apply. If you are made a conditional offer of employment, you will be required to undergo a drug test. ADA Disclaimer: In developing this job description care was taken to include all competencies needed to successfully perform in this position. However, for Americans with Disabilities Act (ADA) purposes, the essential functions of the job may or may not have been described for purposes of ADA reasonable accommodation. All reasonable accommodation requests will be reviewed and evaluated on a case-by-case basis.</p><h3>Sourcing Model</h3><p>Recruitment at <a href=\"https://himalayas.app/companies/fis\">FIS</a> works primarily on a direct sourcing model; a relatively small portion of our hiring is through recruitment agencies. <a href=\"https://himalayas.app/companies/fis\">FIS</a> does not accept resumes from recruitment agencies which are not on the preferred supplier list and is not responsible for any related fees for resumes submitted to job postings, our employees, or any other part of our company.</p><h3>#pridepass</h3><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1791898225,
+   "expiryDate": 1797082225,
+   "applicationLink": "https://himalayas.app/companies/fis/jobs/sales-executive-senior-account-executive",
+   "guid": "https://himalayas.app/companies/fis/jobs/sales-executive-senior-account-executive"
+  },
+  {
+   "title": "Brand Designer",
+   "excerpt": "Remote (or Belgrade) – Full-Time Clay is a global design agency building world-class digital products and brands.",
+   "companyName": "Clay",
+   "companySlug": "clay",
+   "companyLogo": "https://cdn-images.himalayas.app/7j5pjdsky8qm86n3abdtr4yiojbd",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "Serbia"
+   ],
+   "timezoneRestrictions": [
+    1
+   ],
+   "categories": [
+    "Design",
+    "Brand-Design",
+    "Graphic-Design",
+    "Visual-Design",
+    "Art-Direction",
+    "Brand-Designer",
+    "Brand-Design-Specialist",
+    "Brand-Identity-Designer",
+    "Digital-Brand-Designer",
+    "Brand-Experience-Designer"
+   ],
+   "parentCategories": [
+    "Design"
+   ],
+   "description": "<p><em>Remote (or Belgrade) – Full-Time</em></p><p><a href=\"https://himalayas.app/companies/clay\">Clay</a> is a global design agency building world-class digital products and brands. Our clients include Slack, Google, Snapchat, Amazon, Coinbase, and many innovative startups. Our diverse team is located in different parts of the world, but the main locations are Europe and the USA.</p><p>We are looking for a <strong>Senior Brand Designer</strong> to join us remotely or in our office in Serbia. At <a href=\"https://himalayas.app/companies/clay\">Clay</a>, Brand Designers work closely with brand strategists and researchers to transform key brand ideas into cohesive, scalable visual solutions that help businesses grow. They collaborate with other team members to convey brand values and imagery through illustration, animation, and any digital media.</p><h3>Requirements</h3><ul>\n<li>Experience in developing a visual language for a modern brand, from key principles to documentation in an agency setting;</li>\n<li>Understanding the modern processes of brand design;</li>\n<li>Strong skills in generating concepts and the ability to develop them into a full-scale visual language;</li>\n<li>Strong knowledge of graphic, compositional, and typographical laws;</li>\n<li>Your level of the English language is Intermediate or higher;</li>\n<li>Any additional skills (typography, font design, motion design, 3D, etc.) will be a plus.</li>\n</ul><h3>Benefits</h3><ul>\n<li>Fully remote work</li>\n<li>Competitive pay with salary reviews</li>\n<li>Individual growth – personal development program for employees like English courses</li>\n<li>Wellness Benefit – reimbursement for sports, fitness, and mental health services </li>\n<li>Health Insurance – medical insurance covered by the company</li>\n<li>Paid vacation, holidays, and sick days</li>\n<li>Amazing clients ranging from top startups to leading brands</li>\n</ul><p><em><br>At <a href=\"https://himalayas.app/companies/clay\">Clay</a>, we are committed to cultivating an inclusive and equitable workplace because we recognize that diversity is fundamental to delivering the best digital products and services. Being that our team is spread across the globe, we pride ourselves on being an equal opportunity employer. We do not discriminate on the basis of race, gender, ethnicity, citizenship, national origin of employees, religion, sexual orientation, age, marital status, disability, veteran status, or any other legally protected status.</em></p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1791898220,
+   "expiryDate": 1797082220,
+   "applicationLink": "https://himalayas.app/companies/clay/jobs/brand-designer",
+   "guid": "https://himalayas.app/companies/clay/jobs/brand-designer"
+  }
+ ]
+}

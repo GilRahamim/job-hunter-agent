@@ -1,0 +1,343 @@
+{
+ "jobs": [
+  {
+   "absolute_url": "https://join.jfrog.com/job/?job=8214881&gh_jid=8214881",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 3555178,
+   "location": {
+    "name": "Sunnyvale, California, United States"
+   },
+   "metadata": [
+    {
+     "id": 141180,
+     "name": "Referral Bonus",
+     "value": "2000",
+     "value_type": "short_text"
+    },
+    {
+     "id": 53850829,
+     "name": "Posting the job on the Referral website",
+     "value": true,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 53909460,
+     "name": "Display public website",
+     "value": true,
+     "value_type": "yes_no"
+    }
+   ],
+   "id": 8214881,
+   "updated_at": "2026-10-04T01:57:48-04:00",
+   "requisition_id": "3829",
+   "title": "Accountant",
+   "company_name": "JFrog",
+   "first_published": "2026-09-23T12:42:30-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;p&gt;At JFrog, we&#39;re reinventing DevOps to help the world&#39;s greatest companies innovate — and we want you along for the ride. This is a special place with a unique combination of brilliance, spirit and just all-around great people. Here, if you&#39;re willing to do more, your career can take off. And since software plays a central role in everyone&#39;s lives, you&#39;ll be part of an important mission.&lt;/p&gt;\n&lt;p&gt;Thousands of customers, including the majority of the Fortune 100, trust JFrog to manage, accelerate, and secure their software delivery from code to production — a concept we call &quot;liquid software.&quot; Wouldn&#39;t it be amazing if you could join us in our journey?&lt;/p&gt;\n&lt;p&gt;We are looking for a detail-driven Accountant to join our Finance team and help keep the numbers behind our journey accurate, timely, and audit-ready. In this role, you&#39;ll work closely with colleagues across the organization, report to our US Controller, and play a key role in supporting our US entity — making sure the fundamentals of our business run as smoothly as our platform does.&lt;/p&gt;\n&lt;h4&gt;&lt;strong&gt;As an Accountant at JFrog you will... &lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Own daily banking activity — performing bank reconciliations and recording journal entries with a sharp eye for accuracy.&lt;/li&gt;\n&lt;li&gt;Drive our Accounts Payable payment process end to end, ensuring accuracy, timeliness, and compliance with internal controls, while resolving vendor inquiries with a helpful, can-do attitude.&lt;/li&gt;\n&lt;li&gt;Review Concur expense reports for policy compliance.&lt;/li&gt;\n&lt;li&gt;Responsible for the month-end and quarter-end close, including preparing expense accruals, recording journal entries, and reconciling balance sheet accounts.&lt;/li&gt;\n&lt;li&gt;Maintain our Fixed Asset Module in NetSuite and keep fixed asset records accurate and current.&lt;/li&gt;\n&lt;li&gt;Prepare and file annual Form 1099s, ensuring timely, accurate compliance with IRS requirements.&lt;/li&gt;\n&lt;li&gt;Support our sales tax reconciliation process.&lt;/li&gt;\n&lt;li&gt;Prepare supporting documentation for internal and external audits.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;To be an Accountant at JFrog you need...&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Bachelor&#39;s degree in Accounting, Finance, or a related field.&lt;/li&gt;\n&lt;li&gt;3+ years of experience in accounting or a related field.&lt;/li&gt;\n&lt;li&gt;A proven ability to prioritize tasks and meet deadlines in a fast-paced environment.&lt;/li&gt;\n&lt;li&gt;Excellent multi-tasking, detail-oriented, and organizational skills.&lt;/li&gt;\n&lt;li&gt;High proficiency in Microsoft Excel.&lt;/li&gt;\n&lt;li&gt;Experience with NetSuite is a plus.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;WHAT JFROG CAN OFFER…&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;At JFrog, base salary is only one component of our compensation package.&lt;/li&gt;\n&lt;li&gt;This position has a base salary range between $120k - $125k. &amp;nbsp;Base salary will be based on your skills, qualifications, experience and location.&lt;/li&gt;\n&lt;li&gt;This position also includes an equity package of restricted stock units (RSU). &amp;nbsp;In addition, JFrog employees are eligible to participate in our Employee Stock Purchase Plan.&lt;/li&gt;\n&lt;li&gt;JFrog provides employees comprehensive benefits including medical, dental, vision, retirement, wellness and much more!&lt;/li&gt;\n&lt;li&gt;JFrog embraces hybrid work: 3 days in office / 2 days remote.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;JFrog is an Equal Employment Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, creed, religion, sex, sexual orientation, national origin or nationality, ancestry, age, disability, gender identity or expression, marital status or any other category protected by law.&lt;/p&gt;",
+   "departments": [
+    {
+     "id": 39290,
+     "name": "Finance",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 25866,
+     "name": "Sunnyvale, US",
+     "location": "Sunnyvale, California, United States",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "ai_disclaimer": "<p>We use Greenhouse’s AI-powered Talent Matching tool to compare your application against our job requirements.</p>",
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8214881/ai_opt_out"
+  },
+  {
+   "absolute_url": "https://join.jfrog.com/job/?job=7480202&gh_jid=7480202",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 3319930,
+   "location": {
+    "name": "Taipei, Taiwan"
+   },
+   "metadata": [
+    {
+     "id": 141180,
+     "name": "Referral Bonus",
+     "value": "800",
+     "value_type": "short_text"
+    },
+    {
+     "id": 53850829,
+     "name": "Posting the job on the Referral website",
+     "value": true,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 53909460,
+     "name": "Display public website",
+     "value": true,
+     "value_type": "yes_no"
+    }
+   ],
+   "id": 7480202,
+   "updated_at": "2026-10-08T05:05:17-04:00",
+   "requisition_id": "3413",
+   "title": "Account Executive",
+   "company_name": "JFrog",
+   "first_published": "2025-12-22T22:48:42-05:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;p&gt;&lt;span style=&quot;text-decoration: underline;&quot;&gt;&lt;strong&gt;Job Location: Taipei, Taiwan&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Fast-Frogward Your Career to Years From Now&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;Be part of a team where your work directly shapes the way the world’s top companies build and secure their software. At JFrog, as an Account Executive, Enterprise (Taiwan) you’ll play a key role in bringing our industry-leading solutions to market, helping customers like Amazon, Google, and Netflix solve their most pressing DevSecOps and AI/ML challenges. Every day offers new opportunities to collaborate, strategize, and innovate in a fast-paced, growth-driven culture. If you thrive in a dynamic environment and want to make an impact in the world of software, JFrog is the place for you.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What you’ll be doing as an Account Executive, Enterprise:&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;In this role, you’ll be a key player in our fast-paced and highly innovative Sales team. You will:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Sell JFrog’s platform to leading Taiwan and China to Global (C2G) enterprises&lt;/li&gt;\n&lt;li&gt;Develop new business, bring in new logos by hunting across verticals directly and Via partners&lt;/li&gt;\n&lt;li&gt;Build strong relationships with key stakeholders in enterprises&lt;/li&gt;\n&lt;li&gt;Develop DevOps strategies with C-level executives, work with CISOs on their security priorities and goals&lt;/li&gt;\n&lt;li&gt;Exceed monthly, quarterly, and annual sales targets&lt;/li&gt;\n&lt;li&gt;Travel to customer locations to support sales efforts&lt;/li&gt;\n&lt;li&gt;Work closely with the SE, CS and consulting teams to achieve product adoption&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;em&gt;If you don’t meet 100% of the requirements below – that’s okay, nobody’s perfect! We believe in hiring people, not just a list of skills. We encourage you to apply if you think this is a role that would make you excited about coming to work every day.&lt;/em&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What you bring to the table:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Experience with Taiwan large enterprise customers and reseller/ecosystem of software business, especially in FSI, High-tech manufacturing, gaming industries.&lt;/li&gt;\n&lt;li&gt;Experience with C2G enterprise customers and reseller/ecosystem of software business, especially in Web3, manufacturing, e-commerce industries.&lt;/li&gt;\n&lt;li&gt;5+ years of proven experience in field of enterprise software and solutions sales, selling to end-users as well as VPs and C-level executives across multiple departments&lt;/li&gt;\n&lt;li&gt;Solid understanding and experience in managing the complete sales cycle from prospecting to closure&lt;/li&gt;\n&lt;li&gt;A good understanding of SaaS sales processes and management of key KPIs is desirable&lt;/li&gt;\n&lt;li&gt;Goal-oriented with a proven track record of consistently exceeding the sales quota in previous positions&lt;/li&gt;\n&lt;li&gt;Ability to work as part of a fast-paced team while demonstrating flexibility, reliability, and taking initiatives&lt;/li&gt;\n&lt;li&gt;Excellent written and verbal communication skills in English; ability to explain technological strategies to both end-users and decision-makers throughout organizations, including technical, business, and C-level audiences&lt;/li&gt;\n&lt;li&gt;Customer-success mentality, with a winning attitude&lt;/li&gt;\n&lt;li&gt;An energized and enthusiastic, self-motivated, competitive, creative problem-solving, relationship builder, customer-focused and highly responsive leader&lt;/li&gt;\n&lt;li&gt;Bachelor’s degree in business administration, marketing, or technical discipline; MBA is an advantage&lt;/li&gt;\n&lt;li&gt;Must have a good understanding of technology in general, understanding how to sell to technical stakeholders, especially around DevOps, security, and SaaS&lt;/li&gt;\n&lt;li&gt;This position is based in Taipei, and candidate is willing to travel to meet with customers/resellers in the region each quarter.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;About JFrog:&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;JFrog is the only end-to-end software supply chain platform that provides complete visibility, security, and control for automating the delivery of trusted releases from code to production. Our platform enables organizations to manage, secure, and automate their software delivery process, fueling innovation without worry. We empower companies to build and release software faster and more securely than ever before.&lt;/p&gt;\n&lt;p&gt;With over 7,500 customers worldwide, including many Fortune 100 companies, JFrog is at the forefront of global innovation. Join us in shaping the future of software delivery and contributing to solutions that empower some of the world&#39;s most influential industries.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Here’s what our employees have to say about working at JFrog:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;&lt;em&gt;&quot;I wanted to work in a company that takes technology forward.&quot;&lt;/em&gt;&lt;/li&gt;\n&lt;li&gt;&lt;em&gt;&quot;Our business is so interesting because it is constantly moving, and we have to adapt new solutions to the challenges that arise from the customers.&quot;&lt;/em&gt;&lt;/li&gt;\n&lt;li&gt;&lt;em&gt;&quot;It’s nice to work for a company with a must-have product, not a nice-to-have.&lt;/em&gt;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;color: rgb(255, 255, 255);&quot;&gt;#LI-REMOTE&lt;/span&gt;&lt;/p&gt;",
+   "departments": [
+    {
+     "id": 39295,
+     "name": "Sales",
+     "child_ids": [
+      81638
+     ],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 208190,
+     "name": "Remote, Taiwan",
+     "location": null,
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "ai_disclaimer": "<p>We use Greenhouse’s AI-powered Talent Matching tool to compare your application against our job requirements.</p>",
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/7480202/ai_opt_out"
+  },
+  {
+   "absolute_url": "https://join.jfrog.com/job/?job=8138480&gh_jid=8138480",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 3522306,
+   "location": {
+    "name": "Tel Aviv/ Netanya, Israel"
+   },
+   "metadata": [
+    {
+     "id": 141180,
+     "name": "Referral Bonus",
+     "value": "2000",
+     "value_type": "short_text"
+    },
+    {
+     "id": 53850829,
+     "name": "Posting the job on the Referral website",
+     "value": true,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 53909460,
+     "name": "Display public website",
+     "value": true,
+     "value_type": "yes_no"
+    }
+   ],
+   "id": 8138480,
+   "updated_at": "2026-10-04T01:57:48-04:00",
+   "requisition_id": "3762",
+   "title": "AI Solutions Builder",
+   "company_name": "JFrog",
+   "first_published": "2026-08-20T04:29:02-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;p&gt;At JFrog, we’re reinventing DevSecOps to help the world’s greatest companies innovate.&amp;nbsp;Our team of industry-leading software security experts is a true pioneer, constantly pushing the boundaries with original research and technological innovation.&amp;nbsp;JFrog is a special place with a unique combination of brilliance, spirit, and just all-around great people.&amp;nbsp;Thousands of customers, including the majority of the Fortune 100, trust JFrog to manage, accelerate, and secure their software delivery from code to production – a concept we call “liquid software”. Wouldn&#39;t it be amazing if you could join us on our journey?&lt;/p&gt;\n&lt;p&gt;Join JFrog&#39;s CIO Architect team and shape the future of AI! We&#39;re seeking a hands-on AI Solutions Builder to lead the development and implementation of enterprise-wide AI applications. In this pivotal role, you&#39;ll evaluate and deliver cutting-edge AI solutions to JFrog employees and teams across the organization. You&#39;ll spearhead AI solution projects from initial concept and gathering requirements through execution and widespread adoption, serving as the central point of contact between business, IT, and data teams. You&#39;ll also be at the forefront of the latest AI technologies.&lt;/p&gt;\n&lt;h5&gt;&lt;strong&gt;As an AI Solutions Builder at JFrog you will…&lt;/strong&gt;&lt;/h5&gt;\n&lt;ul&gt;\n&lt;li&gt;Partner directly with cross-functional and non-R&amp;amp;D teams to understand workflows, pain points, decision-making processes, manual tasks, and operational bottlenecks - diagnosing where GenAI and AI Agents can provide real, measurable value.&lt;/li&gt;\n&lt;li&gt;Translate ambiguous business problems into clear AI use cases, MVP definitions, solution designs, success metrics, and rollout plans.&lt;/li&gt;\n&lt;li&gt;Lead the lifecycle of GenAI-driven applications and Agents, transitioning rapidly from initial concept and technical feasibility to full enterprise-grade production rollouts.&lt;/li&gt;\n&lt;li&gt;Build and configure AI-powered solutions, including agentic workflows, workflow automations, RAG-based tools, decision-support tools, and integrations with internal systems.&lt;/li&gt;\n&lt;li&gt;Conduct technical audits of emerging AI technologies, leading &quot;Build vs. Buy&quot; analyses to ensure global scalability, security, and measurable value to the organization.&lt;/li&gt;\n&lt;li&gt;Run training and enablement sessions for both technical and non-technical teams, fostering a culture of AI literacy and ensuring the organization can leverage new tools effectively.&lt;/li&gt;\n&lt;li&gt;Build and evolve the Enterprise AI technology stack, continuously scouting and integrating next-generation platforms, LLM orchestration tools, and agentic frameworks.&lt;/li&gt;\n&lt;li&gt;Serve as the primary technical liaison between IS, IT, Legal, and Data teams to ensure AI solutions are securely integrated and compliant with enterprise standards.&lt;/li&gt;\n&lt;li&gt;Be a product owner of enterprise AI platforms, driving continuous solution adoption, impact measurement, and performance optimization across the organization.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h5&gt;&lt;strong&gt;To be an AI Solutions Builder at JFrog you need...&lt;/strong&gt;&lt;/h5&gt;\n&lt;ul&gt;\n&lt;li&gt;5+ years in a technical role such as software engineering, solutions engineering, automation engineering, AI engineering, business application implementation, or a similar hands-on role, including 1+ years delivering AI, GenAI, agentic, or automation solutions for business or operational users.&lt;/li&gt;\n&lt;li&gt;A clear builder track record: you have shipped tools, automations, workflows, internal products, or prototypes that people actually used.&lt;/li&gt;\n&lt;li&gt;Deep, hands-on understanding of the LLM lifecycle, including Prompt Engineering, Retrieval-Augmented Generation (RAG), fine-tuning strategies, AI agents, tool use, human-in-the-loop workflows, evaluations, and responsible AI patterns.&lt;/li&gt;\n&lt;li&gt;Proven experience in implementing Enterprise GenAI platforms (e.g., Gemini Enterprise, Claude Chat).&lt;/li&gt;\n&lt;li&gt;Hands-on experience developing agentic workflows on top of agentic framework tools like Google ADK, AgentCore, and low-code platforms (Workato)&lt;/li&gt;\n&lt;li&gt;Proven experience developing GTM-related projects, mainly around sales and marketing.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Proven knowledge of GTM best practices and technology.&lt;/li&gt;\n&lt;li&gt;Proven project management skills and a demonstrated product management mindset, including the ability to define MVPs, prioritize, separate nice-to-have ideas from high-value use cases, and measure outcomes.&lt;/li&gt;\n&lt;li&gt;Strong discovery skills with non-technical stakeholders: you can map how work happens today and redesign it around AI, automation, and human accountability.&lt;/li&gt;\n&lt;li&gt;Excellent communication skills: able to explain technical tradeoffs to business stakeholders and business context to technical teams, and to run training and enablement sessions.&lt;/li&gt;\n&lt;li&gt;Strong ownership and execution, with creative, out-of-the-box thinking: comfortable moving from ambiguous problems to working solutions, with a focus on business impact and the ability to run and react fast.&lt;/li&gt;\n&lt;li&gt;Full-stack Web development experience, along with proven mastery of coding agent tools and vibe coding best practices — an advantage.&lt;/li&gt;\n&lt;/ul&gt;",
+   "departments": [
+    {
+     "id": 39296,
+     "name": "IT",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 25868,
+     "name": "Netanya/Tel Aviv, Israel",
+     "location": null,
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "ai_disclaimer": "<p>We use Greenhouse’s AI-powered Talent Matching tool to compare your application against our job requirements.</p>",
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8138480/ai_opt_out"
+  },
+  {
+   "absolute_url": "https://join.jfrog.com/job/?job=8215981&gh_jid=8215981",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 3555639,
+   "location": {
+    "name": "Atlanta"
+   },
+   "metadata": [
+    {
+     "id": 141180,
+     "name": "Referral Bonus",
+     "value": "2000",
+     "value_type": "short_text"
+    },
+    {
+     "id": 53850829,
+     "name": "Posting the job on the Referral website",
+     "value": true,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 53909460,
+     "name": "Display public website",
+     "value": true,
+     "value_type": "yes_no"
+    }
+   ],
+   "id": 8215981,
+   "updated_at": "2026-10-04T01:57:48-04:00",
+   "requisition_id": "3828",
+   "title": "Associate Account Manager, Revenue Retention",
+   "company_name": "JFrog",
+   "first_published": "2026-09-22T13:33:10-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;p&gt;At JFrog, we’re reinventing DevOps to help the world’s greatest companies innovate -- and we want you along for the ride. This is a special place with a unique combination of brilliance, spirit and just all-around great people. Here, if you’re willing to do more, your career can take off. And since software plays a central role in everyone’s lives, you’ll be part of an important mission. Thousands of customers, including the majority of the Fortune 100, trust JFrog to manage, accelerate, and secure their software delivery from code to production -- a concept we call “liquid software.” Wouldn&#39;t it be amazing if you could join us in our journey?&lt;/p&gt;\n&lt;p&gt;We are looking for a meticulous, proactive, and collaborative to join our Renewals team.&lt;/p&gt;\n&lt;p&gt;In this role, you will be a key driver of the &quot;Liquid Software&quot; vision by ensuring our customers&#39; journey with JFrog remains seamless and uninterrupted. By mastering the renewals lifecycle, you enable the world&#39;s leading organizations to maintain their continuous delivery pipelines with confidence and speed. Your technical precision in account management ensures that the flow of innovation never stops, making you a vital architect of our customer retention and long-term success.&lt;/p&gt;\n&lt;h4&gt;&lt;strong&gt;As a Customer Retention Associate Account Manager in JFrog you will...&amp;nbsp;&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Scale the renewals process by architecting accurate quotes and opportunities across a targeted global portfolio.&lt;/li&gt;\n&lt;li&gt;Drive operational excellence by collaborating with Finance, Legal, and Deal Desk to ensure 100% contract accuracy and compliance.&lt;/li&gt;\n&lt;li&gt;Maximize customer retention by proactively managing the end-to-end renewal lifecycle within your assigned territory.&lt;/li&gt;\n&lt;li&gt;Optimize Salesforce data integrity to provide real-time visibility into renewal health and territory performance.&lt;/li&gt;\n&lt;li&gt;Accelerate business growth by identifying expansion opportunities and providing actionable insights during the renewal cycle leading with AI.&lt;/li&gt;\n&lt;li&gt;Streamline the customer experience by orchestrating high-touch communications and resolving complex back-office administrative tasks.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;To be a &lt;/strong&gt;&lt;strong&gt;Customer Retention Associate Account Manager &lt;/strong&gt;&lt;strong&gt;in JFrog you need...&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;A minimum of 4 years of relevant experience in account management, renewals, or sales operations within a SaaS environment.&lt;/li&gt;\n&lt;li&gt;Proven track record of managing high-volume portfolios and meeting tight deadlines with exceptional attention to detail.&lt;/li&gt;\n&lt;li&gt;Advanced proficiency in Salesforce (SFDC) and the MS Office Suite, particularly Excel for data tracking and reporting.&lt;/li&gt;\n&lt;li&gt;Demonstrated problem-solving skills with the ability to navigate complex internal processes and cross-functional dependencies.&lt;/li&gt;\n&lt;li&gt;Strong verbal and written communication skills to effectively engage with both internal stakeholders and external customer liaisons.&lt;/li&gt;\n&lt;li&gt;Experience in a fast-paced, high-growth technical environment where adaptability and a &quot;Froggy&quot; spirit are essential.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;WHAT JFROG CAN OFFER…&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;At JFrog, base salary is only one component of our compensation package.&lt;/li&gt;\n&lt;li&gt;This position has a base salary range between $75,000 to $90,000. &amp;nbsp;Base salary will be based on your skills, qualifications, experience and location.&lt;/li&gt;\n&lt;li&gt;Additionally, this role may be eligible for discretionary bonuses or commission payments.&lt;/li&gt;\n&lt;li&gt;This position also includes an equity package of restricted stock units (RSU). &amp;nbsp;In addition, JFrog employees are eligible to participate in our Employee Stock Purchase Plan.&lt;/li&gt;\n&lt;li&gt;JFrog provides employees comprehensive benefits including medical, dental, vision, retirement, wellness and much more!&lt;/li&gt;\n&lt;li&gt;JFrog embraces hybrid work: 3 days in office / 2 days remote.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;JFrog is an Equal Employment Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, creed, religion, sex, sexual orientation, national origin or nationality, ancestry, age, disability, gender identity or expression, marital status or any other category protected by law.&lt;/p&gt;",
+   "departments": [
+    {
+     "id": 39295,
+     "name": "Sales",
+     "child_ids": [
+      81638
+     ],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 63597,
+     "name": "Atlanta, US",
+     "location": "Georgia, United States",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "ai_disclaimer": "<p>We use Greenhouse’s AI-powered Talent Matching tool to compare your application against our job requirements.</p>",
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8215981/ai_opt_out"
+  },
+  {
+   "absolute_url": "https://join.jfrog.com/job/?job=8140207&gh_jid=8140207",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 3522951,
+   "location": {
+    "name": "Sunnyvale"
+   },
+   "metadata": [
+    {
+     "id": 141180,
+     "name": "Referral Bonus",
+     "value": "2000",
+     "value_type": "short_text"
+    },
+    {
+     "id": 53850829,
+     "name": "Posting the job on the Referral website",
+     "value": true,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 53909460,
+     "name": "Display public website",
+     "value": true,
+     "value_type": "yes_no"
+    }
+   ],
+   "id": 8140207,
+   "updated_at": "2026-10-04T01:57:48-04:00",
+   "requisition_id": "3765",
+   "title": "Associate Account Manager, Revenue Retention",
+   "company_name": "JFrog",
+   "first_published": "2026-08-24T13:13:03-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;p&gt;At JFrog, we’re reinventing DevOps to help the world’s greatest companies innovate -- and we want you along for the ride. This is a special place with a unique combination of brilliance, spirit and just all-around great people. Here, if you’re willing to do more, your career can take off. And since software plays a central role in everyone’s lives, you’ll be part of an important mission. Thousands of customers, including the majority of the Fortune 100, trust JFrog to manage, accelerate, and secure their software delivery from code to production -- a concept we call “liquid software.” Wouldn&#39;t it be amazing if you could join us in our journey?&lt;/p&gt;\n&lt;p&gt;We are looking for a meticulous, proactive, and collaborative teammate to join our Renewals team.&lt;/p&gt;\n&lt;p&gt;As an &lt;strong&gt;Associate Account Manager, Revenue Retention&lt;/strong&gt; in JFrog you will be a key driver of the “Liquid Software” vision by ensuring our customers&#39; journey with JFrog remains seamless and uninterrupted. By mastering the renewals lifecycle, you enable the world&#39;s leading organizations to maintain their continuous delivery pipelines with confidence and speed. Your technical precision in account management ensures that the flow of innovation never stops, making you a vital architect of our customer retention and long-term success.&lt;/p&gt;\n&lt;h4&gt;&lt;strong&gt;As an Associate Account Manager, Revenue Retention, in JFrog you will...&amp;nbsp;&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Scale the renewals process by architecting accurate quotes and opportunities across a targeted global portfolio.&lt;/li&gt;\n&lt;li&gt;Drive operational excellence by collaborating with Finance, Legal, and Deal Desk to ensure 100% contract accuracy and compliance.&lt;/li&gt;\n&lt;li&gt;Maximize customer retention by proactively managing the end-to-end renewal lifecycle within your assigned territory, including tracking pending signatures through to close and understanding the downstream consequences of a lapsed renewal (especially on usage-based and cloud products) well enough to create urgency with the customer without being prompted.&lt;/li&gt;\n&lt;li&gt;Optimize Salesforce data integrity to provide real-time visibility into renewal health and territory performance, recognizing that clean, current data is the direct input to the AI-driven renewal risk scoring this team runs on.&lt;/li&gt;\n&lt;li&gt;Accelerate business growth by identifying expansion opportunities and providing actionable insights during the renewal cycle using AI-assisted signal review (Gong call analysis, renewal risk scoring) to surface expansion opportunities before they show up in a standard pipeline review.&lt;/li&gt;\n&lt;li&gt;Recognize strategic deal signals and streamline the customer experience by orchestrating high-touch communications and owning contract and legal-adjacent processes end-to-end.&lt;/li&gt;\n&lt;li&gt;Approach the renewal motion as something actively evolving with AI-assisted tooling, ready to take on higher-complexity, higher-touch accounts as routine tiers become more automated.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;To be an Associate Account Manager, Revenue Retention&lt;/strong&gt;&lt;strong&gt;&amp;nbsp;&lt;/strong&gt;&lt;strong&gt;in JFrog you need...&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;A minimum of 4 years of relevant experience in account management, renewals, or sales operations within a SaaS environment.&lt;/li&gt;\n&lt;li&gt;Proven track record of managing high-volume portfolios and meeting tight deadlines with exceptional attention to detail.&lt;/li&gt;\n&lt;li&gt;Advanced proficiency in Salesforce (SFDC) and the MS Office Suite, particularly Excel, including working deal math independently: discount deltas, co-term pricing across tiers, and monthly-vs-annual savings comparisons.&lt;/li&gt;\n&lt;li&gt;Demonstrated problem-solving skills with the ability to navigate complex internal processes and cross-functional dependencies, including contract and legal workflow literacy (JSA, DPA, NDA, compliance routing).&lt;/li&gt;\n&lt;li&gt;Strong verbal and written communication skills to effectively engage with both internal stakeholders and external customer liaisons.&lt;/li&gt;\n&lt;li&gt;Experience in a fast-paced, high-growth technical environment where adaptability and a “Froggy” spirit are essential, with working depth on the JFrog platform itself (Xray, edge nodes, tiering) enough to handle a technical objection without a one-line script.&lt;/li&gt;\n&lt;li&gt;AI fluency for non-technical, customer-facing work: using AI to accelerate research and drafting, then verifying the output before treating it as finished.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;WHAT JFROG CAN OFFER…&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;At JFrog, base salary is only one component of our compensation package.&lt;/li&gt;\n&lt;li&gt;This position has a base salary range between $90,000 to $115,000. &amp;nbsp;Base salary will be based on your skills, qualifications, experience and location.&lt;/li&gt;\n&lt;li&gt;Additionally, this role may be eligible for discretionary bonuses or commission payments.&lt;/li&gt;\n&lt;li&gt;This position also includes an equity package of restricted stock units (RSU). &amp;nbsp;In addition, JFrog employees are eligible to participate in our Employee Stock Purchase Plan.&lt;/li&gt;\n&lt;li&gt;JFrog provides employees comprehensive benefits including medical, dental, vision, retirement, wellness and much more!&lt;/li&gt;\n&lt;li&gt;JFrog embraces hybrid work: 3 days in office / 2 days remote.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;JFrog is an Equal Employment Opportunity Employer. All qualified applicants will receive consideration for employment without regard to race, color, creed, religion, sex, sexual orientation, national origin or nationality, ancestry, age, disability, gender identity or expression, marital status or any other category protected by law.&lt;/p&gt;",
+   "departments": [
+    {
+     "id": 39295,
+     "name": "Sales",
+     "child_ids": [
+      81638
+     ],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 25866,
+     "name": "Sunnyvale, US",
+     "location": "Sunnyvale, California, United States",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "ai_disclaimer": "<p>We use Greenhouse’s AI-powered Talent Matching tool to compare your application against our job requirements.</p>",
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8140207/ai_opt_out"
+  }
+ ],
+ "meta": {
+  "total": 63
+ }
+}
