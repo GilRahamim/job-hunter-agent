@@ -22,6 +22,7 @@ from jobhunter.matcher import llm_score as score_with_llm
 from jobhunter.matcher import prescore as prescore_jobs
 from jobhunter.matcher import scored_row, select_for_llm
 from jobhunter.models import CandidateProfile, Job, JobMatch
+from jobhunter.notify import notify_strong_matches
 
 log = logging.getLogger(__name__)
 
@@ -183,11 +184,18 @@ def save_node(state: PipelineState) -> dict:
     return {"rows": rows, "stats": stats}
 
 
+def notify_node(state: PipelineState) -> dict:
+    if state["options"].get("dry_run"):
+        return {}
+    notify_strong_matches(state["rows"], state["config"])
+    return {}
+
+
 def build_graph():
     g = StateGraph(PipelineState)
     for name, fn in [("load_profile", load_profile_node), ("collect", collect_node),
                      ("dedupe", dedupe_node), ("filter", filter_node), ("prescore", prescore_node),
-                     ("llm_score", llm_score_node), ("save", save_node)]:
+                     ("llm_score", llm_score_node), ("save", save_node), ("notify", notify_node)]:
         g.add_node(name, fn)
     g.add_edge(START, "load_profile")
     g.add_edge("load_profile", "collect")
@@ -196,7 +204,8 @@ def build_graph():
     g.add_edge("filter", "prescore")
     g.add_conditional_edges("prescore", after_prescore, {"llm_score": "llm_score", "save": "save"})
     g.add_edge("llm_score", "save")
-    g.add_edge("save", END)
+    g.add_edge("save", "notify")
+    g.add_edge("notify", END)
     return g.compile()
 
 

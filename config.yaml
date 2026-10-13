@@ -115,6 +115,10 @@ matching:
   # Re-score jobs already in the DB when your CV changes
   rescore_on_cv_change: true
 
+notify:                    # desktop notification after a run
+  enabled: false
+  min_score: 80            # announce new jobs scoring at least this
+
 tailoring:                 # CV Tailoring Agent (second agent)
   master_cv: cv/cv_master.yaml
   template: cv/template.docx
