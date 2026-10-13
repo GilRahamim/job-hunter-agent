@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import streamlit as st
 from streamlit.testing.v1 import AppTest
 
 from jobhunter import db
@@ -9,6 +10,7 @@ DASHBOARD = Path(__file__).resolve().parent.parent / "dashboard.py"
 
 
 def _app(tmp_path, monkeypatch, jobs=()):
+    st.cache_data.clear()                       # load_jobs() is cached across tests
     path = tmp_path / "jobs.db"
     monkeypatch.setenv("JOBHUNTER_DB", str(path))
     rows = []
