@@ -3,10 +3,23 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Literal
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field
+
+_TRACKING_PARAMS = {"refid", "trackingid", "trk"}
+_COMPANY_NOISE = re.compile(
+    r"\b(ltd|inc|llc|technologies|group|israel)\b|בע\"מ|בע״מ")
+
+
+def _clean_url(url: str) -> str:
+    """Lower-case and drop tracking params (utm_*, refId, trackingId, trk)."""
+    parts = urlsplit(url.strip().lower())
+    query = [(k, v) for k, v in parse_qsl(parts.query)
+             if not k.startswith("utm_") and k not in _TRACKING_PARAMS]
+    return urlunsplit(parts._replace(query=urlencode(query), fragment=""))
 
 
 @dataclass
@@ -23,14 +36,20 @@ class Job:
 
     @property
     def id(self) -> str:
-        return hashlib.sha1(self.url.lower().encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha1(_clean_url(self.url).encode("utf-8")).hexdigest()[:16]
 
     @property
     def dedupe_key(self) -> str:
         """Normalized "company|title" — catches the same role on several boards."""
         def norm(s: str) -> str:
-            return re.sub(r"[^\w֐-׿]+", " ", s.lower()).strip()
+            s = _COMPANY_NOISE.sub(" ", s.lower())
+            return re.sub(r"[^0-9a-z֐-׿]+", "", s)
         return f"{norm(self.company)}|{norm(self.title)}"
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        d.update(id=self.id, dedupe_key=self.dedupe_key, is_remote=int(self.is_remote))
+        return d
 
     def text(self) -> str:
         return f"{self.title}\n{self.company}\n{self.description}"
