@@ -1,0 +1,134 @@
+# ============================================================
+#  Job Hunter Agent – configuration
+#  Edit this file, then run:  python run_agent.py
+# ============================================================
+
+profile:
+  # Put your CV (PDF / DOCX / TXT) inside the cv/ folder.
+  # The newest file in the folder is used automatically.
+  cv_dir: cv
+  # Language for the match explanations the LLM writes (he / en)
+  explanation_language: he
+  # Correct the CV extraction without editing the CV (optional)
+  overrides:
+    add_skills: []
+    remove_skills: []
+    # seniority: junior
+
+filters:
+  # Keep jobs located in Israel …
+  israel: true
+  # … and remote jobs that are open to candidates in Israel / EMEA / worldwide
+  remote: true
+  remote_regions_ok: [worldwide, anywhere, global, emea, europe, israel, "middle east", international]
+  # Drop titles that are clearly above your level (set to false to keep them)
+  exclude_senior: true
+  senior_keywords: [senior, "sr.", "sr ", staff, principal, lead, head of, director, manager, architect, "vp ", chief, "בכיר", "ראש צוות", "מנהל"]
+  # A job must match at least one of these (title) to count as a development / data role
+  role_keywords:
+    - developer
+    - engineer
+    - programmer
+    - software
+    - backend
+    - back-end
+    - full stack
+    - fullstack
+    - python
+    - data scientist
+    - data analyst
+    - data engineer
+    - analyst
+    - machine learning
+    - "ml "
+    - " ai "
+    - "ai "
+    - genai
+    - llm
+    - nlp
+    - computer vision
+    - algorithm
+    - "bi "
+    - automation
+    - devops
+    - "qa "
+    - research
+    - מפתח
+    - מפתחת
+    - מהנדס
+    - מהנדסת
+    - פיתוח
+    - תוכנה
+    - אנליסט
+    - דאטה
+    - אלגוריתם
+  # Titles containing these are always dropped
+  exclude_keywords: [sales, account executive, "customer success", recruiter, "talent acquisition", marketing, legal, counsel, accountant, "hr ", payroll, "office manager", nurse, driver, "technician", "מכירות", "גיוס"]
+  # Ignore postings older than this (days). Sources that give no date are kept.
+  max_age_days: 21
+
+search:
+  # Search terms used for LinkedIn / Indeed / Glassdoor / Google Jobs and remote boards
+  queries:
+    - AI Engineer
+    - GenAI Engineer
+    - LLM Engineer
+    - Machine Learning Engineer
+    - Junior Python Developer
+    - Backend Developer
+    - Software Engineer
+    - Junior Software Engineer
+    - Data Scientist
+    - Data Analyst
+    - Data Engineer
+    - Full Stack Developer
+    - Algorithm Developer
+  location: Israel
+  results_per_query: 40
+  hours_old: 168          # last 7 days
+
+sources:
+  jobspy:                  # LinkedIn, Indeed, Glassdoor, Google Jobs
+    enabled: true
+    sites: [linkedin, indeed, glassdoor, google]
+    fetch_linkedin_descriptions: false   # true = better matching but much slower
+  company_boards:          # Greenhouse / Lever / Ashby / SmartRecruiters (companies.yaml)
+    enabled: true
+  remotive:
+    enabled: true
+  remoteok:
+    enabled: true
+  himalayas:
+    enabled: true
+  arbeitnow:
+    enabled: true
+  weworkremotely:
+    enabled: true
+  serpapi_google_jobs:     # optional – needs SERPAPI_API_KEY in .env
+    enabled: false
+
+matching:
+  # How many jobs (best pre-scores first) get a full LLM evaluation each run
+  llm_top_n: 60
+  # Jobs below this pre-score are never sent to the LLM
+  min_prescore_for_llm: 15
+  # Re-score jobs already in the DB when your CV changes
+  rescore_on_cv_change: true
+
+tailoring:                 # CV Tailoring Agent (second agent)
+  master_cv: cv/cv_master.yaml
+  template: cv/template.docx
+  output_dir: data/tailored
+  cover_letter: true
+  pdf: false
+  auto_min_score: null     # e.g. 80 = tailor new strong matches automatically after each run
+  auto_max_per_run: 3
+  max_verify_retries: 2
+
+llm:
+  # provider: anthropic | openai | google_genai | ollama | none
+  # "none" = no LLM, heuristic scoring only (free, works offline)
+  provider: anthropic
+  model: claude-haiku-5-5
+  temperature: 0
+  max_workers: 6

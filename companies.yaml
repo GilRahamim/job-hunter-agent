@@ -1,0 +1,63 @@
+# Company career boards queried directly through their public ATS APIs.
+# All of these were verified as live on 2026-10-13.
+# Add a company: find its careers page — if the URL contains
+#   boards.greenhouse.io/<slug>, jobs.lever.co/<slug>, jobs.ashbyhq.com/<slug>
+#   or jobs.smartrecruiters.com/<slug>  → add <slug> under the matching ATS.
+# Run  python run_agent.py --check-companies  to validate the list.
+
+greenhouse:
+  - catonetworks
+  - similarweb
+  - wizinc
+  - payoneer
+  - appsflyer
+  - taboola
+  - jfrog
+  - nice
+  - gongio
+  - transmitsecurity
+  - via
+  - melio
+  - riskified
+  - axonius
+  - yotpo
+  - torq
+  - island
+  - saltsecurity
+  - forter
+  - apiiro
+  - safebreach
+  - optimove
+  - cymulate
+  - orcasecurity
+  - obligo
+  - guardz
+  - lightrun
+  - bigid
+  - datadog
+  - pagaya
+  - vast
+
+lever:
+  - cloudinary
+  - walkme
+
+ashby:
+  - moonactive
+  - honeybook
+  - unit
+  - lemonade
+  - snyk
+  - redis
+  - sisense
+  - sentra
+  - oligo
+
+smartrecruiters:
+  - armis
+
+# Workday: from https://{tenant}.{wd}.myworkdayjobs.com/{site}
+workday:
+  - {tenant: intel, wd: wd1, site: External}
+  - {tenant: nvidia, wd: wd5, site: NVIDIAExternalCareerSite}
+  - {tenant: marvell, wd: wd1, site: MarvellCareers}

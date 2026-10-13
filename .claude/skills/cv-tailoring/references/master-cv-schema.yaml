@@ -1,0 +1,74 @@
+# cv/cv_master.yaml — the full source the tailoring agent selects from.
+# Write MORE than fits on one page: every project, every bullet worth telling.
+# ids must be unique and stable (the tailored CV cites them).
+
+personal:
+  name: ""
+  email: ""
+  phone: ""
+  location: "Israel"
+  links:
+    github: ""
+    linkedin: ""
+    portfolio: ""
+
+summary_variants:            # starting points; the agent picks one and adapts it
+  ai: "AI engineer focused on LLM applications, RAG and agents ..."
+  backend: "Python developer ..."
+  data: "Data scientist ..."
+
+skills:                      # level: expert | strong | familiar (the agent never promotes a level)
+  languages:
+    - {name: Python, level: strong}
+    - {name: SQL, level: strong}
+  ai_ml:
+    - {name: LangGraph, level: strong}
+    - {name: PyTorch, level: familiar}
+  tools:
+    - {name: Docker, level: familiar}
+
+experience:
+  - id: exp_example
+    title: ""
+    company: ""
+    location: ""
+    start: "MM/YYYY"
+    end: "present"
+    relevant_to: [any]        # or [data, hardware, ...] — non-software roles still show reliability, process, debugging
+    bullets:
+      - id: exp_example_1
+        text: "What you did, how, and the result (number if real)."
+        tags: [python, automation]       # skills this bullet proves
+      - id: exp_example_2
+        text: ""
+        tags: []
+
+projects:
+  - id: proj_rag
+    name: "Local RAG system"
+    tech: [Python, LangChain, ChromaDB, Docker]
+    link: ""
+    date: "MM/YYYY"
+    bullets:
+      - id: proj_rag_1
+        text: "Built hybrid retrieval (BM25 + embeddings) with a reranker ..."
+        tags: [rag, embeddings, retrieval, python]
+      - id: proj_rag_2
+        text: ""
+        tags: []
+
+education:
+  - id: edu_bsc
+    degree: "B.Sc. Computer Science (Data Science track)"
+    school: ""
+    end: "YYYY"
+    details: []               # relevant courses, final project
+  - id: edu_course
+    degree: "AI Engineering (210 hours)"
+    school: ""
+    end: "YYYY"
+    details: []
+
+languages:
+  - {name: Hebrew, level: native}
+  - {name: English, level: ""}

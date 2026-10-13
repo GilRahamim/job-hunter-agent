@@ -1,0 +1,5 @@
+{
+  "name": "job-hunter-guard",
+  "version": "0.1.0",
+  "description": "Job Hunter project guard: protects .env, data/jobs.db and cv/cv_master.yaml, and runs ruff after every Python edit"
+}

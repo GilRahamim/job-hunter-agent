@@ -1,0 +1,6 @@
+{
+  "name": "job-hunter-progress",
+  "version": "0.1.0",
+  "description": "Job Hunter project band above the prompt: current build phase, last pytest result and last agent run; /phase to set the phase",
+  "types": "./types/index.d.ts"
+}

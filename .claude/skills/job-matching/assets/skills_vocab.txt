@@ -1,0 +1,135 @@
+# One skill per line: canonical name, then aliases separated by |
+# Matching is case-insensitive with word boundaries. Copy to jobhunter/skills_vocab.txt.
+# Languages
+Python|python3|py|פייתון
+Java
+JavaScript|js|ג'אווהסקריפט
+TypeScript|ts
+C++|cpp
+C#|csharp|.net|dotnet
+C
+Go|golang
+Rust
+Scala
+Kotlin
+Ruby
+PHP
+R
+SQL|t-sql|pl/sql
+Bash|shell scripting
+MATLAB
+# AI / ML
+Machine Learning|ml|למידת מכונה
+Deep Learning|dl|למידה עמוקה
+NLP|natural language processing
+Computer Vision|cv|ראייה ממוחשבת
+LLM|llms|large language models
+Generative AI|genai|gen ai
+RAG|retrieval augmented generation|retrieval-augmented generation
+AI Agents|agents|agentic|multi-agent
+Prompt Engineering
+Fine-tuning|fine tuning|finetuning|lora|qlora|peft
+Transformers
+Embeddings|vector embeddings
+Reinforcement Learning|rl
+Recommender Systems|recommendation systems
+Time Series
+MLOps
+LLMOps
+Evaluation|evals|llm evaluation
+# AI frameworks
+PyTorch|torch
+TensorFlow|tf
+Keras
+scikit-learn|sklearn|scikit learn
+XGBoost
+LightGBM
+HuggingFace|hugging face|hf transformers
+LangChain
+LangGraph
+LlamaIndex|llama index|llama-index
+OpenAI API|openai
+Anthropic API|claude api
+Ollama
+vLLM
+spaCy
+NLTK
+OpenCV
+MLflow
+Weights & Biases|wandb
+CrewAI
+AutoGen
+MCP|model context protocol
+# Vector DBs / search
+ChromaDB|chroma
+Pinecone
+Weaviate
+Qdrant
+FAISS
+Milvus
+pgvector
+Elasticsearch|elastic|opensearch
+# Data
+Pandas
+NumPy|numpy
+Spark|pyspark|apache spark
+Airflow|apache airflow
+dbt
+Kafka|apache kafka
+Databricks
+Snowflake
+BigQuery
+Redshift
+ETL|elt|data pipelines
+Data Visualization
+Tableau
+Power BI|powerbi
+Looker
+Matplotlib
+Seaborn
+Plotly
+Statistics|statistical analysis|סטטיסטיקה
+A/B Testing|ab testing|experimentation
+Excel
+# Backend / web
+FastAPI
+Flask
+Django
+Node.js|nodejs|node
+Express
+Spring|spring boot
+REST|rest api|restful
+GraphQL
+gRPC
+Microservices
+React|react.js|reactjs
+Angular
+Vue|vue.js
+Next.js|nextjs
+HTML
+CSS
+# Databases
+PostgreSQL|postgres
+MySQL
+MongoDB|mongo
+Redis
+SQLite
+DynamoDB
+Cassandra
+# Cloud / DevOps
+AWS|amazon web services
+GCP|google cloud
+Azure
+Docker
+Kubernetes|k8s
+Terraform
+CI/CD|ci cd|github actions|jenkins|gitlab ci
+Linux
+Git
+Serverless|lambda
+# Practices
+OOP|object oriented
+Data Structures|algorithms
+Unit Testing|pytest|testing
+Agile|scrum
+System Design
