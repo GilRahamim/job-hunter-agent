@@ -42,6 +42,20 @@ flowchart LR
 
 Why a separate agent and not a node in the search pipeline: different trigger (per job, on demand), different input and output, and it needs a self-correction loop (`verify → rewrite`). The two agents share only the DB. Details in the `cv-tailoring` skill.
 
+### Search agent loop (`run_agent.py --agent`)
+An opt-in alternative to the fixed pipeline (`jobhunter/agent_loop/`): a ReAct-style LangGraph loop in which the **model chooses the next action**. Tools: `get_profile`, `search_jobs(query, source)`, `read_posting(job_id)`, `save_match(job_id, score, reason)`. Goal: `agent.goal_matches` saved jobs scoring ≥ `agent.min_match_score`.
+
+```mermaid
+flowchart LR
+    S([start]) --> A[agent: model turn] -- tool calls --> T[tools]
+    T -- goal reached / step limit --> E([save + finish run])
+    T --> A
+    A -- no tool call --> N{nudge once?} -- yes --> A
+    N -- no --> E
+```
+
+Guardrails stay in code, outside the model's control: dedupe vs DB and the rule filters run inside `search_jobs` (filtered jobs are never shown to the model); budgets `max_steps` and `max_searches`; a job must be read before it is saved; tool-argument validation errors go back to the model instead of crashing; a model/provider error ends the loop but keeps what was found. Only `linkedin` (JobSpy) searches by the model's query; `company_pages` and `remote_boards` fetch their lists once per run and match the query against titles. Saved jobs get `scored_by = 'agent:<model>'`; other candidates seen are stored with their heuristic pre-score. `status`/`notes` are never written. `agent.llm` can override the model for the agent only (e.g. a local Ollama model with tool calling). Without an LLM the agent refuses to run; the fixed pipeline remains the default and the fallback.
+
 ## 3. Components
 
 | Module | Responsibility | Skill |

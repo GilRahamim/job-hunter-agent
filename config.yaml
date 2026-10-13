@@ -118,6 +118,24 @@ matching:
   # Re-score jobs already in the DB when your CV changes
   rescore_on_cv_change: true
 
+agent:                     # tool-using agent loop:  python run_agent.py --agent
+  goal_matches: 10         # stop after this many saved jobs scoring >= min_match_score
+  min_match_score: 70
+  max_steps: 30            # model turns per run (hard stop)
+  max_searches: 8          # search_jobs calls per run
+  results_per_search: 10   # results shown to the model per search
+  search_limit: 30         # LinkedIn/Indeed/Google results per agent query
+  max_posting_chars: 3000  # posting text shown by read_posting
+  sources: [linkedin, company_pages, remote_boards]
+  # Model for the agent only (must support tool calling). Local LM Studio server (OpenAI-compatible);
+  # `model` must be the identifier shown by `lms ls` / `lms load`. Use {} to use the `llm` section below.
+  # Ollama instead:  llm: {provider: ollama, model: "qwen3:8b", num_ctx: 16384}
+  llm:
+    provider: openai
+    base_url: http://localhost:1234/v1
+    model: qwen3.8-27b       # <- replace with the exact LM Studio identifier after download
+    max_tokens: 4096
+
 notify:                    # desktop notification after a run
   enabled: false
   min_score: 80            # announce new jobs scoring at least this

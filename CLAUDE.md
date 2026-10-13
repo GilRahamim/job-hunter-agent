@@ -50,6 +50,7 @@ python run_agent.py                 # full run: collect → filter → score →
 python run_agent.py --no-llm        # heuristic scoring only (free)
 python run_agent.py --sources ats,remotive --limit 50   # partial run while developing
 python run_agent.py --check-companies                   # validate companies.yaml
+python run_agent.py --agent --goal 5 --dry-run          # tool-using agent loop (jobhunter/agent_loop/)
 streamlit run dashboard.py
 pytest -q
 ```

@@ -45,6 +45,44 @@ def print_summary(state: dict, top: int) -> None:
             print(f"  {r['score']:5.1f} | {r['title']} | {r['company']} | {r['location'] or r['remote_region']}")
 
 
+def print_agent_summary(result: dict, top: int) -> None:
+    stats = result["stats"]
+    print("\n=== Agent run summary ===")
+    print(f"mode: {stats['mode']} | stopped: {stats['stop_reason']} | steps: {stats['steps']} | "
+          f"duration: {stats['duration_s']}s{' | DRY RUN (nothing saved)' if stats['dry_run'] else ''}")
+    for h in result["health"]:
+        status = f"ERROR: {h['error']}" if h["error"] else "ok"
+        print(f"  {h['source']:<16}{h['fetched']:>5} jobs  {status}")
+    print(f"searches {stats['searches']} | collected {stats['collected']} | "
+          f"new after filters {stats['kept']} | read {stats['read']}")
+    print(f"filter drops: {stats['filtered_by_reason'] or 'none'}")
+    print(f"saved matches: {stats['agent_matches']} ({stats['strong_matches']} at or above the goal score)")
+    rows = sorted((r for r in result["rows"] if r["scored_by"].startswith("agent:")),
+                  key=lambda r: r["score"], reverse=True)[:top]
+    for r in rows:
+        print(f"  {r['score']:5.1f} | {r['title']} | {r['company']} | {r['location'] or r['remote_region']}")
+        print(f"        {r['reasons']}")
+
+
+def run_agent_loop(args: argparse.Namespace) -> int:
+    from jobhunter import agent, agent_loop
+
+    try:
+        with agent.run_lock():
+            result = agent_loop.run(goal=args.goal, max_steps=args.max_steps, dry_run=args.dry_run)
+    except agent.RunLocked as e:
+        print(e)
+        return 2
+    except agent_loop.AgentUnavailable as e:
+        print(e)
+        return 1
+    except Exception as e:  # noqa: BLE001 - report and exit non-zero
+        logging.getLogger("run_agent").error("agent failed: %s", e)
+        return 1
+    print_agent_summary(result, 15)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Collect, filter and score job postings")
     parser.add_argument("--no-llm", action="store_true", help="heuristic scores only (free)")
@@ -53,6 +91,10 @@ def main() -> int:
     parser.add_argument("--rescore", action="store_true", help="re-score existing jobs against the current CV")
     parser.add_argument("--dry-run", action="store_true", help="do not write to the DB; show the top 15")
     parser.add_argument("--check-companies", action="store_true", help="validate companies.yaml and exit")
+    parser.add_argument("--agent", action="store_true",
+                        help="tool-using agent: the LLM writes the searches and picks the matches")
+    parser.add_argument("--goal", type=int, help="with --agent: matches to find (default agent.goal_matches)")
+    parser.add_argument("--max-steps", type=int, help="with --agent: model turns (default agent.max_steps)")
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -62,6 +104,8 @@ def main() -> int:
         return 0
 
     setup_logging()
+    if args.agent:
+        return run_agent_loop(args)
     from jobhunter import agent
 
     try:

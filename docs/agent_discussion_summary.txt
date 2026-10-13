@@ -1,0 +1,115 @@
+JOB HUNTER AGENT - DISCUSSION SUMMARY
+=====================================
+
+1. Is the search limited to junior jobs without experience?
+-----------------------------------------------------------
+Yes, partly. It is a filter, not a change to the search itself.
+- config.yaml: filters.max_required_years: 0 (line 26)
+  0 = drop jobs that state required years; 1 = allow "1+ year"; null = filter off.
+- The agent still collects broadly with the same queries, then drops jobs whose text
+  states required years of experience.
+- Added senior keywords: "experienced", "mid-level", "mid level" (senior, lead, staff,
+  principal etc. were already dropped).
+- Dashboard toggle "רק משרות ללא דרישת ניסיון" (on by default) hides them without deleting.
+- Of 323 saved jobs: 126 state an experience requirement, 197 do not.
+Limits:
+- A job that wants experience but never says how many years passes the filter.
+- "Group Leader" titles slip through ("leader" is not in senior_keywords yet).
+- The search queries themselves do not contain "junior" / "entry level" yet.
+
+2. How the agent works today
+----------------------------
+The LLM is NOT used for searching. Pipeline (LangGraph, fixed order):
+  1. load_profile  - read CV, LLM extracts profile (heuristic fallback without credits)
+  2. collect       - JobSpy (LinkedIn/Indeed/Google), ~40 company career pages,
+                     remote boards; fixed queries from config.yaml (no LLM)
+  3. dedupe        - drop jobs already in DB (no LLM)
+  4. filter        - location, role, seniority, age, experience (no LLM)
+  5. prescore      - free TF-IDF + skill-overlap score (no LLM)
+  6. llm_score     - top 60 by prescore go to the LLM: score, reasons, matching and
+                     missing skills, CV tip
+  7. save + notify - SQLite, Streamlit dashboard
+Why: ~3,000 jobs per run; sending all to the LLM would be slow and expensive.
+Current state: Anthropic says "credit balance too low", so step 6 fails and jobs keep
+their prescore. Search and filtering still work.
+
+3. Is it a real agent?
+----------------------
+Honest answer: no. It is a workflow (fixed sequence). The code decides every step; the
+LLM only reads the CV and judges shortlisted jobs. Without credits it is close to a
+scraper with filters and keyword scoring.
+A real agent lets the model decide the next action. Options, smallest to largest:
+  1. Model-written queries (model reads profile, writes search terms, adjusts after results)
+  2. Loop with a goal ("find N good matches", widen/change queries if too few)
+  3. Tool use (model chooses tools: search a source, open a posting, check career page)
+  4. Deeper vetting (open full posting, verify experience requirement, check company)
+Suggested for the course project: options 1 + 2 together.
+The Phase 8 tailoring agent (rewrite -> fact-check -> retry loop) is closer to a real agent.
+
+4. Building a real agent with a local LLM
+-----------------------------------------
+Fits the project: the code uses init_chat_model, so the model is a config change plus
+the langchain-ollama package. Local also removes the credit problem.
+Plan:
+- Model server: Ollama (or LM Studio).
+- Agent loop: LangGraph ReAct-style agent, model chooses tools until goal is reached.
+- Tools: search_jobs(query, source), read_posting(job_id), check_experience(job_id),
+  save_match(job_id, score, reason), get_profile().
+- Goal: "find 10 junior-friendly matches"; stops when enough found or step limit hit.
+- Safety: step limit, per-run job limit, never touch status/notes, deterministic filters
+  stay outside the model's control.
+- Code: new package jobhunter/agent_loop/, new --agent flag in run_agent.py, offline tests
+  with a scripted fake model. Existing pipeline stays as fallback.
+Hardware decides the model (must support tool calling):
+  16 GB RAM, no GPU   -> qwen3:4b / llama3.2:3b (slow, unreliable tool calls)
+  8-12 GB VRAM GPU    -> qwen3:8b / llama3.1:8b (usable)
+  16 GB+ VRAM         -> qwen3:14b or larger (good)
+Small models: keep tools few and simple, validate tool arguments.
+
+5. Open decisions / next steps
+------------------------------
+- Share RAM / GPU / VRAM (or ask Claude to check) to pick the local model.
+- Decide order: build the local-LLM agent before or after Phase 8 (CV tailoring).
+- Phase 8 still waits for the owner to finish editing cv/cv_master.yaml.
+- Optional small fixes: add "leader" to senior_keywords; add "junior"/"entry level" to
+  search queries; remove glassdoor from sources.jobspy.sites.
+- Anthropic credits still needed for real LLM scoring / profile extraction / tailoring
+  (unless the local model is used).
+
+6. Free LLM options (web search, Oct 2026 - secondary sources, verify on provider pages)
+---------------------------------------------------------------------------------------
+Some providers have free tiers, but they are capped and change often.
+  Google Gemini : free tier, Flash-class models only; Pro needs paid billing.
+                  ~10-15 requests/min; one roundup says ~100 requests/day (unconfirmed).
+  Groq          : free, limits per model (e.g. ~30 req/min, ~1,000 req/day on one model).
+                  Exact limits are in the account settings.
+  OpenRouter    : only ":free" models; ~50 req/day, rising to 1,000 after buying $10 credit.
+                  Few models are free.
+  xAI (Grok)    : unclear. Sources disagree (monthly free credits via data-sharing program
+                  vs. no standing free tier). Check console.x.ai.
+  OpenAI        : no reliable info on a free API tier found. Check the pricing page.
+None of the sources said which free models support tool calling - check each model's docs.
+
+Fit for this project:
+- Scoring ~60 jobs per run: Gemini Flash or Groq free tier should be enough (~60 calls/run).
+- Tool-calling agent loop: many calls per run, daily caps may stop a run early; a local
+  model (Ollama) has no cap but needs hardware.
+- Privacy: free tiers may use prompts for training. Prompts contain CV data (name, phone),
+  so read each provider's terms.
+
+Suggestion:
+- Use Gemini or Groq free tier for CV extraction and job scoring.
+- Add a local Ollama model later for the agent loop if hardware allows.
+- Switching provider = change llm.provider and llm.model in config.yaml (init_chat_model),
+  plus a free API key that the owner places in the private key file (Claude never touches it).
+- Open question: add Gemini and Groq as config options (one small code change + a test
+  with the fake model).
+
+Sources:
+- https://blogs.novita.ai/free-llm-api-comparison-2026/
+- https://www.costbench.com/best/best-llm-api-with-free-tier/
+- https://agentdeals.dev/gemini-api-pricing-changes
+- https://benchlm.ai/md/free-tier.md
+- https://apidog.com/blog/how-to-use-grok-for-free/
+- https://ai-toolbox.co/grok-models/grok-pricing-plans-api-2026
+- https://agentdeals.dev/alternative-to/xai

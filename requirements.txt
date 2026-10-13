@@ -9,7 +9,7 @@ requests>=2.31
 
 # LLM providers — install only the one set in config.yaml (llm.provider)
 langchain-anthropic>=0.3
-# langchain-openai
+langchain-openai>=0.3   # also the client for local LM Studio servers (agent.llm.base_url)
 # langchain-google-genai
 # langchain-ollama
 
