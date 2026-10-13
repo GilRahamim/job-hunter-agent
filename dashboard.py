@@ -30,11 +30,12 @@ HE_STATUS = {v: k for k, v in STATUS_HE.items()}
 FUNNEL = ["new", "interested", "applied", "interview", "offer"]
 VERDICT_HE = {"strong": "חזקה", "good": "טובה", "stretch": "מתיחה", "poor": "חלשה"}
 
-st.set_page_config(page_title="Job Hunter", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="Job Hunter", page_icon=":material/work_history:", layout="wide")
 
 st.markdown(f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap');
 html, body, .stApp, [class*="st-"], button, input, textarea {{ font-family: 'Heebo', sans-serif; }}
+[data-testid="stIconMaterial"], .material-icons, [class*="material-symbols"] {{ font-family: 'Material Symbols Rounded', 'Material Icons' !important; }}
 .stApp, .stMarkdown, label, .stTabs [data-baseweb="tab"], [data-testid="stSidebar"],
 [data-testid="stMetric"], .stAlert, .stButton, .stToggle {{ direction: rtl; text-align: right; }}
 [data-testid="stDataFrame"], [data-testid="stDataEditor"], code, .ltr, .js-plotly-plot {{ direction: ltr; text-align: left; }}
@@ -50,6 +51,13 @@ h1, h2, h3 {{ font-weight: 800; letter-spacing: -0.01em; color: {INK}; }}
   line-height:1; padding:.5rem .8rem; border-radius:12px; color:#fff; direction:ltr; }}
 .job-title {{ font-size:1.5rem; font-weight:800; margin:0; direction:ltr; text-align:left; }}
 .job-meta {{ color:#51636B; direction:ltr; text-align:left; margin:.1rem 0 .6rem; }}
+button, [role="tab"], [role="radio"], [data-baseweb="select"], label {{ cursor: pointer; }}
+button, [role="tab"], a {{ transition: background-color .15s ease, color .15s ease, border-color .15s ease; }}
+:focus-visible {{ outline: 3px solid {SEA}; outline-offset: 2px; border-radius: 6px; }}
+.stButton > button, .stDownloadButton > button, [data-testid="stLinkButton"] a {{ min-height: 44px; }}
+.block-container {{ padding-top: 2.2rem; }}
+@media (prefers-reduced-motion: reduce) {{ * {{ transition: none !important; animation: none !important; }} }}
+@media (max-width: 640px) {{ .score-badge {{ font-size: 1.8rem; }} .job-title {{ font-size: 1.2rem; }} }}
 .empty {{ padding:2rem; border:1px dashed #9AAAA6; border-radius:12px; text-align:center; }}
 </style>""", unsafe_allow_html=True)
 
@@ -133,14 +141,14 @@ def run_panel() -> None:
         load_jobs.clear()
         st.rerun()
     else:
-        if st.button("הרץ סוכן עכשיו", type="primary", width="stretch"):
+        if st.button("הרץ סוכן עכשיו", type="primary", width="stretch", icon=":material/play_arrow:"):
             start_run()
             st.rerun()
 
 
 def sidebar(df: pd.DataFrame) -> pd.DataFrame:
     with st.sidebar:
-        st.markdown("### 🎯 Job Hunter")
+        st.markdown("### Job Hunter")
         run_panel()
         runs = db.last_runs(1)
         if runs:
@@ -195,12 +203,12 @@ def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
     view = shown.sort_values("score", ascending=False).copy()
     view["verdict_he"] = [VERDICT_HE.get(v) or "ראשוני" for v in view["verdict"]]
     view["status_he"] = view["status"].map(STATUS_HE)
-    view["title_flag"] = [("🆕 " if n else "") + t + (" ⚠" if s else "")
+    view["title_flag"] = [("● " if n else "○ " if s else "") + t
                           for t, n, s in zip(view["title"], view["is_new"], view["stale"])]
     cols = ["score", "title_flag", "company", "where", "source", "age_days", "verdict_he", "status_he", "url"]
     table = view[cols]
     edited = st.data_editor(
-        table, hide_index=True, width="stretch", height=420, key="jobs_editor",
+        table, hide_index=True, width="stretch", height=min(560, 36 * (len(table) + 1) + 6), row_height=36, key="jobs_editor",
         disabled=[c for c in cols if c != "status_he"],
         column_config={
             "score": st.column_config.ProgressColumn("ציון", min_value=0, max_value=100, format="%d"),
@@ -217,7 +225,7 @@ def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
     if len(changed):
         st.toast("נשמר")
         refresh()
-    st.caption("⚠ = לא נראתה מעל שבועיים (ייתכן שנסגרה) · ציון 'ראשוני' = הערכה אוטומטית ללא מודל שפה")
+    st.caption("● = חדשה (24 שעות) · ○ = לא נראתה מעל שבועיים, ייתכן שנסגרה · ציון 'ראשוני' = הערכה אוטומטית ללא מודל שפה")
     detail_panel(view)
 
 
@@ -267,7 +275,8 @@ def detail_panel(view: pd.DataFrame) -> None:
 def pipeline_tab(df: pd.DataFrame) -> None:
     counts = df["status"].value_counts()
     fig = go.Figure(go.Bar(y=[STATUS_HE[s] for s in FUNNEL][::-1], x=[int(counts.get(s, 0)) for s in FUNNEL][::-1],
-                           orientation="h", marker_color=SEA, text=[int(counts.get(s, 0)) for s in FUNNEL][::-1]))
+                           orientation="h", marker_color=SEA, textposition="outside",
+                           text=[int(counts.get(s, 0)) for s in FUNNEL][::-1]))
     fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor="rgba(0,0,0,0)",
                       xaxis=dict(showgrid=False, visible=False))
     st.plotly_chart(fig, width="stretch")
@@ -278,7 +287,7 @@ def pipeline_tab(df: pd.DataFrame) -> None:
         return
     now = datetime.now(IL)
     active["since"] = active["status_updated"].map(lambda t: (now - to_il(t)).days if to_il(t) else None)
-    active["follow_up"] = active["since"].map(lambda d: "💬 לחזור אליהם" if d is not None and d > 10 else "")
+    active["follow_up"] = active["since"].map(lambda d: "לחזור אליהם" if d is not None and d > 10 else "")
     active["status_he"] = active["status"].map(STATUS_HE)
     st.dataframe(active[["title", "company", "status_he", "since", "follow_up", "url"]], hide_index=True,
                  width="stretch",
@@ -288,7 +297,8 @@ def pipeline_tab(df: pd.DataFrame) -> None:
 
 
 def bar(labels: list[str], values: list[float], color: str, height: int = 420) -> go.Figure:
-    fig = go.Figure(go.Bar(y=labels[::-1], x=values[::-1], orientation="h", marker_color=color))
+    fig = go.Figure(go.Bar(y=labels[::-1], x=values[::-1], orientation="h", marker_color=color,
+                           text=values[::-1], textposition="outside"))
     fig.update_layout(height=height, margin=dict(l=0, r=0, t=10, b=0), plot_bgcolor="rgba(0,0,0,0)",
                       xaxis=dict(showgrid=True, gridcolor=MIST))
     return fig
@@ -331,7 +341,7 @@ def sources_tab() -> None:
     health = pd.DataFrame(db.health_for_run(runs[0]["id"]))
     if health.empty:
         return
-    health["מצב"] = health["error"].map(lambda e: "⚠️ " + str(e) if e else "✅")
+    health["מצב"] = health["error"].map(lambda e: f"תקלה: {e}" if e else "תקין")
     st.dataframe(health[["source", "fetched", "duration_s", "מצב"]].rename(
         columns={"source": "מקור", "fetched": "נשלפו", "duration_s": "שניות"}), hide_index=True, width="stretch")
     hist = pd.DataFrame(db.health_history(14))
