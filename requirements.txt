@@ -26,10 +26,14 @@ docxtpl>=0.16            # tailored CV rendering from a Word template
 scikit-learn>=1.4
 
 # Dashboard
-streamlit>=1.40
+streamlit>=1.50
 plotly>=5.20
 
 # Dev
 pytest>=8.0
 responses>=0.25
 tzdata>=2024.1
+
+# Dev (dashboard compare loop)
+playwright>=1.40
+pillow>=10.0

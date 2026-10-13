@@ -26,7 +26,7 @@ def _app(tmp_path, monkeypatch, jobs=()):
 def test_empty_db_shows_friendly_message(tmp_path, monkeypatch):
     at = _app(tmp_path, monkeypatch)
     assert not at.exception
-    assert any("עוד אין משרות" in m.value for m in at.markdown)
+    assert any("עוד אין משרות" in i.value for i in at.info)
 
 
 def test_jobs_render_with_kpis(tmp_path, monkeypatch):

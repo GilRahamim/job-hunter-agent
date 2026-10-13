@@ -1,9 +1,69 @@
-[theme]
-primaryColor = "#0F766E"
-backgroundColor = "#F4F6F5"
-secondaryBackgroundColor = "#E6ECEA"
-textColor = "#16232B"
-font = "sans serif"
+# Job Hunter — Streamlit theme generated from Figma file xqkcOg1yGvJWFKwS14sEqf
+# Light  = "Sea"   (frame 2:30  "Dashboard / Jobs", variables color/*)
+# Dark   = "Night" (frame 8:27  "Variation 1 / Dark Moody Split")
+# Streamlit follows the OS light/dark setting; the user can override it in the ⋮ menu.
 
-[browser]
-gatherUsageStats = false
+[client]
+toolbarMode = "minimal"     # hide the Deploy button
+
+[theme]
+font = "Heebo:https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap"
+headingFont = "Heebo"
+baseFontSize = 15
+baseRadius = "10px"        # KPI card radius
+buttonRadius = "8px"       # Button/Primary, Button/Secondary
+showWidgetBorder = true
+showSidebarBorder = false
+metricValueFontSize = "36px"   # KPI Card value: Heebo ExtraBold 36
+metricValueFontWeight = 800
+headingFontWeights = [800, 700, 700, 600, 600, 600]
+
+[theme.light]
+primaryColor = "#0f766e"                 # color/sea
+backgroundColor = "#ffffff"              # white so data-grid rows are white; page color #f4f6f5 (color/bg) is set in theme.css
+secondaryBackgroundColor = "#e6ecea"     # color/mist
+textColor = "#16232b"                    # color/ink
+borderColor = "#d5dedb"                  # color/line
+linkColor = "#0f766e"
+dataframeBorderColor = "#d5dedb"
+dataframeHeaderBackgroundColor = "#e6ecea"
+dataframeHeaderTextColor = "#51636b"     # color/slate
+greenBackgroundColor = "#d6efea"         # color/chip-good-bg   → st.badge(color="green")
+greenTextColor = "#0b5a53"               # color/chip-good-text
+redBackgroundColor = "#f6dad6"           # color/chip-gap-bg    → st.badge(color="red")
+redTextColor = "#8e2f26"                 # color/chip-gap-text
+grayBackgroundColor = "#e6ecea"          # Chip/Plain
+grayTextColor = "#51636b"
+blueBackgroundColor = "#d6efea"          # tip box (st.info) uses the sea tint, not blue
+blueTextColor = "#0b5a53"
+chartCategoricalColors = ["#0f766e", "#51636b", "#8e2f26", "#d5dedb", "#0b5a53"]
+chartSequentialColors = ["#e6ecea", "#c2e0da", "#8fc7bd", "#4fa69a", "#0f766e", "#0b5a53"]
+
+[theme.light.sidebar]
+backgroundColor = "#e6ecea"              # Sidebar frame fill (color/mist)
+secondaryBackgroundColor = "#ffffff"     # inputs on the sidebar are white
+
+[theme.dark]
+primaryColor = "#7c3aed"                 # violet accent: score box, bars, active tab
+backgroundColor = "#11161d"              # table rows; page #0b0f14 is set in theme.css
+secondaryBackgroundColor = "#11161d"     # KPI cards, detail panel
+textColor = "#e2e8f0"
+borderColor = "#2a2f36"
+linkColor = "#a78bfa"
+dataframeBorderColor = "#2a2f36"
+dataframeHeaderBackgroundColor = "#27303c"
+dataframeHeaderTextColor = "#cbd5e1"
+greenBackgroundColor = "#0f172a"
+greenTextColor = "#93c5fd"
+redBackgroundColor = "#2a1414"
+redTextColor = "#fca5a5"
+grayBackgroundColor = "#1b222b"
+grayTextColor = "#cbd5e1"
+blueBackgroundColor = "#111a2e"
+blueTextColor = "#93c5fd"
+chartCategoricalColors = ["#7c3aed", "#a78bfa", "#fca5a5", "#475569", "#93c5fd"]
+chartSequentialColors = ["#1b222b", "#3b2a63", "#5b31a8", "#7c3aed", "#a78bfa", "#ddd6fe"]
+
+[theme.dark.sidebar]
+backgroundColor = "#0f1318"
+secondaryBackgroundColor = "#11161d"
