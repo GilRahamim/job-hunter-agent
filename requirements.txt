@@ -32,3 +32,4 @@ plotly>=5.20
 # Dev
 pytest>=8.0
 responses>=0.25
+tzdata>=2024.1

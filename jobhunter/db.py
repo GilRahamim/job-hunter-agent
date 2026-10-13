@@ -220,3 +220,38 @@ def latest_profile(path: str | Path | None = None) -> dict | None:
     if not row:
         return None
     return {"cv_hash": row["cv_hash"], "cv_file": row["cv_file"], "data": json.loads(row["data"])}
+
+
+# ---------------------------------------------------------------- dashboard helpers
+
+_TABLE_COLUMNS = ("id, source, title, company, location, is_remote, remote_region, url, date_posted, "
+                  "first_seen, last_seen, prescore, score, verdict, seniority_fit, matching_skills, "
+                  "missing_skills, scored_by, status, notes, status_updated")
+
+
+def jobs_table(path: str | Path | None = None) -> list[dict]:
+    """All jobs without the heavy description column (the dashboard table frame)."""
+    with connect(path) as con:
+        rows = con.execute(f"SELECT {_TABLE_COLUMNS} FROM jobs").fetchall()
+    return [_decode(r) for r in rows]
+
+
+def job_detail(job_id: str, path: str | Path | None = None) -> dict | None:
+    with connect(path) as con:
+        row = con.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    return _decode(row) if row else None
+
+
+def update_notes(job_id: str, notes: str, path: str | Path | None = None) -> None:
+    with connect(path) as con:
+        con.execute("UPDATE jobs SET notes = ? WHERE id = ?", (notes, job_id))
+
+
+def health_history(n_runs: int = 14, path: str | Path | None = None) -> list[dict]:
+    """Fetched counts per source for the last n runs."""
+    with connect(path) as con:
+        rows = con.execute(
+            "SELECT h.run_id, r.started, h.source, h.fetched, h.error FROM source_health h "
+            "JOIN runs r ON r.id = h.run_id WHERE h.run_id IN "
+            "(SELECT id FROM runs ORDER BY id DESC LIMIT ?) ORDER BY h.run_id", (n_runs,)).fetchall()
+    return [dict(r) for r in rows]
