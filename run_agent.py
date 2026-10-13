@@ -1,0 +1,88 @@
+"""CLI entry point of the search agent:  python run_agent.py [--no-llm] [--sources ats,remotive] ..."""
+from __future__ import annotations
+
+import argparse
+import logging
+import runpy
+import sys
+from datetime import datetime
+
+from jobhunter.config import ROOT
+
+
+def setup_logging() -> None:
+    log_dir = ROOT / "data" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s", "%H:%M:%S"))
+    file = logging.FileHandler(log_dir / f"run-{datetime.now():%Y%m%d-%H%M}.log", encoding="utf-8")
+    file.setLevel(logging.DEBUG)
+    file.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    root.handlers[:] = [console, file]
+    for noisy in ("urllib3", "httpx", "httpcore", "JobSpy", "anthropic", "langsmith", "matplotlib"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
+def print_summary(state: dict, top: int) -> None:
+    stats = state["stats"]
+    print("\n=== Run summary ===")
+    print(f"mode: {stats['mode']} | duration: {stats['duration_s']}s"
+          f"{' | DRY RUN (nothing saved)' if stats['dry_run'] else ''}")
+    for h in state["health"]:
+        status = f"ERROR: {h['error']}" if h["error"] else "ok"
+        print(f"  {h['source']:<16}{h['fetched']:>5} jobs  {status}")
+    print(f"collected {stats['collected']} | new {stats['new']} | already known {stats['known']}")
+    print(f"filter drops: {stats['filtered_by_reason'] or 'none'} -> kept {stats['kept']}")
+    print(f"scored: {stats['prescored']} (rescored {stats['rescored']}, llm {stats['llm_scored']}, "
+          f"llm failed {stats['llm_failed']})")
+    rows = sorted(state["rows"], key=lambda r: r["score"], reverse=True)[:top]
+    if rows:
+        print(f"\nTop {len(rows)}:")
+        for r in rows:
+            print(f"  {r['score']:5.1f} | {r['title']} | {r['company']} | {r['location'] or r['remote_region']}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Collect, filter and score job postings")
+    parser.add_argument("--no-llm", action="store_true", help="heuristic scores only (free)")
+    parser.add_argument("--sources", help="comma-separated collectors, e.g. ats,remotive")
+    parser.add_argument("--limit", type=int, help="cap jobs per source (per company for ats)")
+    parser.add_argument("--rescore", action="store_true", help="re-score existing jobs against the current CV")
+    parser.add_argument("--dry-run", action="store_true", help="do not write to the DB; show the top 15")
+    parser.add_argument("--check-companies", action="store_true", help="validate companies.yaml and exit")
+    args = parser.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+    if args.check_companies:
+        sys.argv = ["check_boards.py", str(ROOT / "companies.yaml")]
+        runpy.run_path(str(ROOT / "scripts" / "check_boards.py"), run_name="__main__")
+        return 0
+
+    setup_logging()
+    from jobhunter import agent
+
+    try:
+        with agent.run_lock():
+            state = agent.run(
+                no_llm=args.no_llm, limit=args.limit, rescore=args.rescore, dry_run=args.dry_run,
+                sources=[s.strip() for s in args.sources.split(",") if s.strip()] if args.sources else None)
+    except agent.RunLocked as e:
+        print(e)
+        return 2
+    except Exception as e:  # noqa: BLE001 - report and exit non-zero
+        logging.getLogger("run_agent").error("run failed: %s", e)
+        return 1
+
+    print_summary(state, 15 if args.dry_run else 10)
+    health = state["health"]
+    if health and all(h["error"] and not h["fetched"] for h in health):
+        print("\nEvery source failed.")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

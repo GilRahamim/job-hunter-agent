@@ -120,14 +120,21 @@ def upsert_jobs(rows: list[dict[str, Any]], path: str | Path | None = None) -> N
             )
 
 
-def jobs_needing_rescore(cv_hash: str, limit: int, path: str | Path | None = None) -> list[dict]:
-    """Jobs scored with a different CV version, excluding rejected / not_relevant."""
+def jobs_needing_rescore(cv_hash: str, limit: int, path: str | Path | None = None, *,
+                         force: bool = False, include_heuristic: bool = False,
+                         min_prescore: float = 0) -> list[dict]:
+    """Jobs to score again, best pre-score first, excluding rejected / not_relevant.
+
+    Default: scored with a different CV version. `force`: every job. `include_heuristic`:
+    also jobs that only have a heuristic score (use when an LLM is available now)."""
     marks = ",".join("?" * len(_HIDDEN_STATUSES))
+    stale = "1" if force else "(cv_hash IS NULL OR cv_hash != ?" +         (" OR scored_by = 'heuristic'" if include_heuristic else "") + ")"
+    params: list[Any] = [] if force else [cv_hash]
     with connect(path) as con:
         rows = con.execute(
-            f"SELECT * FROM jobs WHERE (cv_hash IS NULL OR cv_hash != ?) "
-            f"AND status NOT IN ({marks}) ORDER BY prescore DESC LIMIT ?",
-            [cv_hash, *_HIDDEN_STATUSES, limit],
+            f"SELECT * FROM jobs WHERE {stale} AND status NOT IN ({marks}) "
+            f"AND COALESCE(prescore, 0) >= ? ORDER BY prescore DESC LIMIT ?",
+            [*params, *_HIDDEN_STATUSES, min_prescore, limit],
         ).fetchall()
     return [_decode(r) for r in rows]
 
