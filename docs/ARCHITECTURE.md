@@ -3,7 +3,7 @@
 ## 1. Goal and scope
 Find every relevant development job (AI/GenAI, ML, Python/backend, full stack, data science/analysis, general software) that is either **located in Israel** or **remote and open to candidates in Israel**, rank it against the owner's CV, and present it in a dashboard that doubles as an application tracker.
 
-Non-goals (v1): auto-applying, writing cover letters automatically, multi-user support, cloud hosting.
+Non-goals (v1): auto-applying, accounts and logins, cloud hosting. Several people on one PC are supported through separate folders (§14); cover letters are written by Claude on request (§15), never sent automatically.
 
 ## 2. High-level flow
 
@@ -11,7 +11,7 @@ Non-goals (v1): auto-applying, writing cover letters automatically, multi-user s
 flowchart LR
     CV[cv/ PDF/DOCX] --> P[load_profile<br/>LLM → CandidateProfile<br/>cached by file hash]
     subgraph Collect [collect — parallel, fault-tolerant]
-        JS[JobSpy<br/>LinkedIn · Indeed · Glassdoor · Google]
+        JS[JobSpy<br/>LinkedIn · Indeed]
         ATS[Company boards<br/>Greenhouse · Lever · Ashby · SmartRecruiters · Workday]
         RB[Remote boards<br/>Remotive · RemoteOK · Himalayas · WWR · Arbeitnow]
         SA[SerpAPI Google Jobs<br/>optional]
@@ -28,7 +28,9 @@ flowchart LR
 
 The pipeline is a **LangGraph `StateGraph`** (see the `agent-pipeline` skill). It is deterministic orchestration with one conditional edge (LLM or not) — not a free-roaming ReAct agent. That is deliberate: the job is a repeatable batch process, and a fixed graph is cheaper, testable, and debuggable. The "agentic" part is the LLM judgement inside `llm_score` and `load_profile`.
 
-### Second agent: CV Tailoring
+### Second agent: CV Tailoring (planned, Phase 8; not built yet)
+`jobhunter/tailor/` is an empty package and `tailor_cv.py` does not exist yet; until it does, the Claude handoff (§15) covers the same need on the person's Claude subscription. The design below stays the plan for an API-driven, mechanically fact-checked version.
+
 A separate LangGraph graph (`jobhunter/tailor/`) that runs **on demand per job** — dashboard button, CLI, or automatically for new jobs above `tailoring.auto_min_score`. It reads the job from the DB and the owner's **master CV** (`cv/cv_master.yaml`, richer than the one-page CV), and writes a tailored DOCX, `changes.md`, `gaps.md` and an optional cover letter.
 
 ```mermaid
@@ -60,8 +62,12 @@ Guardrails stay in code, outside the model's control: dedupe vs DB and the rule 
 
 | Module | Responsibility | Skill |
 |---|---|---|
-| `config.py` | Load `config.yaml`, `companies.yaml`, `.env` | — |
+| `config.py` | Load `config.yaml` (+ a user's overlay), `companies.yaml`, `.env`; per-user folders | — |
 | `models.py` | `Job` dataclass, `CandidateProfile`, `JobMatch` (Pydantic) | `job-matching` |
+| `dedupe.py` | Same posting / same role on several boards; source priority | `job-storage` |
+| `runlock.py`, `stop.py` | One run at a time (`run.lock`), graceful stop (`stop.flag`) | `agent-pipeline` |
+| `users.py`, `personalize.py` | People added from the dashboard; search settings derived from a CV | — |
+| `handoff.py` | One job → brief for Claude Code / claude.ai; Markdown → Word | `apply` |
 | `collectors/*` | One function per source → `list[Job]` + health record | `job-sources` |
 | `cv.py` | Read CV text, extract `CandidateProfile`, cache by hash | `cv-profile` |
 | `filters.py` | Location / role / seniority / age rules | `job-matching` |
@@ -72,7 +78,7 @@ Guardrails stay in code, outside the model's control: dedupe vs DB and the rule 
 | `agent.py` | LangGraph graph definition and `run()` | `agent-pipeline` |
 | `run_agent.py` | CLI flags | `agent-pipeline` |
 | `dashboard.py` | Streamlit UI | `job-dashboard` |
-| `tailor/*`, `tailor_cv.py` | CV Tailoring Agent (second graph) | `cv-tailoring` |
+| `tailor/*`, `tailor_cv.py` | CV Tailoring Agent (second graph), **planned** | `cv-tailoring` |
 
 ## 4. Core data model
 
@@ -105,6 +111,8 @@ where $\tilde{s}_{\text{tfidf}}$ is the cosine similarity between the profile te
 
 **Stage 3 — LLM score**: only the top `llm_top_n` jobs with $\text{prescore} \ge$ `min_prescore_for_llm` go to the LLM, which returns a `JobMatch` via structured output. The final `score` shown in the dashboard is the LLM score when present, else the pre-score (and `scored_by` records which).
 
+**Learning from the user**: once the user has marked jobs, the scoring prompt gets a `<candidate_choices>` block with up to `matching.feedback_examples` jobs they pursued (interested / applied / interview / offer) and ones they marked not relevant, newest first, as a hint about the roles they want. `rejected` (the company said no) is not a preference and is left out. The agent loop's `get_profile` shows the same block.
+
 Re-scoring: when the CV file hash changes, jobs scored with the old hash and not marked rejected/not-relevant are re-scored.
 
 ## 6. Storage (SQLite)
@@ -136,7 +144,7 @@ Per daily run: a few hundred to ~2,000 raw postings → a few hundred after filt
 
 ## 11. Known limitations
 - AllJobs, Drushim and similar Israeli boards have no public API; their postings are reached indirectly via Google Jobs (JobSpy `google` site or SerpAPI). Direct scrapers can be added later as separate collectors.
-- Aggregated Israeli sources: `techmap` (Israeli Tech Map daily CSVs, ~470 companies incl. ones with only their own careers site; ODbL) and `getro` (VC portfolio boards, e.g. Israel VC Forum). Neither has descriptions; `collectors/details.py` reads LinkedIn descriptions for the most promising of them (`matching.fetch_descriptions`, JobSpy's job-page reader) and the experience rules run again. `scripts/sync_companies.py` turns both datasets' links into `companies.yaml` boards, which do have full descriptions and win dedupe (`db.source_priority`).
+- Aggregated Israeli sources: `techmap` (Israeli Tech Map daily CSVs, ~470 companies incl. ones with only their own careers site; ODbL) and `getro` (VC portfolio boards, e.g. Israel VC Forum). Neither has descriptions; `collectors/details.py` reads LinkedIn descriptions for the most promising of them (`matching.fetch_descriptions`, JobSpy's job-page reader) and the experience rules run again. `scripts/sync_companies.py` turns both datasets' links into `companies.yaml` boards, which do have full descriptions and win dedupe (`dedupe.source_priority`).
 - Company boards (`ats` source) cover Greenhouse, Lever (US and EU accounts; the EU host is tried on a 404), Ashby, SmartRecruiters, Workday (Israel location facet, details fetched 4 at a time) and Comeet (`<slug>/<uid>` entries; the public API token is read from the company's careers page each run). The agent reaches all of them through its `company_pages` source.
 - Seniority detection from titles is imperfect; the LLM's `seniority_fit` is the more reliable signal.
 
@@ -153,3 +161,28 @@ The dashboard hides nothing by default (minimum score 0, every status, a 365-day
 
 ## 13. Stopping a run from the dashboard
 While a run is going, the sidebar shows a "עצירת החיפוש" toggle. It writes `data/stop.flag` (`jobhunter/stop.py`); the run checks it between steps and ends cleanly, keeping what it found: the agent loop stops before its next model call or after the current tool (`stop_reason: stopped_by_user`), JobSpy skips its remaining queries, and the fixed pipeline skips LLM scoring and saves heuristic scores. Switching the toggle off before the run ends cancels the request. If the run is still alive 60 s after the request, an "עצירה מיידית" button kills the process (that run's results are lost). `run_lock` removes the flag when a run ends, and at start removes only a flag older than 5 minutes, so a stop requested while the run is starting still counts.
+
+## 14. Several users on one PC
+The owner ("" internally) keeps the repo's own `cv/`, `data/` and `config.yaml`; nothing about the owner's setup changed. Anyone else is added from the dashboard (Profile tab: name, CV, optional job titles) and lives in `users/<id>/` (gitignored): `cv/`, `data/` (their `jobs.db`, `run.lock`, logs, tailored files) and a `config.yaml` that holds only what differs from the main one and is deep-merged on top of it.
+
+- **Which user**: CLI processes follow `JOBHUNTER_USER` (`run_agent.py --user <id>` sets it); `config.load_config`, `db.db_path`, `config.run_dir` and `stop` resolve their paths from it. The dashboard is one process serving every browser session, so it never sets the variable: it keeps the user in the session and the URL (`?user=<id>`) and passes `USER` / `DB` explicitly, and starts runs with `--user`. Switching users clears the session's filters and table edits, so an edit can never land in the other person's DB.
+- **`auto_from_cv`** (on for new users): `config.yaml` is tuned for the owner's junior CS search, which is wrong for, say, a marketer with five years of experience. `personalize(cfg, profile)` runs right after the profile is loaded and derives `search.queries` (the user's typed titles, else up to `search.auto_queries` of the CV's `target_roles`), `role_keywords` (the meaningful words of those titles), the excluded and senior word lists minus anything in those titles, `exclude_senior` (only for student/junior CVs) and the experience limit (CV years + 2; none for senior CVs). The dashboard uses the same derived config for its experience toggle.
+- The tool-using agent loop's prompt is written for the owner's search, so it refuses `auto_from_cv` users and the dashboard hides its toggle for them; they use the fixed pipeline.
+
+## 15. Handing a job to Claude (subscription, not API)
+The search decides *which* jobs; for the one the person wants, the writing goes to Claude on their own Claude plan. `handoff.write_brief(job_id)` writes `<data>/tailored/<company>-<title>-<id6>/brief.md` (prompt text in `prompts.HANDOFF_BRIEF`): the full posting, the stored match analysis (score, reasons, matching/missing skills, CV tip), the CV text (and `cv_master.yaml` when present), the no-fabrication rule from the `cv-tailoring` skill, and the files to produce: `cv_tailored.md` (+ a `.docx` via `python -m jobhunter.handoff --docx`), `cover_letter.md`, `interview_prep.md`, `changes.md` (changes and gaps).
+
+```mermaid
+flowchart LR
+    J[(job + analysis)] --> B[brief.md]
+    CV[CV / master CV] --> B
+    B -->|Claude Code, new window| C[Claude on the subscription]
+    B -->|download, attach| W[claude.ai chat]
+    C --> F[cv_tailored.md/.docx · cover_letter.md · interview_prep.md · changes.md]
+    F --> D[dashboard job card: downloads]
+```
+
+- **Why the subscription needs care**: Claude Code ranks `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_API_KEY` above the subscription login, and the dashboard process has `.env` loaded. `launch_claude` therefore starts Claude Code with both removed from its environment (Windows: a new console; macOS: Terminal with `unset`). Elsewhere it shows the command to run.
+- The prompt passed on the command line is one short ASCII sentence ("Read data/tailored/…/brief.md and follow its instructions."); everything else is in the file, so Windows quoting and command-line limits never matter.
+- Entry points share the brief: the dashboard panel, `python -m jobhunter.handoff <id> [--launch]`, and `/apply <id>` inside Claude Code (`.claude/skills/apply`).
+- Compared with the planned Phase 8 agent: no API cost and an interactive editor (Claude can ask about an unclear date), but the no-fabrication rule is enforced by instructions and the person's review of `changes.md`, not by a mechanical verify loop.

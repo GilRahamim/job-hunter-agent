@@ -53,6 +53,8 @@ app = g.compile()
 
 `llm_enabled` = `get_llm(config) is not None and not options.no_llm`. Decide it once in `load_profile` and put it in state; log which mode the run is in.
 
+`load_profile` also returns `config`: for `auto_from_cv` users (people added from the dashboard) `personalize(cfg, profile)` swaps in search titles, role keywords and the experience limit derived from their CV, so every later node uses those. The run lock lives in `jobhunter/runlock.py` (`run_lock`, `running_pid`, `lock_path(user)`), dedupe in `jobhunter/dedupe.py`; `agent.py` holds only the graph.
+
 Jobs dropped by filters are **not** saved (keeps the DB focused); their counts are in `stats.filtered_by_reason`. If the owner wants to audit drops, add a `--save-dropped` flag that writes them with `status='not_relevant'` and `verdict='filtered:<reason>'`.
 
 ## CLI — `run_agent.py`

@@ -49,6 +49,11 @@ Derived columns: `age_days` (from `date_posted` or `first_seen`), `is_new` (firs
 4. **מקורות** — health of the last run per source (fetched, error, duration) with ✅/⚠️; history of fetched counts per source over the last 14 runs.
 5. **פרופיל** — the extracted `CandidateProfile` (headline, seniority, years, skills as chips, target roles), CV file name and date; a note that editing `config.yaml → profile.overrides` corrects it.
 
+## Users and the Claude handoff
+- **Who is searching**: one Streamlit process serves every browser session, so the dashboard keeps the selected user in `st.session_state["user"]` and the URL (`?user=<id>`), and computes `USER`, `DB` and `CFG` (the user's config after `personalize`) at the top of each run. Every `db.*` call gets `path=DB`, `stop.*` / `running_pid` / `lock_path` get `USER`, runs start with `--user`. Never set `JOBHUNTER_USER` here. `switch_user` clears the session's other keys (filters, `jobs_editor` edits) so an edit cannot land in another person's DB.
+- **Profile tab**: CV re-upload (`users.save_cv`) and "add a person" (`users.create_user`) forms. Both use `st.form(clear_on_submit=True)` with an `on_click` callback that reads the upload from session state; messages go through `show_message(key)`. `AppTest` cannot upload files, so check these flows in a browser (Playwright, `executable_path="/opt/pw-browsers/chromium"` in the cloud container).
+- **Job card → "הכנת מועמדות עם Claude"**: `handoff.write_brief` → buttons to open Claude Code (Windows/macOS, `handoff.can_launch()`), download the brief for claude.ai, the copyable command, and downloads for the files Claude wrote (`handoff.kit_files`). This replaces the planned "התאם קו"ח למשרה" button until Phase 8 exists.
+
 ## Charts
 Use `st.bar_chart` / `st.line_chart` for simple ones; Plotly (`st.plotly_chart`) only where you need horizontal bars with long labels (skills). Load the `dataviz` skill if available before styling charts. Keep one accent color for "good" and one for "gap".
 

@@ -102,8 +102,10 @@ Acceptance: the scheduled task appears in Task Scheduler and a manual trigger pr
 
 ---
 
-## Phase 8 — CV Tailoring Agent
+## Phase 8 — CV Tailoring Agent (not started)
 **Skills:** `cv-tailoring`, `offline-testing`, `job-dashboard`
+
+Meanwhile the **Claude handoff** (built; `jobhunter/handoff.py`, ARCHITECTURE §15) does this job on the owner's Claude subscription: the dashboard writes a brief per job and opens Claude Code on it. Build Phase 8 when tailoring has to run unattended (e.g. `tailoring.auto_min_score`) or needs the mechanical verify loop; it can reuse the brief's content and the handoff's output folder.
 
 Tasks
 1. Master CV: generate a draft `cv/cv_master.yaml` from the CV (MASTER_DRAFT prompt). **Stop here — the owner reviews and enriches it** (more bullets per project, real skill levels).
@@ -119,7 +121,19 @@ Acceptance: `python tailor_cv.py --job <id>` on 3 real top jobs produces DOCX fi
 
 ---
 
-## Later ideas
-- Embedding pre-score (sentence-transformers / OpenAI embeddings) behind the same `prescore()` interface.
-- Direct collectors for AllJobs / Drushim.
-- Weekly gap report: most requested skills you lack, with trend over time.
+## Built after Phase 7
+- Tool-using agent loop (`--agent`), stop button, junior-only mode, Israeli Tech Map / Getro sources.
+- Several users on one PC, each starting from an uploaded CV (`users.py`, `personalize.py`).
+- Claude handoff: one job → brief → Claude Code or claude.ai on the subscription (`handoff.py`, `/apply`).
+- Scoring learns from the user's statuses (`matching.feedback_examples`).
+
+## Later ideas (ranked: value for the effort)
+1. **Multilingual embedding pre-score** behind the same `prescore()` interface. TF-IDF with English stop words is weak on Hebrew postings and on CVs outside tech, which matters now that other people use the tool. A small multilingual sentence-transformers model runs locally on CPU.
+2. **CI**: a GitHub Actions job that runs `pip install -r requirements-dev.txt && pytest -q` on every push. The suite is offline and takes about 10 s.
+3. **Agent loop for every user**: move the CS-junior paragraph of `AGENT_SYSTEM` behind a config switch (one focus text for the owner, one built from the profile), then drop the `auto_from_cv` refusal in `agent_loop.run`.
+4. **Unattended tailoring for top matches**: after a run, write briefs for new jobs above `tailoring.auto_min_score` (the handoff already does the writing part); either Phase 8 through the API, or `claude -p` on the subscription, within its usage limits.
+5. **Split `dashboard.py`** (now ~830 lines) into tab modules (`ui/tabs/jobs.py`, `profile.py`, …), keeping `dashboard.py` as the entry point; update the two tests that read its source.
+6. **Follow-up reminders**: the pipeline tab already flags applications older than 10 days; add them to the Windows notification and a weekly digest.
+7. **Weekly gap report**: most requested skills you lack, with the trend over time (the data is already in `missing_skills`).
+8. **Company research tool** for the agent loop: read the company's About/careers page before scoring (size, product, stack).
+9. Direct collectors for AllJobs / Drushim.

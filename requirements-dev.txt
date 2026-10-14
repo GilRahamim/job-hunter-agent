@@ -1,0 +1,9 @@
+# Everything to run the app, plus tests and the dashboard design compare loop
+-r requirements.txt
+
+pytest>=8.0
+responses>=0.25
+
+# dashboard compare loop (.claude/skills/dashboard-design/scripts/compare.py)
+playwright>=1.40
+pillow>=10.0

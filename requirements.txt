@@ -20,7 +20,7 @@ pandas>=2.0
 # CV parsing
 pypdf>=4.0
 python-docx>=1.1
-docxtpl>=0.16            # tailored CV rendering from a Word template
+# docxtpl>=0.16          # Phase 8 CV Tailoring Agent (planned): Word-template rendering
 
 # Matching
 scikit-learn>=1.4
@@ -28,12 +28,6 @@ scikit-learn>=1.4
 # Dashboard
 streamlit>=1.50
 plotly>=5.20
+tzdata>=2024.1           # Asia/Jerusalem on Windows (no system tz database)
 
-# Dev
-pytest>=8.0
-responses>=0.25
-tzdata>=2024.1
-
-# Dev (dashboard compare loop)
-playwright>=1.40
-pillow>=10.0
+# Tests and design tooling: pip install -r requirements-dev.txt

@@ -31,8 +31,8 @@ from jobhunter.prompts import HANDOFF_BRIEF, HANDOFF_DOCX_NOTE, HANDOFF_FILES_NO
 
 BRIEF = "brief.md"
 MAX_DESCRIPTION_CHARS = 15000
-# Claude Code prefers these over the subscription login, and the dashboard has .env loaded:
-# drop them so the launched session runs on the Claude subscription.
+# Claude Code ranks these above the subscription login (an approved ANTHROPIC_API_KEY bills the API),
+# and the dashboard has .env loaded: drop them so the launched session runs on the Claude subscription.
 API_KEY_VARS = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
 _SLUG = re.compile(r"[^a-z0-9]+")
 _HEBREW = re.compile(r"[֐-׿]")

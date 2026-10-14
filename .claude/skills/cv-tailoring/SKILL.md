@@ -7,6 +7,8 @@ description: The CV Tailoring Agent of the Job Hunter project — a second LangG
 
 The search agent answers "which jobs?". This agent answers "how do I present myself for *this* job?". It is a separate graph because it runs on demand for a handful of jobs, has a different input (one job + the master CV) and a different output (documents), and needs a self-correction loop the search pipeline doesn't.
 
+**Status: planned (Phase 8).** Until this graph exists, `jobhunter/handoff.py` covers the use case on the owner's Claude subscription: it writes a per-job brief (posting, analysis, CV, master CV, this skill's no-fabrication rule) and Claude Code or a claude.ai chat writes the documents (see the `apply` skill and ARCHITECTURE §15). Keep the two consistent: the rule and the output files (`changes.md`, gaps, cover letter) are the same.
+
 ## The non-negotiable rule: no fabrication
 The tailored CV may **select, reorder, emphasize and rephrase** content from the master CV. It may **never add** a skill, tool, employer, title, date, number, degree or project that is not in the master CV. Reasons: the owner will be interviewed on every line, and a single invented claim costs more than any keyword gain. The `verify` node enforces this mechanically; do not weaken it to make output "better".
 
