@@ -21,7 +21,7 @@ headingFontWeights = [800, 700, 700, 600, 600, 600]
 
 [theme.light]
 primaryColor = "#0f766e"                 # color/sea
-backgroundColor = "#ffffff"              # white so data-grid rows are white; page color #f4f6f5 is set in theme.css
+backgroundColor = "#ffffff"              # white so data-grid rows are white; page color (= sidebar #f5f1ff) is set in theme.css
 secondaryBackgroundColor = "#e6ecea"     # color/mist
 textColor = "#16232b"
 borderColor = "#d5dedb"
@@ -49,7 +49,7 @@ borderColor = "#d9cfea"
 
 [theme.dark]
 primaryColor = "#2dd4bf"                 # mint
-backgroundColor = "#101a1c"              # table rows; page #0a1214 is set in theme.css
+backgroundColor = "#101a1c"              # table rows; page (= sidebar #0c1517) is set in theme.css
 secondaryBackgroundColor = "#142226"
 textColor = "#e6f2f0"
 borderColor = "#223639"

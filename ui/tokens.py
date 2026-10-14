@@ -14,7 +14,7 @@ LIGHT = {
     "on_accent": "#ffffff",  # text on the accent color
     "line": "#d5dedb",       # color/line         — borders, rules
     "mist": "#e6ecea",       # color/mist         — KPI cards, table header
-    "bg": "#f4f6f5",         # color/bg           — page
+    "bg": "#f5f1ff",         # page — same as the sidebar (sb_bg)
     "surface": "#ffffff",    # color/surface      — cards, inputs
     "good_bg": "#d6efea", "good_text": "#0b5a53",   # color/chip-good-*
     "gap_bg": "#f6dad6", "gap_text": "#8e2f26",     # color/chip-gap-*
@@ -32,7 +32,7 @@ DARK = {
     "on_accent": "#06201d",   # dark text on the mint accent keeps contrast above 7:1
     "line": "#223639",
     "mist": "#1b2f33",
-    "bg": "#0a1214",
+    "bg": "#0c1517",          # page — same as the sidebar (sb_bg)
     "surface": "#101a1c",
     "good_bg": "#12352f", "good_text": "#7ee7d4",
     "gap_bg": "#3a1d1b", "gap_text": "#fca5a5",
