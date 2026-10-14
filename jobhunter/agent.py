@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
-from collections import Counter
-from pathlib import Path
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -15,8 +12,10 @@ from jobhunter import db, stop
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.base import CollectorResult
 from jobhunter.collectors.details import fill_descriptions
-from jobhunter.config import load_config, run_dir
+from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
+from jobhunter.db import job_from_row
+from jobhunter.dedupe import dedupe_batch, is_new
 from jobhunter.filters import filter_jobs, junior_reason
 from jobhunter.llm import get_llm
 from jobhunter.matcher import llm_score as score_with_llm
@@ -56,29 +55,6 @@ class PipelineState(TypedDict, total=False):
 
 # ------------------------------------------------------------ helpers
 
-def job_from_row(row: dict) -> Job:
-    return Job(source=row["source"] or "", title=row["title"] or "", company=row["company"] or "",
-               url=row["url"] or "", location=row["location"] or "", description=row["description"] or "",
-               is_remote=bool(row["is_remote"]), remote_region=row["remote_region"] or "",
-               date_posted=row["date_posted"])
-
-
-def dedupe_batch(jobs: list[Job]) -> list[Job]:
-    """Drop repeated ids; for the same company|title keep the best source (board > jobspy > remote)."""
-    by_id = {j.id: j for j in jobs}
-    best: dict[str, Job] = {}
-    unkeyed: list[Job] = []
-    for job in by_id.values():
-        if not job.company.strip():
-            unkeyed.append(job)       # without a company the key would merge unrelated roles
-            continue
-        cur = best.get(job.dedupe_key)
-        rank = (db.source_priority(job.source), -len(job.description))
-        if cur is None or rank < (db.source_priority(cur.source), -len(cur.description)):
-            best[job.dedupe_key] = job
-    return [*best.values(), *unkeyed]
-
-
 def _db(state: PipelineState) -> str | None:
     return state["options"].get("db_path")
 
@@ -114,7 +90,7 @@ def dedupe_node(state: PipelineState) -> dict:
     ids, keys = db.existing_ids_and_keys(_db(state))
     unique = dedupe_batch(state["raw_jobs"])
     known = [j.id for j in unique if j.id in ids]
-    new = [j for j in unique if j.id not in ids and (not j.company.strip() or j.dedupe_key not in keys)]
+    new = [j for j in unique if is_new(j, ids, keys)]
     if known and not state["options"].get("dry_run"):
         db.touch_seen(known, _db(state))
     log.info("dedupe: %d raw -> %d unique, %d already known, %d new", len(state["raw_jobs"]),
@@ -233,55 +209,7 @@ def build_graph():
     return g.compile()
 
 
-# ------------------------------------------------------------ run + lock
-
-def pid_alive(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    if os.name == "nt":
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        handle = kernel32.OpenProcess(0x1000, False, pid)      # PROCESS_QUERY_LIMITED_INFORMATION
-        if not handle:
-            return False
-        code = ctypes.c_ulong()
-        kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
-        kernel32.CloseHandle(handle)
-        return code.value == 259                                # STILL_ACTIVE
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    return True
-
-
-class RunLocked(RuntimeError):
-    pass
-
-
-class run_lock:
-    """Context manager: data/run.lock holds the PID of the running agent."""
-
-    def __init__(self, path: Path | None = None):
-        self.path = path or run_dir() / "run.lock"
-
-    def __enter__(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        if self.path.exists():
-            try:
-                pid = int(self.path.read_text().strip())
-            except ValueError:
-                pid = 0
-            if pid_alive(pid) and pid != os.getpid():
-                raise RunLocked(f"another run is in progress (pid {pid}); remove {self.path} if stale")
-        self.path.write_text(str(os.getpid()))
-        stop.clear_stale_stop()               # a stop request left from an earlier run must not end this one
-        return self
-
-    def __exit__(self, *exc):
-        self.path.unlink(missing_ok=True)
-        stop.clear_stop()
-
+# ------------------------------------------------------------ run
 
 def run(config: dict[str, Any] | None = None, **options: Any) -> PipelineState:
     """Run the pipeline once. Options: no_llm, sources, limit, rescore, dry_run, db_path."""

@@ -20,6 +20,7 @@ import streamlit as st
 
 from jobhunter import db, stop
 from jobhunter.config import ROOT, load_config, run_dir
+from jobhunter.runlock import running_pid
 from ui.components import (brand_header, chips, inject_theme, kpi_row, question, score_box,
                            section_label, theme_toggle, title)
 from ui.tokens import DARK, LIGHT
@@ -94,12 +95,7 @@ def refresh() -> None:
 
 
 def is_running() -> int | None:
-    from jobhunter.agent import pid_alive
-    try:
-        pid = int(LOCK_PATH.read_text().strip())
-    except (OSError, ValueError):
-        return None
-    return pid if pid_alive(pid) else None
+    return running_pid()
 
 
 # ------------------------------------------------------------ sidebar

@@ -178,6 +178,8 @@ sources:
     enabled: true
     sites: [linkedin, indeed]
     fetch_linkedin_descriptions: false   # true = better matching but much slower
+    # Queries with one of these words (whole words) get a second, worldwide "Remote" pass (~15 s each)
+    remote_query_keywords: [ai, llm, genai, "machine learning", ml, "data scientist"]
   company_boards:          # Greenhouse / Lever / Ashby / SmartRecruiters (companies.yaml)
     enabled: true
   remotive:

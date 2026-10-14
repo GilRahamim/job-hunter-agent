@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
-from jobhunter.config import ROOT
+from jobhunter.config import ROOT, active_user, data_dir
+from jobhunter.models import Job
 
 STATUSES = ["new", "interested", "applied", "interview", "offer", "rejected", "not_relevant"]
 _HIDDEN_STATUSES = ("rejected", "not_relevant")
@@ -31,17 +32,15 @@ def now_utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def db_path(path: str | Path | None = None) -> Path:
-    return Path(path or os.environ.get("JOBHUNTER_DB") or ROOT / "data" / "jobs.db")
-
-
-def source_priority(source: str) -> int:
-    """Lower is better: company boards (full descriptions) beat JobSpy beat remote boards."""
-    if source in ("greenhouse", "lever", "ashby", "smartrecruiters", "workday", "comeet"):
-        return 0
-    if source.startswith("jobspy"):
-        return 1
-    return 2
+def db_path(path: str | Path | None = None, user: str | None = None) -> Path:
+    """An explicit path wins; a named user's DB is users/<name>/data/jobs.db; the owner's is data/jobs.db
+    (JOBHUNTER_DB overrides the owner's, for tests). `user=None` = the user of this process."""
+    if path:
+        return Path(path)
+    user = active_user() if user is None else user
+    if user:
+        return data_dir(user) / "jobs.db"
+    return Path(os.environ.get("JOBHUNTER_DB") or ROOT / "data" / "jobs.db")
 
 
 def _migrate(con: sqlite3.Connection) -> None:
@@ -87,6 +86,14 @@ def _decode(row: sqlite3.Row) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------- jobs
+
+def job_from_row(row: dict) -> Job:
+    """A stored jobs row back to the Job the collectors produced."""
+    return Job(source=row["source"] or "", title=row["title"] or "", company=row["company"] or "",
+               url=row["url"] or "", location=row["location"] or "", description=row["description"] or "",
+               is_remote=bool(row["is_remote"]), remote_region=row["remote_region"] or "",
+               date_posted=row["date_posted"])
+
 
 def existing_ids_and_keys(path: str | Path | None = None) -> tuple[set[str], set[str]]:
     with connect(path) as con:
@@ -243,7 +250,6 @@ def not_junior_ids(cfg: dict[str, Any], path: str | Path | None = None) -> set[s
     """Ids of stored jobs that fail the junior check (senior title, required experience,
     unverifiable) under the current config, including jobs saved before the check existed."""
     from jobhunter.filters import junior_reason
-    from jobhunter.models import Job
 
     with connect(path) as con:
         rows = con.execute("SELECT id, title, description FROM jobs").fetchall()

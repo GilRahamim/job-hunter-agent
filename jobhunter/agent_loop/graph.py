@@ -15,7 +15,7 @@ from jobhunter.agent_loop.tools import AgentContext, allowed_sources, make_tools
 from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.llm import get_llm
-from jobhunter.matcher import _language, scored_row
+from jobhunter.matcher import explanation_language, scored_row
 from jobhunter.models import JobMatch
 from jobhunter.prompts import AGENT_NUDGE, AGENT_START, AGENT_SYSTEM
 from jobhunter.stop import stop_requested
@@ -162,7 +162,7 @@ def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
                                  junior_words=", ".join(ctx.config["filters"].get("junior_keywords")
                                                         or ["junior", "entry level", "graduate"]),
                                  max_years=f"{years:g}", experience_limit=experience_limit(years),
-                                 language=_language(ctx.config))
+                                 language=explanation_language(ctx.config))
     return [SystemMessage(system),
             HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]))]
 

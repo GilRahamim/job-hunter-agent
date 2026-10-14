@@ -213,7 +213,7 @@ def test_required_years_decimals_and_company_age(text, years):
 
 def test_role_fit_reads_the_requirements_not_only_the_title(cfg):
     from jobhunter.filters import role_fit
-    driver = j("Test Driver for Autonomous Vehicles", "B.A. \ B.sc. 4+ years of driving experience. Technical background.")
+    driver = j("Test Driver for Autonomous Vehicles", r"B.A. \ B.sc. 4+ years of driving experience. Technical background.")
     assert role_fit(driver, cfg)                                     # Mobileye: degree + technical background
     assert required_years(driver.description) == 0                   # driving experience is not work experience
     assert not role_fit(j("Delivery Driver", "Driving license"), cfg)

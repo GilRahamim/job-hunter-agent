@@ -8,12 +8,10 @@ from typing import Any
 
 from jobhunter import stop
 from jobhunter.collectors.base import CollectorResult, clean, to_iso
+from jobhunter.filters import keyword_hits
 from jobhunter.models import Job
 
 log = logging.getLogger(__name__)
-
-# Remote pass only for queries that look like AI / ML roles.
-_REMOTE_QUERY_HINTS = ("ai", "llm", "genai", "machine learning", "ml ", "data scientist")
 
 
 def frame_to_jobs(df: Any) -> list[Job]:
@@ -87,8 +85,10 @@ def collect_jobspy(config: dict[str, Any], limit: int | None = None) -> Collecto
 
     jobs: list[Job] = []
     failed = 0
+    # an extra worldwide "Remote" pass only for queries with a remote_query_keywords word (whole words)
+    remote_words = src.get("remote_query_keywords") or []
     passes = [(q, base_loc, False) for q in queries] + [
-        (q, "Remote", True) for q in queries if any(h in q.lower() + " " for h in _REMOTE_QUERY_HINTS)]
+        (q, "Remote", True) for q in queries if keyword_hits(q, remote_words)]
     for query, location, remote in passes:
         if stop.stop_requested():
             log.info("jobspy: stop requested, skipping the remaining queries")

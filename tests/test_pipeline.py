@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from jobhunter import agent, db
+from jobhunter import agent, db, runlock
 from jobhunter.collectors.base import CollectorResult
 from jobhunter.config import load_config
 from jobhunter.models import CandidateProfile, Job, JobMatch
@@ -127,21 +127,21 @@ def test_crash_closes_the_run_row(env, monkeypatch):
 
 def test_lock_blocks_second_run_and_ignores_stale(tmp_path):
     lock = tmp_path / "run.lock"
-    with agent.run_lock(lock):
+    with runlock.run_lock(lock):
         assert lock.read_text() == str(os.getpid())
-        assert agent.pid_alive(os.getpid())
+        assert runlock.pid_alive(os.getpid())
     assert not lock.exists()
     lock.write_text("999999999")                                  # stale pid
-    with agent.run_lock(lock):
+    with runlock.run_lock(lock):
         pass
 
 
 def test_lock_rejects_live_foreign_pid(tmp_path, monkeypatch):
     lock = tmp_path / "run.lock"
     lock.write_text("4242")
-    monkeypatch.setattr(agent, "pid_alive", lambda pid: True)
-    with pytest.raises(agent.RunLocked):
-        agent.run_lock(lock).__enter__()
+    monkeypatch.setattr(runlock, "pid_alive", lambda pid: True)
+    with pytest.raises(runlock.RunLocked):
+        runlock.run_lock(lock).__enter__()
 
 
 def test_rescore_slots_are_not_wasted_on_non_junior_jobs(env, monkeypatch):

@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from jobhunter.db import now_utc
+from jobhunter.filters import required_years
 from jobhunter.models import CandidateProfile, Job, JobMatch
 from jobhunter.prompts import SCORE_SYSTEM, SCORE_USER
 from jobhunter.skills import extract_skills
@@ -19,8 +20,6 @@ SKILL_DENOM_CAP = 15
 MAX_DESCRIPTION_CHARS = 6000
 LLM_ATTEMPTS = 3
 BACKOFF_SECONDS = 1.0                 # doubled on each retry; tests set it to 0
-
-from jobhunter.filters import required_years  # noqa: E402  (shared with the experience filter)
 
 
 def prescore(profile: CandidateProfile, jobs: list[Job]) -> list[float]:
@@ -60,7 +59,8 @@ def select_for_llm(scores: list[float], cfg: dict[str, Any]) -> list[int]:
     return eligible[: m["llm_top_n"]]
 
 
-def _language(cfg: dict[str, Any]) -> str:
+def explanation_language(cfg: dict[str, Any]) -> str:
+    """The language the LLM writes its reasons in (profile.explanation_language: he / en)."""
     return "Hebrew" if cfg.get("profile", {}).get("explanation_language", "he") == "he" else "English"
 
 
@@ -72,7 +72,7 @@ def build_messages(profile: CandidateProfile, job: Job, cfg: dict[str, Any]) -> 
         projects="; ".join(profile.projects), education="; ".join(profile.education),
         title=job.title, company=job.company, location=job.location, remote_note=remote_note,
         description=job.description[:MAX_DESCRIPTION_CHARS])
-    return [("system", SCORE_SYSTEM.format(language=_language(cfg))), ("user", user)]
+    return [("system", SCORE_SYSTEM.format(language=explanation_language(cfg))), ("user", user)]
 
 
 def _score_one(structured: Any, messages: list[tuple[str, str]], title: str,
@@ -111,9 +111,9 @@ def scored_row(job: Job, pre: float, match: JobMatch | None, cv_hash: str, model
     row.update(prescore=round(pre, 1), cv_hash=cv_hash, scored_at=now_utc(), required_years=years)
     if match:
         row.update(score=float(match.score), verdict=match.verdict, seniority_fit=match.seniority_fit,
-                   required_years=match.required_years if match.required_years is not None else years, matching_skills=match.matching_skills,
-                   missing_skills=match.missing_skills, reasons=match.reasons, cv_tip=match.cv_tip,
-                   scored_by=f"llm:{model}")
+                   required_years=years if match.required_years is None else match.required_years,
+                   matching_skills=match.matching_skills, missing_skills=match.missing_skills,
+                   reasons=match.reasons, cv_tip=match.cv_tip, scored_by=f"llm:{model}")
     else:
         # clear an earlier LLM verdict: it no longer belongs to this score (CV changed or the call failed)
         row.update(score=round(pre, 1), scored_by="heuristic", verdict=None, seniority_fit=None,

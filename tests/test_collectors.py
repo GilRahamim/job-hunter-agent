@@ -324,3 +324,19 @@ def test_jobspy_partial_miss_is_a_warning_not_an_error(monkeypatch):
     monkeypatch.setattr(jobspy_source, "_scrape", lambda *a: [])
     r = jobspy_source.collect_jobspy(cfg)
     assert r.error and not r.jobs                          # nothing at all is still a failure
+
+
+def test_jobspy_remote_pass_only_for_whole_word_keywords(monkeypatch):
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "jobspy", types.ModuleType("jobspy"))
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+    passes = []
+    monkeypatch.setattr(jobspy_source, "_scrape",
+                        lambda sites, q, cfg, loc, remote, fd: passes.append((q, remote)) or [])
+    cfg = {"sources": {"jobspy": {"remote_query_keywords": ["ai", "machine learning"]}},
+           "search": {"queries": ["Junior AI Engineer", "Email Marketing", "Machine Learning Intern"],
+                      "location": "Israel"}}
+    jobspy_source.collect_jobspy(cfg)
+    remote = [q for q, r in passes if r]
+    assert remote == ["Junior AI Engineer", "Machine Learning Intern"]     # "ai" inside "Email" is not "AI"

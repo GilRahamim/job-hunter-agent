@@ -65,12 +65,13 @@ def print_agent_summary(result: dict, top: int) -> None:
 
 
 def run_agent_loop(args: argparse.Namespace) -> int:
-    from jobhunter import agent, agent_loop
+    from jobhunter import agent_loop
+    from jobhunter.runlock import RunLocked, run_lock
 
     try:
-        with agent.run_lock():
+        with run_lock():
             result = agent_loop.run(goal=args.goal, max_steps=args.max_steps, dry_run=args.dry_run)
-    except agent.RunLocked as e:
+    except RunLocked as e:
         print(e)
         return 2
     except agent_loop.AgentUnavailable as e:
@@ -107,13 +108,14 @@ def main() -> int:
     if args.agent:
         return run_agent_loop(args)
     from jobhunter import agent
+    from jobhunter.runlock import RunLocked, run_lock
 
     try:
-        with agent.run_lock():
+        with run_lock():
             state = agent.run(
                 no_llm=args.no_llm, limit=args.limit, rescore=args.rescore, dry_run=args.dry_run,
                 sources=[s.strip() for s in args.sources.split(",") if s.strip()] if args.sources else None)
-    except agent.RunLocked as e:
+    except RunLocked as e:
         print(e)
         return 2
     except Exception as e:  # noqa: BLE001 - report and exit non-zero

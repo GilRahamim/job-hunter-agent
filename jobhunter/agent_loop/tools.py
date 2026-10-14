@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.details import fetch_description
+from jobhunter.dedupe import dedupe_batch, is_new
 from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
 from jobhunter.matcher import prescore
 from jobhunter.models import CandidateProfile, Job
@@ -150,11 +151,8 @@ def title_matches(title: str, words: list[str]) -> bool:
 
 
 def _new_and_filtered(ctx: AgentContext, jobs: list[Job]) -> tuple[list[Job], Counter]:
-    from jobhunter.agent import dedupe_batch          # late import: agent.py imports the collectors too
-
     fresh = [j for j in dedupe_batch(jobs)
-             if j.id not in ctx.known_ids and j.id not in ctx.candidates
-             and (not j.company.strip() or j.dedupe_key not in ctx.known_keys)]
+             if j.id not in ctx.candidates and is_new(j, ctx.known_ids, ctx.known_keys)]
     return filter_jobs(fresh, ctx.config)
 
 
