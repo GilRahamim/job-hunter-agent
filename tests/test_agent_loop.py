@@ -298,7 +298,6 @@ def test_agent_fetches_linkedin_descriptions(env, monkeypatch):
 def test_stop_request_ends_the_run_and_keeps_results(env, monkeypatch, tmp_path):
     from jobhunter import stop
     cfg, path, _ = env
-    monkeypatch.setattr(stop, "STOP_PATH", tmp_path / "stop.flag")
 
     class StopAfterSearch(ScriptedModel):
         def invoke(self, messages):
@@ -320,12 +319,11 @@ def test_stale_stop_request_is_cleared_but_fresh_one_kept(tmp_path, monkeypatch)
     import time
 
     from jobhunter import stop
-    monkeypatch.setattr(stop, "STOP_PATH", tmp_path / "stop.flag")
     stop.request_stop()
     stop.clear_stale_stop()
     assert stop.stop_requested()                         # fresh: switched on while the run was starting
     old = time.time() - 3600
-    os.utime(stop.STOP_PATH, (old, old))
+    os.utime(stop.stop_path(), (old, old))
     stop.clear_stale_stop()
     assert not stop.stop_requested()
 

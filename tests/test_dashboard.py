@@ -138,7 +138,6 @@ def test_controls_do_not_live_in_the_polling_fragment():
 
 def test_stop_toggle_asks_the_running_search_to_stop(tmp_path, monkeypatch):
     from jobhunter import stop
-    monkeypatch.setattr(stop, "STOP_PATH", tmp_path / "stop.flag")
     monkeypatch.setattr("subprocess.Popen", lambda cmd, **kw: None)
     at = _app(tmp_path, monkeypatch)
     assert not [t for t in at.toggle if t.key == "stop_search"]          # only while a run is going

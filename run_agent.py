@@ -7,11 +7,11 @@ import runpy
 import sys
 from datetime import datetime
 
-from jobhunter.config import ROOT
+from jobhunter.config import ROOT, run_dir
 
 
 def setup_logging() -> None:
-    log_dir = ROOT / "data" / "logs"
+    log_dir = run_dir() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)

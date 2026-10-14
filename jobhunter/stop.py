@@ -3,30 +3,34 @@ stops early and still saves what it found."""
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
-from jobhunter.config import ROOT
+from jobhunter.config import run_dir
 
-STOP_PATH = ROOT / "data" / "stop.flag"
+
+def stop_path() -> Path:
+    return run_dir() / "stop.flag"
 
 
 def request_stop() -> None:
-    STOP_PATH.parent.mkdir(parents=True, exist_ok=True)
-    STOP_PATH.write_text("stop", encoding="utf-8")
+    path = stop_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("stop", encoding="utf-8")
 
 
 def clear_stop() -> None:
-    STOP_PATH.unlink(missing_ok=True)
+    stop_path().unlink(missing_ok=True)
 
 
 def stop_requested() -> bool:
-    return STOP_PATH.exists()
+    return stop_path().exists()
 
 
 def clear_stale_stop(max_age_s: float = 300) -> None:
     """At run start: drop a request left over from an earlier run, but keep a fresh one
     (the stop toggle can be switched on while the run is still starting)."""
     try:
-        if time.time() - STOP_PATH.stat().st_mtime > max_age_s:
+        if time.time() - stop_path().stat().st_mtime > max_age_s:
             clear_stop()
     except OSError:
         pass

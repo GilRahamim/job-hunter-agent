@@ -15,7 +15,7 @@ from jobhunter import db, stop
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.base import CollectorResult
 from jobhunter.collectors.details import fill_descriptions
-from jobhunter.config import ROOT, load_config
+from jobhunter.config import load_config, run_dir
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.filters import filter_jobs, junior_reason
 from jobhunter.llm import get_llm
@@ -26,8 +26,6 @@ from jobhunter.models import CandidateProfile, Job, JobMatch
 from jobhunter.notify import notify_strong_matches
 
 log = logging.getLogger(__name__)
-
-LOCK_PATH = ROOT / "data" / "run.lock"
 
 
 class PipelineState(TypedDict, total=False):
@@ -264,8 +262,8 @@ class RunLocked(RuntimeError):
 class run_lock:
     """Context manager: data/run.lock holds the PID of the running agent."""
 
-    def __init__(self, path: Path = LOCK_PATH):
-        self.path = path
+    def __init__(self, path: Path | None = None):
+        self.path = path or run_dir() / "run.lock"
 
     def __enter__(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)

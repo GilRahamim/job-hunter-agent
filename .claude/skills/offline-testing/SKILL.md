@@ -18,6 +18,8 @@ tests/
   test_collectors.py  test_filters.py  test_matcher.py  test_db.py  test_pipeline.py
 ```
 
+Isolation: tests never touch the owner's real `data/`. Set `JOBHUNTER_DB` to a `tmp_path` file for the DB. An autouse fixture in `conftest.py` sets `JOBHUNTER_RUN_DIR` to `tmp_path / "run"`, which holds `run.lock`, `stop.flag` and the run logs (`config.run_dir()`). Without it, a real search running on the PC makes the dashboard tests see an active run, and a test that clicks the run button empties the live run log. Read these paths through `run_dir()` / `stop.stop_path()` at call time, never as import-time constants: tests set the env var after modules are imported.
+
 ## Recording fixtures
 Write `scripts/record_fixtures.py` that fetches each source once and saves the **trimmed** raw response (keep ~5 items; for list endpoints keep the envelope keys). Commit fixtures. Re-record only when an API changes, and diff the keys when you do — that diff is the bug report.
 

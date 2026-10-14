@@ -1,6 +1,7 @@
 """Load config.yaml, companies.yaml and .env (all cached)."""
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,12 @@ import yaml
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def run_dir() -> Path:
+    """Where run.lock, stop.flag and run logs live. JOBHUNTER_RUN_DIR overrides it, so tests
+    never see (or clear) the lock of a real search that is running."""
+    return Path(os.environ.get("JOBHUNTER_RUN_DIR") or ROOT / "data")
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:

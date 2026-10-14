@@ -19,14 +19,14 @@ import requests
 import streamlit as st
 
 from jobhunter import db, stop
-from jobhunter.config import ROOT, load_config
+from jobhunter.config import ROOT, load_config, run_dir
 from ui.components import (brand_header, chips, inject_theme, kpi_row, question, score_box,
                            section_label, theme_toggle, title)
 from ui.tokens import DARK, LIGHT
 
 IL = ZoneInfo("Asia/Jerusalem")
-LOG_PATH = ROOT / "data" / "logs" / "dashboard-run.log"
-LOCK_PATH = ROOT / "data" / "run.lock"
+LOG_PATH = run_dir() / "logs" / "dashboard-run.log"
+LOCK_PATH = run_dir() / "run.lock"
 
 _scheme = getattr(getattr(st.context, "theme", None), "type", None) or "light"
 _T = DARK if _scheme == "dark" else LIGHT
