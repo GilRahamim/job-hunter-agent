@@ -234,3 +234,21 @@ def test_profile_tab_offers_cv_upload_and_add_user(tmp_path, monkeypatch):
     buttons = [b.label for b in at.get("form_submit_button")] if at.get("form_submit_button") else []
     assert not at.exception
     assert "שמירת קורות החיים" in buttons and "יצירת חיפוש" in buttons
+
+
+# ---------------------------------------------------------------- Claude handoff
+
+def test_claude_panel_prepares_a_brief_and_lists_claudes_files(tmp_path, monkeypatch):
+    from jobhunter import handoff
+
+    at = _app(tmp_path, monkeypatch, JOBS)
+    assert not at.exception
+    next(b for b in at.button if b.label == "הכנת תיק למשרה").click().run()
+    assert not at.exception
+    brief = handoff.job_folder(db.job_detail(JOBS[0].id), tmp_path / "jobs.db") / handoff.BRIEF
+    assert brief.exists() and "Junior Python Developer" in brief.read_text(encoding="utf-8")
+    assert any('claude "Read' in c.value for c in at.code)
+    (brief.parent / "cover_letter.md").write_text("Dear Acme", encoding="utf-8")
+    at.run()
+    assert any(b.label == "עדכון התיק" for b in at.button)
+    assert "cover_letter.md" in [d.proto.label for d in at.get("download_button")]

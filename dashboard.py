@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
-from jobhunter import db, stop
+from jobhunter import db, handoff, stop
 from jobhunter.config import ROOT, load_config, run_dir
 from jobhunter.llm import llm_available
 from jobhunter.models import CandidateProfile
@@ -537,8 +537,60 @@ def detail_panel(view: pd.DataFrame) -> None:
                 load_jobs.clear()
             if job["url"]:
                 st.link_button("פתח את המשרה", job["url"])
+        claude_panel(job)
         with st.expander("תיאור המשרה המלא"):
             st.text(job["description"] or "—")
+
+
+# ------------------------------------------------------------ hand a job to Claude (subscription)
+
+def prepare_brief(job_id: str) -> None:
+    try:
+        handoff.write_brief(job_id, USER, DB)
+    except (handoff.HandoffError, OSError) as e:
+        st.session_state["brief_msg"] = ("error", str(e))
+
+
+def open_claude(brief) -> None:
+    try:
+        handoff.launch_claude(brief)
+    except handoff.HandoffError as e:
+        st.session_state["brief_msg"] = ("error", str(e))
+        return
+    st.session_state["brief_msg"] = ("success", "Claude Code נפתח בחלון חדש. כשהוא מסיים, הקבצים יופיעו כאן.")
+
+
+def claude_panel(job: dict) -> None:
+    """The writing for one job goes to Claude on the person's subscription, not the API."""
+    folder = handoff.job_folder(job, DB)
+    brief = folder / handoff.BRIEF
+    with st.expander("הכנת מועמדות עם Claude", icon=":material/auto_awesome:", expanded=brief.exists()):
+        st.caption("Claude מקבל את המשרה, את קורות החיים ואת ניתוח ההתאמה, ומכין קו״ח מותאמים, מכתב מקדים, "
+                   "הכנה לראיון ורשימת פערים, בלי להוסיף שום דבר שלא כתוב בקורות החיים. "
+                   "העבודה נספרת במנוי Claude שלך (Claude Code או claude.ai), לא ב-API.")
+        st.button("עדכון התיק" if brief.exists() else "הכנת תיק למשרה", icon=":material/folder_open:",
+                  key=f"brief_{job['id']}", on_click=prepare_brief, args=(job["id"],))
+        show_message("brief_msg")
+        if not brief.exists():
+            return
+        with st.container(horizontal=True, gap="small"):
+            if handoff.can_launch():
+                st.button("פתיחה ב-Claude Code", type="primary", icon=":material/terminal:",
+                          key=f"claude_{job['id']}", on_click=open_claude, args=(brief,))
+            st.download_button("הורדת התיק ל-claude.ai", brief.read_bytes(), file_name=f"{folder.name}.md",
+                               mime="text/markdown", icon=":material/download:", on_click="ignore",
+                               key=f"dl_brief_{job['id']}")
+        if not handoff.claude_path():
+            st.caption("Claude Code לא מותקן במחשב הזה. אפשר לצרף את התיק לשיחה חדשה ב-claude.ai.")
+        st.caption("או בטרמינל, בתיקיית הפרויקט:")
+        st.code(handoff.shell_command(brief), language=None)
+        files = handoff.kit_files(folder)
+        if files:
+            section_label("מה Claude הכין")
+            with st.container(horizontal=True, gap="small"):
+                for f in files:
+                    st.download_button(f.name, f.read_bytes(), file_name=f.name, on_click="ignore",
+                                       icon=":material/description:", key=f"dl_{job['id']}_{f.name}")
 
 
 def pipeline_tab(df: pd.DataFrame) -> None:

@@ -124,3 +124,73 @@ Description:
 {description}
 </job>
 """
+
+# ---------------------------------------------------------------- Claude handoff (jobhunter/handoff.py)
+# A brief for Claude Code or a claude.ai chat, which runs on the person's Claude subscription instead of
+# the API. Rules follow the cv-tailoring skill: select, reorder and rephrase, never add facts.
+
+HANDOFF_BRIEF = """\
+# Application kit: {title} at {company}
+
+You are helping {name} apply for the job below. This is a writing task, not a coding task:
+do not change any code or settings in this repository.
+
+## The one rule: nothing invented
+Use only facts from the CV below (and the master CV, when there is one). You may select,
+reorder, emphasize and rephrase them, and use the posting's own wording where the CV truly
+supports it. Never add a skill, tool, employer, title, date, number, degree or project that
+is not in the CV. Never present a skill as stronger than the CV shows. If the job asks for
+something the candidate lacks, leave it out of the CV and list it under "Gaps" in changes.md.
+The candidate will be interviewed on every line. When something important is unclear (a
+date, whether a project really used a tool), ask the candidate instead of guessing.
+
+## What to produce
+Write the CV and the cover letter in the posting's language (this one looks {posting_language}).
+{output_note}
+
+1. `cv_tailored.md`: a one-page CV for this job in Markdown. A 2-3 line summary for this
+   role, skills ordered by what the job asks for, then the most relevant experience,
+   projects and education with 2-4 strong bullets each (verb, what was built, with what,
+   result). ATS-friendly: plain headings (Summary, Skills, Experience, Projects, Education),
+   no tables, no columns, dates as MM/YYYY. Keep the contact line from the CV.
+2. `cover_letter.md`: 150-220 words. Why this role and company (one concrete detail from the
+   posting), two short evidence paragraphs that map the candidate's most relevant work to the
+   top requirements, one closing line. No clichés, no flattery, no claims beyond the CV.
+3. `changes.md`: one line per change (what was emphasized, reordered or reworded, and why),
+   then a "Gaps" section: the job's must-haves the CV does not show, each with an honest way
+   to talk about it (adjacent experience, currently learning).
+4. `interview_prep.md`, written in {language}: 8 likely interview questions for this role with
+   answer outlines grounded in the CV, the 3 weakest spots and how to handle them, and 3 good
+   questions to ask the interviewer.
+
+{docx_note}
+End with a short summary for the candidate: the angle you chose, the biggest gap, and what
+to check before sending.
+
+## The job
+Title: {title}
+Company: {company}
+Location: {location}
+Link: {url}
+
+{description}
+
+## What the search agent found
+{analysis}
+
+## The candidate's CV
+File: {cv_file}
+
+```text
+{cv_text}
+```
+{master_block}"""
+
+HANDOFF_FILES_NOTE = """\
+If you can write files (Claude Code), save each document into this folder and touch nothing else:
+    {folder}
+If you are a chat without file access (claude.ai), reply with each document in its own section."""
+
+HANDOFF_DOCX_NOTE = """\
+In Claude Code, then make a Word copy of the CV with:
+    {command}"""
