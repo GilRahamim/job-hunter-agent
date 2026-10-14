@@ -26,6 +26,7 @@ class CollectorResult:
     source: str
     jobs: list[Job] = field(default_factory=list)
     error: str | None = None      # shown on the dashboard "Sources" tab
+    warning: str | None = None    # partial miss that still returned jobs; not counted as a failure
 
 
 @lru_cache(maxsize=1)

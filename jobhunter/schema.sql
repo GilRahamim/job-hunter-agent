@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS source_health (
     source   TEXT,
     fetched  INTEGER,
     error    TEXT,
-    duration_s REAL
+    duration_s REAL,
+    warning  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tailored_cvs (       -- written by the CV Tailoring Agent

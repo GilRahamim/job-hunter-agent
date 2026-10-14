@@ -106,9 +106,8 @@ def collect_jobspy(config: dict[str, Any], limit: int | None = None) -> Collecto
             break
 
     unique = list({j.id: j for j in jobs}.values())
-    error = None
     if not unique:
-        error = "no jobs returned (rate-limited or blocked?)"
-    elif failed:
-        error = f"{failed}/{len(passes)} query passes returned nothing"
-    return CollectorResult("jobspy", unique[:limit] if limit else unique, error)
+        return CollectorResult("jobspy", error="no jobs returned (rate-limited or blocked?)")
+    # Some queries simply have no matches; that is normal as long as others found jobs.
+    warning = f"{failed}/{len(passes)} query passes returned nothing" if failed else None
+    return CollectorResult("jobspy", unique[:limit] if limit else unique, warning=warning)

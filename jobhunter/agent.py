@@ -51,6 +51,7 @@ class PipelineState(TypedDict, total=False):
     rescored_ids: set[str]
     prescores: list[float]
     matches: dict[str, JobMatch | None]
+    llm_error: str | None
     rows: list[dict]
     stats: dict
 
@@ -107,7 +108,7 @@ def collect_node(state: PipelineState) -> dict:
     jobs = [j for r in results for j in r.jobs]
     for h in health:
         log.info("source %-15s %4d jobs %5.1fs %s", h["source"], h["fetched"], h["duration_s"] or 0,
-                 f"ERROR: {h['error']}" if h["error"] else "")
+                 f"ERROR: {h['error']}" if h["error"] else f"note: {h['warning']}" if h.get("warning") else "")
     return {"results": results, "health": health, "raw_jobs": jobs}
 
 
@@ -177,8 +178,11 @@ def llm_score_node(state: PipelineState) -> dict:
     picks = select_for_llm(state["prescores"], state["config"])
     jobs = [state["to_score"][i] for i in picks]
     log.info("llm: scoring %d of %d jobs", len(jobs), len(state["to_score"]))
-    results = score_with_llm(state["llm"], state["profile"], jobs, state["config"])
-    return {"matches": {j.id: r for j, r in zip(jobs, results)}}
+    errors: list[str] = []
+    results = score_with_llm(state["llm"], state["profile"], jobs, state["config"], errors)
+    if errors:
+        log.error("llm: %d of %d jobs could not be scored, e.g. %s", len(errors), len(jobs), errors[0])
+    return {"matches": {j.id: r for j, r in zip(jobs, results)}, "llm_error": errors[0] if errors else None}
 
 
 def save_node(state: PipelineState) -> dict:
@@ -193,6 +197,7 @@ def save_node(state: PipelineState) -> dict:
         "kept": len(state["kept_jobs"]), "rescored": len(state["rescored_ids"]),
         "prescored": len(rows), "llm_scored": sum(1 for m in matches.values() if m),
         "llm_failed": sum(1 for m in matches.values() if m is None),
+        "llm_error": state.get("llm_error"),
         "errors": [f"{h['source']}: {h['error']}" for h in state["health"] if h["error"]],
         "duration_s": round(time.monotonic() - state["started"], 1),
         "dry_run": bool(opts.get("dry_run")),

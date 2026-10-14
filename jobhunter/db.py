@@ -47,6 +47,7 @@ def source_priority(source: str) -> int:
 def _migrate(con: sqlite3.Connection) -> None:
     """Add columns introduced after a DB was created. Never drop the DB."""
     # Example:  _add_column(con, "jobs", "new_col", "TEXT")
+    _add_column(con, "source_health", "warning", "TEXT")
 
 
 def _add_column(con: sqlite3.Connection, table: str, column: str, decl: str) -> None:
@@ -176,8 +177,8 @@ def finish_run(run_id: int, stats: dict, health: list[dict], path: str | Path | 
         con.execute("UPDATE runs SET finished = ?, stats = ? WHERE id = ?",
                     (now_utc(), _dumps(stats), run_id))
         con.executemany(
-            "INSERT INTO source_health (run_id, source, fetched, error, duration_s) VALUES (?,?,?,?,?)",
-            [(run_id, h["source"], h.get("fetched", 0), h.get("error"), h.get("duration_s"))
+            "INSERT INTO source_health (run_id, source, fetched, error, warning, duration_s) VALUES (?,?,?,?,?,?)",
+            [(run_id, h["source"], h.get("fetched", 0), h.get("error"), h.get("warning"), h.get("duration_s"))
              for h in health],
         )
 

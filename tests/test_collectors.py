@@ -308,3 +308,19 @@ def test_fill_descriptions_only_reads_jobs_without_one(monkeypatch):
     other = Job("techmap", "QA", "C", "https://www.comeet.com/jobs/c/1.002/qa/3.004")
     assert details.fill_descriptions([bare, full, other], limit=5, pause=(0, 0)) == 1
     assert bare.description == "3+ years of Java" and full.description.startswith("Python") and not other.description
+
+
+def test_jobspy_partial_miss_is_a_warning_not_an_error(monkeypatch):
+    import sys, types
+    monkeypatch.setitem(sys.modules, "jobspy", types.ModuleType("jobspy"))
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+    job = Job("jobspy:linkedin", "Python Developer", "Acme", "https://x/1")
+    monkeypatch.setattr(jobspy_source, "_scrape",
+                        lambda sites, query, *a: [job] if query == "python" else [])
+    cfg = {"sources": {"jobspy": {}}, "search": {"queries": ["python", "nothing here"], "location": "Israel"}}
+    r = jobspy_source.collect_jobspy(cfg)
+    assert r.error is None and r.warning and len(r.jobs) == 1
+
+    monkeypatch.setattr(jobspy_source, "_scrape", lambda *a: [])
+    r = jobspy_source.collect_jobspy(cfg)
+    assert r.error and not r.jobs                          # nothing at all is still a failure

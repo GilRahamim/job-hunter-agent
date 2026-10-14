@@ -62,6 +62,7 @@ def collect_all(config: dict[str, Any], only: list[str] | None = None,
         outcomes = list(pool.map(lambda n: _run_one(n, config, limit), names))
 
     results = [r for r, _ in outcomes]
-    health = [{"source": r.source, "fetched": len(r.jobs), "error": r.error, "duration_s": round(d, 1)}
+    health = [{"source": r.source, "fetched": len(r.jobs), "error": r.error, "warning": r.warning,
+               "duration_s": round(d, 1)}
               for r, d in outcomes]
     return results, health

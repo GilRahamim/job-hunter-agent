@@ -126,8 +126,10 @@ def test_failure_returns_none_and_falls_back_to_prescore(profile, cfg):
     def mixed(text):
         return boom(text) if "Receptionist" in text else by_title(text)
 
-    res = matcher.llm_score(FakeLLM(mixed), profile, [GOOD, BAD], cfg)
+    errors: list[str] = []
+    res = matcher.llm_score(FakeLLM(mixed), profile, [GOOD, BAD], cfg, errors)
     assert res[0] is not None and res[1] is None          # one bad job does not fail the batch
+    assert errors == ["RuntimeError: down"]               # the reason reaches the run stats
     row = matcher.scored_row(BAD, 12.34, res[1], "hash1", "m")
     assert row["score"] == 12.3 and row["scored_by"] == "heuristic" and row["cv_hash"] == "hash1"
     row = matcher.scored_row(GOOD, 40.0, res[0], "hash1", "claude-x")

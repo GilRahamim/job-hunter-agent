@@ -75,7 +75,8 @@ def build_messages(profile: CandidateProfile, job: Job, cfg: dict[str, Any]) -> 
     return [("system", SCORE_SYSTEM.format(language=_language(cfg))), ("user", user)]
 
 
-def _score_one(structured: Any, messages: list[tuple[str, str]], title: str) -> JobMatch | None:
+def _score_one(structured: Any, messages: list[tuple[str, str]], title: str,
+               errors: list[str]) -> JobMatch | None:
     for attempt in range(LLM_ATTEMPTS):
         try:
             result = structured.invoke(messages)
@@ -84,17 +85,21 @@ def _score_one(structured: Any, messages: list[tuple[str, str]], title: str) -> 
             log.warning("LLM scoring %r failed (attempt %d/%d): %s", title, attempt + 1, LLM_ATTEMPTS, e)
             if attempt < LLM_ATTEMPTS - 1:
                 time.sleep(BACKOFF_SECONDS * 2 ** attempt)
+            else:
+                errors.append(f"{type(e).__name__}: {e}")
     return None
 
 
 def llm_score(llm: Any, profile: CandidateProfile, jobs: list[Job],
-              cfg: dict[str, Any]) -> list[JobMatch | None]:
-    """One JobMatch per job (None when all retries failed). Order matches `jobs`."""
+              cfg: dict[str, Any], errors: list[str] | None = None) -> list[JobMatch | None]:
+    """One JobMatch per job (None when all retries failed). Order matches `jobs`.
+    The last error of each failed job is appended to `errors` when given."""
+    errors = [] if errors is None else errors
     if not jobs:
         return []
     structured = llm.with_structured_output(JobMatch)
     with ThreadPoolExecutor(max_workers=cfg["llm"].get("max_workers", 6)) as pool:
-        futures = [pool.submit(_score_one, structured, build_messages(profile, j, cfg), j.title)
+        futures = [pool.submit(_score_one, structured, build_messages(profile, j, cfg), j.title, errors)
                    for j in jobs]
         return [f.result() for f in futures]
 

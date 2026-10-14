@@ -221,8 +221,25 @@ def run_summary_html(run: dict) -> str:
     parts = [f"<bdi>{s.get('kept', 0)}</bdi> חדשות"]
     if failed:
         parts.append("מקור אחד עם תקלה" if failed == 1 else f"<bdi>{failed}</bdi> מקורות עם תקלה")
+    if s.get("llm_failed"):
+        parts.append(f"<bdi>{s['llm_failed']}</bdi> בלי ציון AI")
     return (f'<div class="jh-run-summary">ריצה אחרונה: <bdi>{when:%d/%m %H:%M}</bdi> · {took}<br>'
             f'{" · ".join(parts)}</div>')
+
+
+def llm_failure_notice(stats: dict) -> None:
+    """Scoring failures are silent otherwise: jobs still show, only with the keyword score."""
+    failed, err = stats.get("llm_failed", 0), stats.get("llm_error") or ""
+    if not failed:
+        return
+    if "credit balance" in err.lower():
+        why = "נגמר הקרדיט בחשבון ה-API. אפשר להטעין ב-console.anthropic.com (Plans & Billing)."
+    elif "api key" in err.lower() or "authentication" in err.lower():
+        why = "מפתח ה-API לא תקין. כדאי לבדוק את הקובץ .env."
+    else:
+        why = "הפירוט נמצא ביומן הריצה."
+    st.warning(f"ציון ה-AI נכשל ב-{failed} משרות, ולכן הן קיבלו רק ציון לפי מילות מפתח. {why}",
+               icon=":material/warning:")
 
 
 # ------------------------------------------------------------ sidebar settings, kept in the URL
@@ -302,6 +319,7 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
             runs = db.last_runs(1)
             if runs:
                 st.html(run_summary_html(runs[0]))
+                llm_failure_notice(runs[0]["stats"])
         if df.empty:
             with st.container(key="sb-prefs"):
                 theme_toggle()
@@ -561,7 +579,9 @@ def sources_tab() -> None:
     health = pd.DataFrame(db.health_for_run(runs[0]["id"]))
     if health.empty:
         return
-    health["מצב"] = health["error"].map(lambda e: f"תקלה: {e}" if e else "תקין")
+    warnings = health["warning"] if "warning" in health else pd.Series(None, index=health.index)
+    health["מצב"] = [f"תקלה: {e}" if e else f"תקין ({w})" if w else "תקין"
+                     for e, w in zip(health["error"], warnings)]
     st.dataframe(health[["source", "fetched", "duration_s", "מצב"]].rename(
         columns={"source": "מקור", "fetched": "נשלפו", "duration_s": "שניות"}), hide_index=True, width="stretch")
     hist = pd.DataFrame(db.health_history(14))
