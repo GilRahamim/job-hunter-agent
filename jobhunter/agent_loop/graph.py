@@ -18,6 +18,7 @@ from jobhunter.llm import get_llm
 from jobhunter.matcher import _language, scored_row
 from jobhunter.models import JobMatch
 from jobhunter.prompts import AGENT_NUDGE, AGENT_START, AGENT_SYSTEM
+from jobhunter.stop import stop_requested
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +70,8 @@ def build_graph(llm: Any, ctx: AgentContext):
     max_steps = ctx.settings["max_steps"]
 
     def agent_node(state: LoopState) -> dict:
+        if stop_requested():
+            return {"stop_reason": "stopped_by_user"}
         try:
             reply = model.invoke(compact_history(state["messages"]))
         except Exception as e:  # noqa: BLE001 - provider errors end the loop; results so far are kept
@@ -113,6 +116,8 @@ def build_graph(llm: Any, ctx: AgentContext):
         return "model_stopped"
 
     def after_tools(state: LoopState) -> str:
+        if stop_requested():
+            return "stopped_by_user"
         if ctx.goal_reached():
             return "goal_reached"
         if state.get("steps", 0) >= max_steps:
@@ -126,7 +131,7 @@ def build_graph(llm: Any, ctx: AgentContext):
     g.add_node("agent", agent_node)
     g.add_node("tools", tools_node)
     g.add_node("nudge", nudge_node)
-    for reason in ("goal_reached", "step_limit", "model_stopped"):
+    for reason in ("goal_reached", "step_limit", "model_stopped", "stopped_by_user"):
         g.add_node(reason, stop(reason))
         g.add_edge(reason, END)
     g.add_edge(START, "agent")

@@ -11,7 +11,7 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from jobhunter import db
+from jobhunter import db, stop
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.base import CollectorResult
 from jobhunter.config import ROOT, load_config
@@ -151,6 +151,9 @@ def prescore_node(state: PipelineState) -> dict:
 
 
 def after_prescore(state: PipelineState) -> str:
+    if stop.stop_requested():
+        log.info("stop requested: skipping LLM scoring, saving what was collected")
+        return "save"
     return "llm_score" if state["llm_enabled"] and state["to_score"] else "save"
 
 
@@ -253,10 +256,12 @@ class run_lock:
             if pid_alive(pid) and pid != os.getpid():
                 raise RunLocked(f"another run is in progress (pid {pid}); remove {self.path} if stale")
         self.path.write_text(str(os.getpid()))
+        stop.clear_stale_stop()               # a stop request left from an earlier run must not end this one
         return self
 
     def __exit__(self, *exc):
         self.path.unlink(missing_ok=True)
+        stop.clear_stop()
 
 
 def run(config: dict[str, Any] | None = None, **options: Any) -> PipelineState:

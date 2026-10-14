@@ -6,6 +6,7 @@ import random
 import time
 from typing import Any
 
+from jobhunter import stop
 from jobhunter.collectors.base import CollectorResult, clean, to_iso
 from jobhunter.models import Job
 
@@ -89,6 +90,9 @@ def collect_jobspy(config: dict[str, Any], limit: int | None = None) -> Collecto
     passes = [(q, base_loc, False) for q in queries] + [
         (q, "Remote", True) for q in queries if any(h in q.lower() + " " for h in _REMOTE_QUERY_HINTS)]
     for query, location, remote in passes:
+        if stop.stop_requested():
+            log.info("jobspy: stop requested, skipping the remaining queries")
+            break
         try:
             found = _scrape(sites, query, config, location, remote, fetch_desc)
             jobs.extend(found)

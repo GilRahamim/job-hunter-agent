@@ -4,6 +4,8 @@ Reads from SQLite; writes only `status` and `notes`."""
 from __future__ import annotations
 
 import html
+import os
+import signal
 import subprocess
 import sys
 import time
@@ -16,7 +18,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
-from jobhunter import db
+from jobhunter import db, stop
 from jobhunter.config import ROOT, load_config
 from ui.components import (brand_header, chips, inject_theme, kpi_row, question, score_box,
                            section_label, theme_toggle, title)
@@ -36,6 +38,7 @@ STATUS_HE = {"new": "חדש", "interested": "מעניין", "applied": "הוגש
 HE_STATUS = {v: k for k, v in STATUS_HE.items()}
 GOAL_RANGE = (3, 10)            # agent mode: matches to find, chosen in the sidebar
 STARTUP_GRACE_S = 20            # a run just launched may not have written run.lock yet
+FORCE_STOP_AFTER_S = 60         # offer a hard stop when a graceful stop takes longer than this
 WHERE = ["הכול", "ישראל", "מרחוק"]
 FUNNEL = ["new", "interested", "applied", "interview", "offer"]
 VERDICT_HE = {"strong": "חזקה", "good": "טובה", "stretch": "מתיחה", "poor": "חלשה"}
@@ -107,6 +110,16 @@ def start_run(goal: int | None = None) -> None:
     st.session_state["launched_at"] = time.time()
 
 
+def force_stop(pid: int) -> None:
+    """Last resort when a graceful stop takes too long: kill the run (its results are lost)."""
+    try:
+        os.kill(pid, signal.SIGTERM)          # TerminateProcess on Windows
+    except OSError:
+        pass
+    LOCK_PATH.unlink(missing_ok=True)
+    stop.clear_stop()
+
+
 def _health_url(base: str) -> str:
     # Windows resolves "localhost" to IPv6 first and waits ~2s before trying 127.0.0.1
     return base.rstrip("/").replace("//localhost", "//127.0.0.1") + "/models"
@@ -133,14 +146,38 @@ def run_active() -> bool:
     return bool(is_running()) or time.time() - st.session_state.get("launched_at", 0) < STARTUP_GRACE_S
 
 
+RUN_KEYS = ("launched_at", "stop_search", "stop_at", "force_offered")
+
+
+def on_stop_toggle() -> None:
+    """The "stop search" toggle: ask the running search to finish its step, save and stop."""
+    if st.session_state.get("stop_search"):
+        stop.request_stop()
+        st.session_state["stop_at"] = time.time()
+    else:                                                  # switched back off before it stopped
+        stop.clear_stop()
+        for key in ("stop_at", "force_offered"):
+            st.session_state.pop(key, None)
+
+
 @st.fragment(run_every=3)
 def run_status() -> None:
     """Live log while a run is going; only this fragment polls, the controls stay still."""
     if not run_active():
-        st.session_state.pop("launched_at", None)
+        for key in RUN_KEYS:
+            st.session_state.pop(key, None)
+        stop.clear_stop()
         load_jobs.clear()
         st.rerun(scope="app")
-    st.info("הסוכן רץ עכשיו…" if is_running() else "הסוכן מתחיל…")
+    stop_at = st.session_state.get("stop_at")
+    if stop_at:
+        st.info("עוצר… המשרות שכבר נמצאו יישמרו.")
+        if (is_running() and time.time() - stop_at > FORCE_STOP_AFTER_S
+                and not st.session_state.get("force_offered")):
+            st.session_state["force_offered"] = True       # the controls (outside) show the hard stop
+            st.rerun(scope="app")
+    else:
+        st.info("הסוכן רץ עכשיו…" if is_running() else "הסוכן מתחיל…")
     if LOG_PATH.exists():
         st.code("\n".join(LOG_PATH.read_text(encoding="utf-8", errors="replace").splitlines()[-12:]),
                 language=None)
@@ -148,6 +185,12 @@ def run_status() -> None:
 
 def run_controls(cfg: dict) -> None:
     if run_active():
+        st.toggle("עצירת החיפוש", key="stop_search", on_change=on_stop_toggle,
+                  help="הסוכן מסיים את הצעד הנוכחי, שומר את המשרות שכבר מצא ועוצר.")
+        pid = is_running()
+        if pid and st.session_state.get("force_offered"):
+            st.button("עצירה מיידית", icon=":material/stop_circle:", on_click=force_stop, args=(pid,),
+                      help="הסוכן לא נעצר בזמן. עצירה מיידית לא שומרת את התוצאות של הריצה הזו.")
         run_status()
         return
     smart = st.toggle("סוכן חכם (המודל בוחר חיפושים)", key="agent_mode",

@@ -294,3 +294,37 @@ def test_agent_fetches_linkedin_descriptions(env, monkeypatch):
     tools.search_jobs(ctx, "Junior Python Developer", "linkedin")
     assert seen == [True]
 
+
+def test_stop_request_ends_the_run_and_keeps_results(env, monkeypatch, tmp_path):
+    from jobhunter import stop
+    cfg, path, _ = env
+    monkeypatch.setattr(stop, "STOP_PATH", tmp_path / "stop.flag")
+
+    class StopAfterSearch(ScriptedModel):
+        def invoke(self, messages):
+            reply = super().invoke(messages)
+            if reply.tool_calls and reply.tool_calls[0]["name"] == "search_jobs":
+                stop.request_stop()                      # the user flips the toggle mid-run
+            return reply
+
+    model = StopAfterSearch([call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
+                             call("read_posting", {"job_id": PY.id})])
+    use(monkeypatch, model)
+    result = agent_loop.run(cfg, db_path=path)
+    assert result["stats"]["stop_reason"] == "stopped_by_user" and result["stats"]["steps"] == 1
+    assert {j["id"] for j in db.all_jobs(path=path)} == {PY.id, AI.id}    # found jobs are still saved
+
+
+def test_stale_stop_request_is_cleared_but_fresh_one_kept(tmp_path, monkeypatch):
+    import os
+    import time
+
+    from jobhunter import stop
+    monkeypatch.setattr(stop, "STOP_PATH", tmp_path / "stop.flag")
+    stop.request_stop()
+    stop.clear_stale_stop()
+    assert stop.stop_requested()                         # fresh: switched on while the run was starting
+    old = time.time() - 3600
+    os.utime(stop.STOP_PATH, (old, old))
+    stop.clear_stale_stop()
+    assert not stop.stop_requested()

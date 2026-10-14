@@ -135,3 +135,16 @@ def test_controls_do_not_live_in_the_polling_fragment():
     poll = src.split("@st.fragment(run_every=3)")[1].split("\ndef ", 2)[1]
     assert "st.toggle" not in poll and "st.slider" not in poll and "st.button" not in poll
 
+
+def test_stop_toggle_asks_the_running_search_to_stop(tmp_path, monkeypatch):
+    from jobhunter import stop
+    monkeypatch.setattr(stop, "STOP_PATH", tmp_path / "stop.flag")
+    monkeypatch.setattr("subprocess.Popen", lambda cmd, **kw: None)
+    at = _app(tmp_path, monkeypatch)
+    assert not [t for t in at.toggle if t.key == "stop_search"]          # only while a run is going
+    _launch(at).click().run()
+    toggle = next(t for t in at.toggle if t.key == "stop_search")
+    toggle.set_value(True).run()
+    assert not at.exception and stop.stop_requested()
+    next(t for t in at.toggle if t.key == "stop_search").set_value(False).run()
+    assert not stop.stop_requested()                                    # switched back off
