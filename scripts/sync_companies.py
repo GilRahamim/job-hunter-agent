@@ -21,9 +21,12 @@ import json
 import logging
 import re
 import sys
+import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -99,10 +102,23 @@ def vc_board_links(cfg: dict) -> set[tuple[str, str]]:
     return found
 
 
+PAGE_MAX_BYTES = 2_000_000
+PAGE_MAX_SECONDS = 20
+
+
 def scan_page(url: str) -> set[tuple[str, str]]:
+    """Board links on one careers page. A per-read timeout alone let slow, endless pages hang the
+    scan for good, so the page is streamed with a total time and size cap (and no retries)."""
+    started, chunks, size = time.monotonic(), [], 0
     try:
-        resp = get_session().get(url, timeout=15, headers=ats.BROWSER_UA)
-        return boards_in(resp.url + "\n" + resp.text)
+        with requests.get(url, timeout=10, headers=ats.BROWSER_UA, stream=True) as resp:
+            for chunk in resp.iter_content(65536):
+                chunks.append(chunk)
+                size += len(chunk)
+                if size > PAGE_MAX_BYTES or time.monotonic() - started > PAGE_MAX_SECONDS:
+                    break
+            text = b"".join(chunks).decode(resp.encoding or "utf-8", errors="replace")
+            return boards_in(resp.url + "\n" + text)
     except Exception:  # noqa: BLE001 - dead careers pages are common
         return set()
 

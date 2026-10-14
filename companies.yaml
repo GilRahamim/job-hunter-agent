@@ -38,11 +38,47 @@ greenhouse:
   - datadog
   - pagaya
   - vast
+  # added by scripts/sync_companies.py (Israeli Tech Map, ODbL)
+  - aiven36
+  - aligned
+  - alta
+  - augury
+  - canopycare
+  - capitolis
+  - castaigroupinc
+  - coinbase
+  - cyluscybersecurity
+  - datarails
+  - duda
+  - elastic
+  - eleoshealth
+  - mixtiles
+  - nextinsurance66
+  - opswat
+  - pagayais
+  - partnerize
+  - pendo
+  - placerlabs
+  - quanthealth
+  - residenthome
+  - scaleops
+  - tenableinc
+  - tipaltisolutions
+  - toriihq
+  - tripactions
+  - tripledotstudios
+  - unframe
+  - veracyte
+  - verifone
 
 lever:
   - cloudinary
   - walkme
   - mobileye          # EU Lever account
+  # added by scripts/sync_companies.py (Israeli Tech Map, ODbL)
+  - d-fendsolutions
+  - palantir
+  - parallelwireless
 
 ashby:
   - moonactive
@@ -54,6 +90,15 @@ ashby:
   - sisense
   - sentra
   - oligo
+  # added by scripts/sync_companies.py (Israeli Tech Map, ODbL)
+  - human
+  - ledge
+  - mend-io
+  - monday.com
+  - pointfive
+  - semperis
+  - viz.ai
+  - zafran-security
 
 smartrecruiters:
   - armis
@@ -75,3 +120,148 @@ comeet:
   - kelatechnologies/2A.007
   - team8/61.003
   - vastdata/43.001
+  # added by scripts/sync_companies.py (Israeli Tech Map, ODbL)
+  - 365scores/B3.006
+  - 8fig/08.004
+  - acs/14.000
+  - activefence/D5.005
+  - agora/08.007
+  - airobotics/AA.005
+  - aitechsystems/88.004
+  - aka_food/79.00D
+  - akeyless/27.006
+  - alice/D5.005
+  - altair-semi/88.003
+  - altair_semiconductor/88.003
+  - anchorfintech/87.00D
+  - anyword/30.00B
+  - aquasec/91.001
+  - arpeely/57.001
+  - askai/1A.00C
+  - atera/63.00B
+  - beewise/0B.001
+  - bgtechs/E6.00D
+  - biocatch/03.00E
+  - bizzabo/A5.000
+  - blinkops/C7.004
+  - bondsports/F7.009
+  - bookaway/64.006
+  - brandshield/13.002
+  - buildots/36.004
+  - cardosystems/F2.003
+  - cellebrite/C3.00F
+  - ceragon/D3.003
+  - ceva/76.005
+  - chargeflow/29.001
+  - checkmarx/C0.008
+  - claroty/F2.004
+  - classiq/F7.008
+  - clinch/42.007
+  - cognyte/F2.009
+  - crossriver/C7.00F
+  - cycode/A8.00D
+  - cyera/17.008
+  - cynet/33.00D
+  - cytoreason/16.002
+  - daisy/67.002
+  - dealhub/86.005
+  - directeam/29.008
+  - driivz/C4.00B
+  - dustphotonics/05.00B
+  - duve/58.00D
+  - easysend/D5.009
+  - eitanmedical/C6.00F
+  - enercon/A4.00D
+  - etoro/41.009
+  - exco/F0.005
+  - fetcherr/68.006
+  - flo_optics/EA.00E
+  - flytrex/77.003
+  - fullpath/54.002
+  - gett/A0.002
+  - gilat/39.005
+  - gloat/E5.000
+  - guardio/57.000
+  - guesty/10.000
+  - holisto/76.001
+  - immunai/37.009
+  - incredibuild/66.00F
+  - infinidat/D6.003
+  - innoviz/52.004
+  - insightec/4A.004
+  - ionix/08.003
+  - ironscales/1A.007
+  - irpsystems/47.002
+  - jifiti/47.005
+  - jvp/35.00E
+  - kmslh/97.008
+  - komodor/96.005
+  - landacorp/A4.000
+  - liveu/90.00C
+  - lsports/26.002
+  - lumenis/A1.00C
+  - lusha/73.00B
+  - mdclone/66.004
+  - moonshot/87.005
+  - mprest/38.005
+  - netafim/B7.002
+  - nexite/37.000
+  - nextsilicon/18.007
+  - nominal/E8.003
+  - okoora/85.00C
+  - onestep/79.007
+  - onezerobank/36.00A
+  - optibus/D1.00C
+  - orbit_communication_systems/2B.008
+  - orca-ai/86.003
+  - ourcrowd/D3.00A
+  - pentera/C5.00D
+  - percepto/44.000
+  - personetics/83.00A
+  - plainid/C4.00C
+  - planck/28.00E
+  - plus500/A1.00F
+  - port/59.004
+  - prettydamnquick/0A.00E
+  - prismaphotonics/18.00C
+  - qedma/7A.006
+  - rapyd/73.00E
+  - reco/3A.00D
+  - retym/C6.003
+  - risecodes/A9.000
+  - riverside-fm/66.009
+  - rylo/D8.007
+  - scylladb/E4.006
+  - securingsam/D4.000
+  - sedric/0A.00F
+  - sensi/E7.00F
+  - shieldfc/A5.00E
+  - shopic/E6.002
+  - silverfort/54.007
+  - skai/22.00A
+  - sodastream/40.008
+  - solaredge/71.00A
+  - streamsecurity/39.008
+  - superplay/28.003
+  - tastewise/F8.000
+  - thetaray/72.00F
+  - tikalk/68.00C
+  - toka/46.00D
+  - travelier/64.006
+  - trieye/A6.00E
+  - trigo/A6.005
+  - trivago/76.001
+  - trullion/07.000
+  - upstream/E4.003
+  - vectoriousmedtech/68.003
+  - viber/04.002
+  - voyantis/86.00B
+  - waterfall-security/C7.009
+  - weski/F8.00C
+  - wiliot/F6.003
+  - windward/31.002
+  - wsc-sports/93.007
+  - xtend/85.00A
+  - youappi/C9.00B
+  - zencity/56.00B
+  - zeronetworks/39.00F
