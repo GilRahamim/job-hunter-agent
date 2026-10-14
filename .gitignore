@@ -7,3 +7,8 @@ __pycache__/
 .venv/
 .pytest_cache/
 .streamlit/secrets.toml
+
+# local tooling, not part of the app
+.claude/skills/diagram-design/
+diagrams/
+skills-lock.json
