@@ -221,3 +221,35 @@ def test_agent_llm_override():
            "agent": {"llm": {"provider": "ollama", "model": "qwen3:8b"}}}
     merged = graph.agent_llm_config(cfg)["llm"]
     assert merged == {"provider": "ollama", "model": "qwen3:8b", "temperature": 0}
+
+
+GROUPS = {"AI / ML": ["AI Engineer", "LLM Engineer"], "Data": ["Data Analyst", "Data Scientist"],
+          "Software": ["Software Engineer", "Python Developer"]}
+
+
+@pytest.mark.parametrize("query,expected", [
+    ("Junior Data Analyst", ["Data"]),
+    ("data", ["Data"]),
+    ("AI", ["AI / ML"]),
+    ("Junior Python Developer", ["Software"]),
+    ("Engineer", ["AI / ML", "Software"]),
+    ("Product Manager", []),
+])
+def test_query_groups(query, expected):
+    assert tools.query_groups(query, GROUPS) == expected
+
+
+def test_search_reports_uncovered_groups_and_caps_a_group(env, monkeypatch):
+    cfg, path, _ = env
+    cfg["agent"].update(role_groups=GROUPS, max_searches=5, max_searches_per_group=1)
+    model = ScriptedModel([
+        call("search_jobs", {"query": "AI Engineer", "source": "linkedin"}),
+        call("search_jobs", {"query": "LLM Engineer", "source": "linkedin"}),
+    ])
+    use(monkeypatch, model)
+    agent_loop.run(config=cfg, db_path=path, dry_run=True)
+    first, second = tool_outputs(model)[:2]
+    assert "Role groups not searched yet: Data, Software" in first
+    assert second.startswith("ERROR: role group AI / ML already has 1 searches")
+    system = model.seen[0][0].content
+    assert "- Data: Data Analyst, Data Scientist" in system and "at most 1 per role group" in system

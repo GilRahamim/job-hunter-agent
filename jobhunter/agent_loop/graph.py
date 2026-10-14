@@ -136,11 +136,20 @@ def build_graph(llm: Any, ctx: AgentContext):
     return g.compile()
 
 
+def role_groups_text(groups: dict[str, list[str]]) -> str:
+    if not groups:
+        return "- the candidate's target roles (see get_profile)"
+    return "\n".join(f"- {g}: {', '.join(titles)}" for g, titles in groups.items())
+
+
 def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
     s = ctx.settings
     system = AGENT_SYSTEM.format(goal=s["goal_matches"], min_score=s["min_match_score"],
                                  sources=", ".join(allowed_sources(ctx.config)),
-                                 max_searches=s["max_searches"], language=_language(ctx.config))
+                                 max_searches=s["max_searches"],
+                                 per_group=s.get("max_searches_per_group", s["max_searches"]),
+                                 role_groups=role_groups_text(s.get("role_groups") or {}),
+                                 language=_language(ctx.config))
     return [SystemMessage(system),
             HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]))]
 

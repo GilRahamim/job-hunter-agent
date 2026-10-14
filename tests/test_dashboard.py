@@ -38,3 +38,47 @@ def test_jobs_render_with_kpis(tmp_path, monkeypatch):
     assert [t.label for t in at.tabs] == ["משרות", "תהליך", "תובנות", "מקורות", "פרופיל"]
     kpis = {m.label: m.value for m in at.metric}
     assert kpis["משרות מתאימות"] == "2" and kpis["הוגשה מועמדות"] == "0"
+
+
+class _Ok:
+    def raise_for_status(self):
+        pass
+
+
+def _launch(at):
+    return next(b for b in at.button if "המשרה הבאה" in b.label)
+
+
+def test_run_button_starts_fixed_pipeline_by_default(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr("subprocess.Popen", lambda cmd, **kw: calls.append(cmd))
+    at = _app(tmp_path, monkeypatch)
+    assert not [s for s in at.slider if s.key == "agent_goal"]
+    _launch(at).click().run()
+    assert calls[-1][1:] == ["run_agent.py"]
+
+
+def test_agent_mode_runs_agent_with_chosen_goal(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr("subprocess.Popen", lambda cmd, **kw: calls.append(cmd))
+    monkeypatch.setattr("requests.get", lambda *a, **kw: _Ok())
+    at = _app(tmp_path, monkeypatch)
+    next(t for t in at.toggle if t.key == "agent_mode").set_value(True).run()
+    goal = next(s for s in at.slider if s.key == "agent_goal")
+    assert (goal.min, goal.max) == (3, 10) and goal.value == 10      # config goal_matches, clamped
+    goal.set_value(4).run()
+    _launch(at).click().run()
+    assert calls[-1][1:] == ["run_agent.py", "--agent", "--goal", "4"]
+
+
+def test_agent_mode_blocks_run_when_local_model_server_is_down(tmp_path, monkeypatch):
+    import requests
+
+    def down(*a, **kw):
+        raise requests.ConnectionError("refused")
+
+    monkeypatch.setattr("requests.get", down)
+    at = _app(tmp_path, monkeypatch)
+    next(t for t in at.toggle if t.key == "agent_mode").set_value(True).run()
+    assert any("LM Studio" in w.value for w in at.warning)
+    assert _launch(at).disabled

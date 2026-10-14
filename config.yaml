@@ -121,8 +121,18 @@ matching:
 agent:                     # tool-using agent loop:  python run_agent.py --agent
   goal_matches: 10         # stop after this many saved jobs scoring >= min_match_score
   min_match_score: 70
-  max_steps: 30            # model turns per run (hard stop)
-  max_searches: 8          # search_jobs calls per run
+  max_steps: 50            # model turns per run (hard stop)
+  max_searches: 12         # search_jobs calls per run (LinkedIn rate-limits: keep modest)
+  max_searches_per_group: 3  # cap per role group, so one kind of job cannot use the whole budget
+  # Kinds of jobs the agent must cover. Every group is searched before any group is repeated.
+  # A query belongs to a group when its words match one of the group's titles.
+  role_groups:
+    AI / ML: [AI Engineer, GenAI Engineer, LLM Engineer, Machine Learning Engineer, NLP Engineer]
+    Data: [Data Analyst, Data Scientist, Data Engineer, BI Developer, BI Analyst]
+    Software: [Software Engineer, Junior Software Engineer, Python Developer, Backend Developer,
+               Full Stack Developer, Frontend Developer]
+    Algorithms / Research: [Algorithm Developer, Algorithm Engineer, Computer Vision Engineer]
+    Automation / QA / DevOps: [Automation Engineer, QA Automation Engineer, DevOps Engineer]
   results_per_search: 10   # results shown to the model per search
   search_limit: 30         # LinkedIn/Indeed/Google results per agent query
   max_posting_chars: 3000  # posting text shown by read_posting
@@ -133,8 +143,8 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
   llm:
     provider: openai
     base_url: http://localhost:1234/v1
-    model: qwen3.8-27b       # <- replace with the exact LM Studio identifier after download
-    max_tokens: 4096
+    model: qwen/qwen3.6-35b-a3b   # LM Studio identifier (`lms ls`); alt: openai/gpt-oss-20b
+    max_tokens: 8000         # Qwen thinks first; 4096 cut off profile extraction. Load with --context-length 32768
 
 notify:                    # desktop notification after a run
   enabled: false

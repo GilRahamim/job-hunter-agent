@@ -48,6 +48,7 @@ class AgentContext:
     drop_reasons: Counter = field(default_factory=Counter)
     searches: int = 0
     collected: int = 0
+    group_searches: Counter = field(default_factory=Counter)     # role group -> searches
 
     @property
     def settings(self) -> dict[str, Any]:
@@ -58,6 +59,31 @@ class AgentContext:
 
     def goal_reached(self) -> bool:
         return self.strong_matches() >= self.settings["goal_matches"]
+
+
+_WORD = re.compile(r"[\w֐-׿+#]+")
+
+
+def _words(text: str) -> set[str]:
+    return set(_WORD.findall(text.lower()))
+
+
+def query_groups(query: str, groups: dict[str, list[str]]) -> list[str]:
+    """Role groups a query belongs to: its words cover a group title, or a title covers its words
+    ("data analyst" -> Data; short board queries like "data" or "ai" -> every group with that word)."""
+    q = _words(query) - {"junior", "jr", "entry", "level", "graduate", "student"}
+    if not q:
+        return []
+    return [g for g, titles in groups.items()
+            if any((t := _words(title)) and (t <= q or q <= t) for title in titles)]
+
+
+def coverage_note(ctx: AgentContext) -> str:
+    groups = ctx.settings.get("role_groups") or {}
+    todo = [g for g in groups if not ctx.group_searches[g]]
+    if not todo:
+        return ""
+    return f" Role groups not searched yet: {', '.join(todo)}. Cover them before repeating a group."
 
 
 def allowed_sources(config: dict[str, Any]) -> list[str]:
@@ -91,7 +117,7 @@ def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
         ctx.health.extend(health)
         ctx.cache[source] = [j for r in results for j in r.jobs]
         ctx.collected += len(ctx.cache[source])
-    words = re.findall(r"[\w֐-׿+#]+", query.lower())
+    words = _WORD.findall(query.lower())
     return [j for j in ctx.cache[source] if all(w in j.title.lower() for w in words)]
 
 
@@ -127,7 +153,14 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
     if ctx.searches >= ctx.settings["max_searches"]:
         return ("Search budget used up. Read and save the best candidates you already found, "
                 "then stop.")
+    groups = ctx.settings.get("role_groups") or {}
+    hit = query_groups(query, groups)
+    cap = ctx.settings.get("max_searches_per_group", ctx.settings["max_searches"])
+    if hit and all(ctx.group_searches[g] >= cap for g in hit):
+        return (f"ERROR: role group {' / '.join(hit)} already has {cap} searches."
+                f"{coverage_note(ctx) or ' Search a different kind of job.'}")
     ctx.searches += 1
+    ctx.group_searches.update(hit)
     found = _fetch(ctx, source, query)
     kept, dropped = _new_and_filtered(ctx, found)
     ctx.drop_reasons.update(dropped)
@@ -139,7 +172,7 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
     top = ranked[: ctx.settings["results_per_search"]]
     head = (f"{len(found)} postings matched, {len(kept)} new after filters"
             f"{' (dropped: ' + ', '.join(f'{k} {v}' for k, v in dropped.items()) + ')' if dropped else ''}. "
-            f"Searches left: {ctx.settings['max_searches'] - ctx.searches}.")
+            f"Searches left: {ctx.settings['max_searches'] - ctx.searches}.{coverage_note(ctx)}")
     if not top:
         hint = " Try a broader or different query." if source not in QUERY_SOURCES else ""
         return head + hint

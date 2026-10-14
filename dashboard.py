@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 from jobhunter import db
@@ -32,6 +33,7 @@ INK, SEA, CORAL, MIST = _T["ink"], _T["accent"], _T["gap_text"], _T["mist"]
 STATUS_HE = {"new": "חדש", "interested": "מעניין", "applied": "הוגשה מועמדות", "interview": "ראיון",
              "offer": "הצעה", "rejected": "נדחה", "not_relevant": "לא רלוונטי"}
 HE_STATUS = {v: k for k, v in STATUS_HE.items()}
+GOAL_RANGE = (3, 10)            # agent mode: matches to find, chosen in the sidebar
 FUNNEL = ["new", "interested", "applied", "interview", "offer"]
 VERDICT_HE = {"strong": "חזקה", "good": "טובה", "stretch": "מתיחה", "poor": "חלשה"}
 
@@ -92,11 +94,31 @@ def is_running() -> int | None:
 
 # ------------------------------------------------------------ sidebar
 
-def start_run() -> None:
+def start_run(goal: int | None = None) -> None:
+    """goal=None: the fixed pipeline; otherwise the tool-using agent with that goal."""
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     log = open(LOG_PATH, "w", encoding="utf-8")
-    subprocess.Popen([sys.executable, "run_agent.py"], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+    cmd = [sys.executable, "run_agent.py"] + (["--agent", "--goal", str(goal)] if goal else [])
+    subprocess.Popen(cmd, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
     st.session_state["was_running"] = True
+
+
+def local_llm_down(cfg: dict) -> str | None:
+    """Base URL of the agent's local model server when it does not answer; None when it is fine
+    or the agent uses a cloud provider."""
+    base = (cfg["agent"].get("llm") or {}).get("base_url")
+    if not base:
+        return None
+    try:
+        requests.get(f"{base.rstrip('/')}/models", timeout=2).raise_for_status()
+    except requests.RequestException:
+        return base
+    return None
+
+
+def default_goal(cfg: dict) -> int:
+    lo, hi = GOAL_RANGE
+    return min(max(int(cfg["agent"].get("goal_matches", hi)), lo), hi)
 
 
 @st.fragment(run_every=3)
@@ -112,8 +134,21 @@ def run_panel() -> None:
         load_jobs.clear()
         st.rerun()
     else:
-        if st.button("בואו נמצא את המשרה הבאה", type="primary", width="stretch"):
-            start_run()
+        cfg = load_config()
+        smart = st.toggle("סוכן חכם (המודל בוחר חיפושים)", key="agent_mode",
+                          help="המודל המקומי כותב את החיפושים, קורא משרות ושומר את המתאימות. איטי יותר מהחיפוש הרגיל.")
+        goal, down = None, None
+        if smart:
+            goal = st.slider("כמה משרות מתאימות למצוא", *GOAL_RANGE, default_goal(cfg), key="agent_goal",
+                             help=f"הסוכן עוצר אחרי שמצא משרות בציון {cfg['agent']['min_match_score']} ומעלה, "
+                                  "או כשנגמרים החיפושים.")
+            down = local_llm_down(cfg)
+            if down:
+                st.warning(f"השרת המקומי של המודל לא עונה ({down}). "
+                           "יש להפעיל את LM Studio ולטעון את המודל.", icon=":material/warning:")
+        if st.button("בואו נמצא את המשרה הבאה", type="primary", width="stretch",
+                     disabled=bool(down)):
+            start_run(goal)
             st.rerun()
 
 

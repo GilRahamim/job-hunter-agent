@@ -60,13 +60,17 @@ Tools:
   "linkedin" searches by your query (slow; LinkedIn, Indeed, Google Jobs).
   Other sources match your query against job titles, so short queries work best
   there (e.g. "python", "data", "ai engineer").
-  You have {max_searches} searches in total.
+  You have {max_searches} searches in total, at most {per_group} per role group.
 - read_posting(job_id): the full posting. Always read before saving.
 - save_match(job_id, score, reason): save a job you read, with a 0-100 score.
 
+Role groups to cover (the candidate is open to all of them):
+{role_groups}
+
 How to work:
-1. Read the profile and write search queries that fit it. Prefer junior and
-   entry-level wording; vary titles across the candidate's target roles.
+1. Read the profile, then search every role group at least once before you
+   repeat a group, even when the profile leans toward one of them. Prefer
+   junior and entry-level wording.
 2. Read the most promising results (high "fit" first) and judge each one.
 3. Save every job worth applying to, including ones below {min_score}.
 4. If a search returns few useful jobs, change the query or the source.
@@ -76,6 +80,9 @@ How to work:
 Scoring: 75-100 strong (stack and level match), 60-74 worth applying with gaps,
 40-59 stretch, below 40 do not save. The candidate is junior: a posting that
 asks for more than 2 years of experience scores 55 at most.
+Score the candidate's real skills, not how the CV is worded: a separate agent
+will tailor the CV to each saved job, so a role outside the CV's main focus can
+still score high when the skills are there. Aim for matches from several groups.
 Write each reason in {language}: one or two sentences, why it fits and the main gap.
 Call one tool at a time. Use only job ids that a tool returned.
 """
