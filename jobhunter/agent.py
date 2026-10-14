@@ -16,7 +16,7 @@ from jobhunter.collectors import collect_all
 from jobhunter.collectors.base import CollectorResult
 from jobhunter.config import ROOT, load_config
 from jobhunter.cv import load_profile as load_cv_profile
-from jobhunter.filters import filter_jobs
+from jobhunter.filters import filter_jobs, junior_reason
 from jobhunter.llm import get_llm
 from jobhunter.matcher import llm_score as score_with_llm
 from jobhunter.matcher import prescore as prescore_jobs
@@ -139,8 +139,10 @@ def prescore_node(state: PipelineState) -> dict:
             include_heuristic=state["llm_enabled"], min_prescore=m["min_prescore_for_llm"])
         have = {j.id for j in to_score}
         for row in rows:
-            if row["id"] not in have:
-                to_score.append(job_from_row(row))
+            job = job_from_row(row)
+            # stored before the junior filters (or before they were tightened): do not score it again
+            if row["id"] not in have and junior_reason(job, cfg) is None:
+                to_score.append(job)
                 rescored.add(row["id"])
         if rescored:
             log.info("rescore: %d existing jobs queued", len(rescored))

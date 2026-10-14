@@ -16,6 +16,7 @@ def _app(tmp_path, monkeypatch, jobs=()):
     rows = []
     for i, j in enumerate(jobs):
         row = j.to_dict()
+        row["description"] = row["description"] or "Python and SQL."   # else hidden as "unverified"
         row.update(score=80 - i, prescore=80 - i, scored_by="heuristic", cv_hash="h")
         rows.append(row)
     if rows:
@@ -133,3 +134,4 @@ def test_controls_do_not_live_in_the_polling_fragment():
     src = DASHBOARD.read_text(encoding="utf-8")
     poll = src.split("@st.fragment(run_every=3)")[1].split("\ndef ", 2)[1]
     assert "st.toggle" not in poll and "st.slider" not in poll and "st.button" not in poll
+

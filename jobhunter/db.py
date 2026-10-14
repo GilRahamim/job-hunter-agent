@@ -236,6 +236,18 @@ def jobs_table(path: str | Path | None = None) -> list[dict]:
     return [_decode(r) for r in rows]
 
 
+def not_junior_ids(cfg: dict[str, Any], path: str | Path | None = None) -> set[str]:
+    """Ids of stored jobs that fail the junior check (senior title, required experience,
+    unverifiable) under the current config, including jobs saved before the check existed."""
+    from jobhunter.filters import junior_reason
+    from jobhunter.models import Job
+
+    with connect(path) as con:
+        rows = con.execute("SELECT id, title, description FROM jobs").fetchall()
+    return {r["id"] for r in rows
+            if junior_reason(Job("", r["title"] or "", "", "", description=r["description"] or ""), cfg)}
+
+
 def job_detail(job_id: str, path: str | Path | None = None) -> dict | None:
     with connect(path) as con:
         row = con.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()

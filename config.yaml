@@ -24,9 +24,28 @@ filters:
   # Junior mode: drop postings that state a years-of-experience requirement above this.
   # 0 = only jobs without an experience requirement; null = do not filter by years.
   max_required_years: 0
+  # A title that says junior ("Junior Data Engineer, 1-2 years") may state up to this many years.
+  junior_max_required_years: 1
+  # Drop postings with no description unless the title says junior: their experience
+  # requirement cannot be checked (LinkedIn without fetch_linkedin_descriptions).
+  drop_unverified: true
+  # Words that mark a junior / entry-level job (title or description). Used by the filters,
+  # the agent's searches and its save guard.
+  junior_keywords: [junior, jr, "jr.", "entry level", "entry-level", graduate, "new grad", "recent grad",
+                    "fresh graduate", graduates, student, intern, internship, trainee, apprentice,
+                    "no experience", "no prior experience", "0-1 years", "0-2 years", "early career",
+                    "ג'וניור", "גו'ניור", "ללא ניסיון", "ללא צורך בניסיון", "מתחיל", "מתחילה", "מתחילים",
+                    "סטודנט", "בוגר", "בוגרת", "בוגרי", "התמחות", "משרת סטודנט"]
+  # Description phrases that mean an experienced hire even when no number of years is given.
+  # Ignored when the title says junior.
+  experienced_phrases: ["extensive experience", "seasoned", "senior-level", "proven track record",
+                        "proven experience", "deep experience", "significant experience",
+                        "strong professional experience", "ניסיון רב", "ניסיון מוכח", "ניסיון משמעותי"]
   # Drop titles that are clearly above your level (set to false to keep them)
   exclude_senior: true
-  senior_keywords: [experienced, "mid-level", "mid level", senior, "sr.", "sr ", staff, principal, lead, head of, director, manager, architect, "vp ", chief, "בכיר", "ראש צוות", "מנהל"]
+  senior_keywords: [experienced, "mid-level", "mid level", senior, "sr.", "sr ", staff, principal, lead, leader,
+                    "head of", director, manager, architect, "vp ", chief, expert, ii, iii, iv,
+                    "בכיר", "בכירה", "ראש צוות", "מנהל", "מנהלת", "מוביל", "מובילה", "ותיק"]
   # A job must match at least one of these (title) to count as a development / data role
   role_keywords:
     - developer
@@ -72,20 +91,21 @@ filters:
 
 search:
   # Search terms used for LinkedIn / Indeed / Glassdoor / Google Jobs and remote boards
+  # Junior wording only: the owner is looking for entry-level roles.
   queries:
-    - AI Engineer
-    - GenAI Engineer
-    - LLM Engineer
-    - Machine Learning Engineer
+    - Junior AI Engineer
+    - Junior Machine Learning Engineer
     - Junior Python Developer
-    - Backend Developer
-    - Software Engineer
+    - Junior Backend Developer
     - Junior Software Engineer
-    - Data Scientist
-    - Data Analyst
-    - Data Engineer
-    - Full Stack Developer
-    - Algorithm Developer
+    - Entry Level Software Engineer
+    - Graduate Software Engineer
+    - Junior Data Scientist
+    - Junior Data Analyst
+    - Junior Data Engineer
+    - Junior Full Stack Developer
+    - Junior Algorithm Developer
+    - Software Engineering Student
   location: Israel
   results_per_query: 40
   hours_old: 168          # last 7 days
@@ -134,6 +154,10 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
     Algorithms / Research: [Algorithm Developer, Algorithm Engineer, Computer Vision Engineer]
     Automation / QA / DevOps: [Automation Engineer, QA Automation Engineer, DevOps Engineer]
   results_per_search: 10   # results shown to the model per search
+  # Guardrail: LinkedIn queries without a junior word get this prefix ("AI Engineer" -> "Junior AI Engineer")
+  junior_query_prefix: Junior
+  # Fetch LinkedIn descriptions for agent searches, so experience requirements can be checked
+  fetch_linkedin_descriptions: true
   search_limit: 30         # LinkedIn/Indeed/Google results per agent query
   max_posting_chars: 3000  # posting text shown by read_posting
   sources: [linkedin, company_pages, remote_boards]

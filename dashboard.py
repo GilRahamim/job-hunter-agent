@@ -76,6 +76,7 @@ def load_jobs() -> pd.DataFrame:
     df["score"] = df["score"].fillna(0).astype(float)
     df["notes"] = df["notes"].fillna("")
     df["required_years"] = pd.to_numeric(df["required_years"], errors="coerce")
+    df["junior_ok"] = ~df["id"].isin(db.not_junior_ids(load_config()))
     for col in ("matching_skills", "missing_skills"):
         df[col] = df[col].map(lambda v: v if isinstance(v, list) else [])
     return df.set_index("id", drop=False)
@@ -243,7 +244,6 @@ def save_prefs(defaults: dict) -> None:
 
 def sidebar(df: pd.DataFrame) -> pd.DataFrame:
     cfg = load_config()
-    max_years = cfg["filters"].get("max_required_years")
     defaults = pref_defaults(cfg)
     init_prefs(defaults, df)
     with st.sidebar:
@@ -287,14 +287,14 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
             days = st.number_input("ימים", 1, 90, step=5, format="%d", key="days", label_visibility="collapsed")
         with st.container(key="sb-prefs"):
             junior = st.toggle("רק משרות ללא דרישת ניסיון", key="junior",
-                               help="מסתיר משרות שמציינות שנות ניסיון נדרשות")
+                               help="מסתיר משרות בכירות, משרות שדורשות שנות ניסיון ומשרות בלי תיאור שלא מוגדרות כג׳וניור")
             only_new = st.toggle("רק חדשות ב־24 השעות האחרונות", key="only_new")
             theme_toggle()
     save_prefs(defaults)
 
     out = df[df["score"] >= min_score]
-    if junior and max_years is not None:
-        out = out[out["required_years"].fillna(0) <= max_years]
+    if junior:
+        out = out[out["junior_ok"]]
     if sources:
         out = out[out["source"].isin(sources)]
     if statuses:

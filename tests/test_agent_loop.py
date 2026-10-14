@@ -253,3 +253,44 @@ def test_search_reports_uncovered_groups_and_caps_a_group(env, monkeypatch):
     assert second.startswith("ERROR: role group AI / ML already has 1 searches")
     system = model.seen[0][0].content
     assert "- Data: Data Analyst, Data Scientist" in system and "at most 1 per role group" in system
+
+
+def test_linkedin_queries_are_forced_junior(env, monkeypatch):
+    cfg, path, calls = env
+    model = ScriptedModel([call("search_jobs", {"query": "AI Engineer", "source": "linkedin"}),
+                           call("search_jobs", {"query": "Graduate Data Analyst", "source": "linkedin"})])
+    use(monkeypatch, model)
+    agent_loop.run(cfg, db_path=path, dry_run=True)
+    assert [q for _, q in calls] == [["Junior AI Engineer"], ["Graduate Data Analyst"]]
+    assert "Searched as 'Junior AI Engineer'" in tool_outputs(model)[0]
+
+
+def test_save_refuses_jobs_that_need_experience(env, monkeypatch):
+    cfg, path, _ = env
+    # passed the filters under a looser config, then the agent tries to save it
+    loose = copy.deepcopy(cfg)
+    loose["filters"]["max_required_years"] = None
+    exp = Job("jobspy:linkedin", "Python Developer", "Eps", "https://e/1", location="Tel Aviv, Israel",
+              description="Python. 3+ years of experience required.")
+    monkeypatch.setattr(tools, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult("jobspy", [exp])], [{"source": "jobspy", "fetched": 1, "error": None,
+                                              "duration_s": 0.1}]))
+    ctx = tools.AgentContext(config=loose, profile=CandidateProfile(skills=["Python"]),
+                             known_ids=set(), known_keys=set())
+    tools.search_jobs(ctx, "Python Developer", "linkedin")
+    assert exp.id in ctx.candidates
+    tools.read_posting(ctx, exp.id)
+    ctx.config = cfg                                     # the real, junior-only config
+    out = tools.save_match(ctx, exp.id, 90, "fits")
+    assert out.startswith("REFUSED") and "experience" in out and not ctx.matches
+
+
+def test_agent_fetches_linkedin_descriptions(env, monkeypatch):
+    cfg, path, _ = env
+    seen = []
+    monkeypatch.setattr(tools, "collect_all", lambda config, only=None, limit=None: (
+        seen.append(config["sources"]["jobspy"]["fetch_linkedin_descriptions"]) or [], []))
+    ctx = tools.AgentContext(config=cfg, profile=CandidateProfile(), known_ids=set(), known_keys=set())
+    tools.search_jobs(ctx, "Junior Python Developer", "linkedin")
+    assert seen == [True]
+

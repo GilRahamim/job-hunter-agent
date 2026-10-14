@@ -149,6 +149,8 @@ def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
                                  max_searches=s["max_searches"],
                                  per_group=s.get("max_searches_per_group", s["max_searches"]),
                                  role_groups=role_groups_text(s.get("role_groups") or {}),
+                                 junior_words=", ".join(ctx.config["filters"].get("junior_keywords")
+                                                        or ["junior", "entry level", "graduate"]),
                                  language=_language(ctx.config))
     return [SystemMessage(system),
             HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]))]

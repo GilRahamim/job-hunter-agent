@@ -13,7 +13,7 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 from jobhunter.collectors import collect_all
-from jobhunter.filters import filter_jobs, required_years
+from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
 from jobhunter.matcher import prescore
 from jobhunter.models import CandidateProfile, Job
 
@@ -97,6 +97,18 @@ def allowed_sources(config: dict[str, Any]) -> list[str]:
     return out
 
 
+def _junior_words(ctx: AgentContext) -> list[str]:
+    return ctx.config["filters"].get("junior_keywords") or []
+
+
+def junior_query(ctx: AgentContext, query: str) -> str:
+    """Guardrail: query-searched sources only get junior queries ("AI Engineer" -> "Junior AI Engineer")."""
+    prefix = (ctx.settings.get("junior_query_prefix") or "").strip()
+    if not prefix or keyword_hits(query, _junior_words(ctx)):
+        return query
+    return f"{prefix} {query}"
+
+
 # ------------------------------------------------------------ fetching
 
 def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
@@ -105,6 +117,9 @@ def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
         cfg = copy.deepcopy(cfg)
         cfg["search"]["queries"] = [query]
         cfg["search"]["results_per_query"] = ctx.settings["search_limit"]
+        if "fetch_linkedin_descriptions" in ctx.settings:      # needed to check experience requirements
+            cfg["sources"]["jobspy"]["fetch_linkedin_descriptions"] = bool(
+                ctx.settings["fetch_linkedin_descriptions"])
         results, health = collect_all(cfg, AGENT_SOURCES[source])
         ctx.health.extend(health)
         jobs = [j for r in results for j in r.jobs]
@@ -159,9 +174,10 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
     if hit and all(ctx.group_searches[g] >= cap for g in hit):
         return (f"ERROR: role group {' / '.join(hit)} already has {cap} searches."
                 f"{coverage_note(ctx) or ' Search a different kind of job.'}")
+    searched = junior_query(ctx, query) if source in QUERY_SOURCES else query
     ctx.searches += 1
     ctx.group_searches.update(hit)
-    found = _fetch(ctx, source, query)
+    found = _fetch(ctx, source, searched)
     kept, dropped = _new_and_filtered(ctx, found)
     ctx.drop_reasons.update(dropped)
     scores = prescore(ctx.profile, kept)
@@ -170,15 +186,18 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
         ctx.prescores[job.id] = score
     ranked = sorted(zip(kept, scores), key=lambda p: p[1], reverse=True)
     top = ranked[: ctx.settings["results_per_search"]]
-    head = (f"{len(found)} postings matched, {len(kept)} new after filters"
+    head = (f"{f'Searched as {searched!r} (junior roles only). ' if searched != query else ''}"
+            f"{len(found)} postings matched, {len(kept)} new after filters"
             f"{' (dropped: ' + ', '.join(f'{k} {v}' for k, v in dropped.items()) + ')' if dropped else ''}. "
             f"Searches left: {ctx.settings['max_searches'] - ctx.searches}.{coverage_note(ctx)}")
     if not top:
         hint = " Try a broader or different query." if source not in QUERY_SOURCES else ""
         return head + hint
     lines = [f"{j.id} | {j.title} | {j.company} | {j.location or j.remote_region or '-'} | fit {s:.0f}"
+             f" | {', '.join(junior_signals(j, _junior_words(ctx))[:3]) or '-'}"
              for j, s in top]
-    return head + "\nid | title | company | location | fit (keyword pre-score 0-100)\n" + "\n".join(lines)
+    return (head + "\nid | title | company | location | fit (keyword pre-score 0-100) | junior signals\n"
+            + "\n".join(lines))
 
 
 def read_posting(ctx: AgentContext, job_id: str) -> str:
@@ -192,6 +211,7 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
     return (f"Title: {job.title}\nCompany: {job.company}\nLocation: {job.location or '-'}{remote}\n"
             f"Posted: {job.date_posted or 'unknown'}\n"
             f"Stated years of experience: {f'{years:g}' if years else 'none stated'}\n"
+            f"Junior signals: {', '.join(junior_signals(job, _junior_words(ctx))) or 'none'}\n"
             f"Description:\n{text}")
 
 
@@ -201,6 +221,11 @@ def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
     if job.id not in ctx.read:
         return "ERROR: call read_posting on this job before saving it."
+    not_junior = junior_reason(job, ctx.config)              # guardrail: junior roles only
+    if not_junior:
+        ctx.drop_reasons[f"save_refused_{not_junior}"] += 1
+        return (f"REFUSED: {job.title} @ {job.company} is not a junior role ({not_junior}). "
+                "The candidate wants junior / entry-level jobs only. Do not save it; find another job.")
     ctx.matches[job.id] = {"score": score, "reason": reason.strip()}
     s = ctx.settings
     return (f"Saved {job.title} @ {job.company} with score {score}. "
@@ -237,13 +262,15 @@ def make_tools(ctx: AgentContext) -> list[StructuredTool]:
         StructuredTool.from_function(
             lambda query, source: search_jobs(ctx, query, source), name="search_jobs",
             args_schema=SearchArgs,
-            description="Search one source for new job postings. Returns ids, titles and a keyword "
-                        "pre-score. Location, seniority and experience filters are already applied."),
+            description="Search one source for new junior / entry-level job postings. Returns ids, titles, "
+                        "a keyword pre-score and junior signals. Location, seniority and experience "
+                        "filters are already applied."),
         StructuredTool.from_function(
             lambda job_id: read_posting(ctx, job_id), name="read_posting", args_schema=ReadArgs,
-            description="Read a posting's full text and its stated years of experience."),
+            description="Read a posting's full text, its stated years of experience and junior signals."),
         StructuredTool.from_function(
             lambda job_id, score, reason: save_match(ctx, job_id, score, reason), name="save_match",
             args_schema=SaveArgs,
-            description="Save a job you have read as a match with your score and reason."),
+            description="Save a junior job you have read as a match with your score and reason. "
+                        "Jobs that require experience are refused."),
     ]

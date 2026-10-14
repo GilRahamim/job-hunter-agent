@@ -138,3 +138,12 @@ Per daily run: a few hundred to ~2,000 raw postings → a few hundred after filt
 - AllJobs, Drushim and similar Israeli boards have no public API; their postings are reached indirectly via Google Jobs (JobSpy `google` site or SerpAPI). Direct scrapers can be added later as separate collectors.
 - Comeet-hosted companies (common in Israel) need a per-company uid + token read from their careers page; a Comeet collector is planned but not yet verified, so for now they are reached via JobSpy/Google.
 - Seniority detection from titles is imperfect; the LLM's `seniority_fit` is the more reliable signal.
+
+## 12. Junior-only mode
+The owner wants junior / entry-level roles only. One check, `filters.junior_reason(job, cfg)`, decides it and is shared by the filter stage, the rescore step (old DB jobs are not scored again if they fail it), the agent's `save_match` guard and the dashboard's junior toggle. A job fails as:
+- `senior`: title has a `senior_keywords` word (incl. lead/leader, II/III/IV, expert).
+- `experience`: states more than `max_required_years` (0) years, or `junior_max_required_years` (1) when the title has a `junior_keywords` word; or uses an `experienced_phrases` phrase ("proven experience", "ניסיון רב") without a junior title. Years parsing reads digits, number words ("four years") and Hebrew ("שנתיים", "שנת ניסיון").
+- `unverified` (`drop_unverified`): no description and no junior word in the title, so the requirement cannot be checked. The fixed pipeline's LinkedIn results have no description (`fetch_linkedin_descriptions: false`), so most of them drop here; the agent fetches LinkedIn descriptions for its own searches.
+
+The agent also prefixes LinkedIn queries that have no junior word with `agent.junior_query_prefix` ("AI Engineer" → "Junior AI Engineer"), shows junior signals in search results and postings, and its system prompt lists the junior keywords. `search.queries` for the fixed pipeline use junior wording too.
+

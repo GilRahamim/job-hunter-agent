@@ -8,7 +8,16 @@ from typing import Any
 
 from jobhunter.models import Job
 
-_YEARS = re.compile(r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:years|yrs|שנות|שנים)", re.I)
+_YEARS = re.compile(r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:or more\s+)?"
+                    r"(?:years?\b|yrs?\b|שנות|שנים|שנה)"
+                    r"(?!\s*(?:ago|old)\b)", re.I)       # "founded 10 years ago" is not a requirement
+_NUM_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+              "nine": 9, "ten": 10}
+# "four years", "two (2) years", "three or more years" -> digits, so _YEARS can read them
+_NUM_WORD = re.compile(r"\b(" + "|".join(_NUM_WORDS) + r")\b(?:\s*\(\d{1,2}\))?(?=\s*\+?\s*(?:or more\s+)?"
+                       r"(?:years?|yrs?)\b)", re.I)
+_HE_YEARS = ((re.compile(r"שנתיים"), 2), (re.compile(r"שנת\s+ניסיון"), 1))
+_HEBREW = re.compile(r"[֐-׿]")
 
 ISRAEL_EN = (
     r"\bisrael\b|tel[\s-]?aviv|\btlv\b|jaffa|herzli?ya|haifa|jerusalem|petah?[\s-]?tikva|petach|"
@@ -99,16 +108,60 @@ def seniority_ok(title: str, cfg: dict[str, Any]) -> bool:
 
 
 def required_years(text: str) -> float:
-    """Largest 'N years' lower bound mentioned in the text (0 if none)."""
+    """Largest 'N years' lower bound mentioned in the text (0 if none).
+    Reads "3+ years", "1 year", "four years", "שנתיים" and "שנת ניסיון"."""
+    text = _NUM_WORD.sub(lambda m: str(_NUM_WORDS[m.group(1).lower()]), text)
     found = [int(m.group(1)) for m in _YEARS.finditer(text)]
+    found += [n for rx, n in _HE_YEARS if rx.search(text)]
     return float(max(found)) if found else 0.0
 
 
-def experience_ok(job: Job, max_years: float | None) -> bool:
-    """Junior mode: keep jobs that state no more than `max_years` of required experience."""
+def keyword_hits(text: str, keywords: list[str]) -> list[str]:
+    """Keywords found in the text: whole words for English, substrings for Hebrew
+    (Hebrew glues one-letter prefixes on: "לסטודנטים")."""
+    low = text.lower()
+    hits = []
+    for k in keywords:
+        k = k.lower().strip()
+        if k and (k in low if _HEBREW.search(k) else re.search(rf"(?<!\w){re.escape(k)}(?!\w)", low)):
+            hits.append(k)
+    return hits
+
+
+def junior_signals(job: Job, keywords: list[str]) -> list[str]:
+    """Junior / entry-level words in the title or description ("junior", "graduate", "ללא ניסיון")."""
+    return keyword_hits(f"{job.title}\n{job.description}", keywords)
+
+
+def experience_ok(job: Job, max_years: float | None, junior_max_years: float | None = None,
+                  junior_keywords: list[str] | None = None,
+                  experienced_phrases: list[str] | None = None) -> bool:
+    """Junior mode: keep jobs that state no more than `max_years` of required experience.
+    A junior title ("Junior Data Engineer, 1-2 years") may state up to `junior_max_years`.
+    Phrases like "extensive experience" drop a job unless its title says junior."""
     if max_years is None:
         return True
-    return required_years(f"{job.title}\n{job.description}") <= max_years
+    junior_title = bool(keyword_hits(job.title, junior_keywords or []))
+    limit = max(max_years, junior_max_years) if junior_title and junior_max_years is not None else max_years
+    if required_years(f"{job.title}\n{job.description}") > limit:
+        return False
+    return junior_title or not keyword_hits(job.description, experienced_phrases or [])
+
+
+def junior_reason(job: Job, cfg: dict[str, Any]) -> str | None:
+    """Why a job is not a junior job ("senior" / "experience" / "unverified"), or None when it is.
+    Shared by the filter stage, the rescore step, the agent's save guard and the dashboard."""
+    f = cfg["filters"]
+    if not seniority_ok(job.title, cfg):
+        return "senior"
+    words = f.get("junior_keywords") or []
+    if not experience_ok(job, f.get("max_required_years"), f.get("junior_max_required_years"),
+                         words, f.get("experienced_phrases")):
+        return "experience"
+    # No description: the years requirement cannot be checked, so keep it only if the title says junior.
+    if f.get("drop_unverified") and not job.description.strip() and not keyword_hits(job.title, words):
+        return "unverified"
+    return None
 
 
 def age_ok(date_posted: str | None, max_age_days: int | None, today: date | None = None) -> bool:
@@ -131,10 +184,9 @@ def drop_reason(job: Job, cfg: dict[str, Any], ok: re.Pattern[str], today: date 
         return "location"
     if not role_ok(job.title, cfg):
         return "role"
-    if not seniority_ok(job.title, cfg):
-        return "senior"
-    if not experience_ok(job, f.get("max_required_years")):
-        return "experience"
+    reason = junior_reason(job, cfg)
+    if reason:
+        return reason
     if not age_ok(job.date_posted, f.get("max_age_days"), today):
         return "age"
     return None

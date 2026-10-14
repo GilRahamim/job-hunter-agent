@@ -67,7 +67,7 @@ def test_role(cfg, title, expected):
     ("Sr. Data Engineer", False),
     ("Team Lead, Platform", False),
     ("Leading Edge Software Engineer", True),     # 'lead' must be a whole word
-    ("Software Engineer II", True),
+    ("Software Engineer II", False),             # level II+ asks for experience: junior only
     ("Staff Engineer", False),
     ("מפתח בכיר", False),
     ("Junior Developer", True),
@@ -97,8 +97,10 @@ def test_filter_jobs_counts_reasons(cfg):
         Job("t", "Python Developer", "A", "https://a/2", location="Austin, Texas, United States"),
         Job("t", "Office Manager", "A", "https://a/3", location="Tel Aviv, Israel"),
         Job("t", "Senior Python Developer", "A", "https://a/4", location="Tel Aviv, Israel"),
-        Job("t", "Python Developer", "A", "https://a/5", location="Tel Aviv, Israel", date_posted="2026-01-01"),
-        Job("t", "Backend Developer", "A", "https://a/6", is_remote=True, remote_region="Worldwide"),
+        Job("t", "Python Developer", "A", "https://a/5", location="Tel Aviv, Israel", date_posted="2026-01-01",
+            description="Python"),
+        Job("t", "Backend Developer", "A", "https://a/6", is_remote=True, remote_region="Worldwide",
+            description="Python APIs"),
     ]
     kept, dropped = filter_jobs(jobs, cfg, today)
     assert [j.url for j in kept] == ["https://a/1", "https://a/6"]
@@ -145,3 +147,46 @@ def test_filter_jobs_drops_with_experience_reason(cfg):
 def test_experienced_titles_are_dropped(cfg):
     assert not seniority_ok("Experienced Python Developer", cfg)
     assert not seniority_ok("Mid-Level Backend Engineer", cfg)
+
+
+# ---------------------------------------------------------------- junior-only guardrails
+
+from jobhunter.filters import junior_reason, junior_signals  # noqa: E402
+
+
+@pytest.mark.parametrize("text,years", [
+    ("At least four years of experience in a similar role", 4),
+    ("1+ year of experience in C++", 1),
+    ("two (2) years of experience", 2),
+    ("three or more years of experience", 3),
+    ("ניסיון של שנתיים בפיתוח - חובה", 2),
+    ("שנת ניסיון לפחות", 1),
+    ("The company was founded 10 years ago", 0),
+    ("Candidates must be 18 years old", 0),
+])
+def test_required_years_more_phrasings(text, years):
+    assert required_years(text) == years
+
+
+@pytest.mark.parametrize("title,desc,reason", [
+    ("Python Developer", "Python, SQL. Fresh graduates welcome.", None),
+    ("Junior Data Engineer", "1-2 years of experience in data engineering", None),  # junior title: up to 1
+    ("Junior Data Engineer", "3+ years of experience", "experience"),
+    ("Data Analyst", "1+ years of experience with SQL", "experience"),
+    ("Embedded Engineer", "Proven experience in embedded C", "experience"),
+    ("Software Engineer II", "Python", "senior"),
+    ("Backend Platform Team Leader", "Python", "senior"),
+    ("Software Engineer", "", "unverified"),            # no description: cannot check experience
+    ("Junior Software Engineer", "", None),
+    ("סטודנט/ית לפיתוח תוכנה", "", None),
+])
+def test_junior_reason(cfg, title, desc, reason):
+    assert junior_reason(j(title, desc), cfg) == reason
+
+
+def test_junior_signals_english_and_hebrew(cfg):
+    words = cfg["filters"]["junior_keywords"]
+    assert junior_signals(j("Graduate Software Engineer", "No experience required"), words) == \
+        ["graduate", "no experience"]
+    assert "ללא ניסיון" in junior_signals(j("מפתח/ת", "משרה ללא ניסיון לבוגרי תואר"), words)
+    assert junior_signals(j("Internal Tools Engineer", "Python"), words) == []   # "intern" is a whole word
