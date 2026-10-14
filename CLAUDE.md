@@ -34,12 +34,13 @@ cv/                  the CV file (newest file wins)
 data/jobs.db         SQLite DB (gitignored)
 jobhunter/
   config.py models.py db.py llm.py cv.py filters.py matcher.py agent.py
-  collectors/  base.py  ats.py  jobspy_source.py  remote_boards.py  serpapi.py  __init__.py (registry)
+  collectors/  base.py  ats.py  jobspy_source.py  remote_boards.py  serpapi.py  techmap.py  getro.py
+               details.py (missing descriptions)  __init__.py (registry)
   tailor/      graph.py  nodes.py  models.py  prompts.py  render.py   (CV Tailoring Agent)
 run_agent.py         CLI entry point (search agent)
 tailor_cv.py         CLI entry point (tailoring agent): --job <id> | --top N
 dashboard.py         Streamlit app
-scripts/             check_boards.py, schedule_windows.ps1
+scripts/             check_boards.py, sync_companies.py (add boards from Israeli Tech Map + VC boards), schedule_windows.ps1
 tests/               pytest + fixtures/ (recorded API responses)
 ```
 

@@ -3,6 +3,7 @@
 # Add a company: find its careers page — if the URL contains
 #   boards.greenhouse.io/<slug>, jobs.lever.co/<slug>, jobs.ashbyhq.com/<slug>
 #   or jobs.smartrecruiters.com/<slug>  → add <slug> under the matching ATS.
+#   (jobs.eu.lever.co/<slug> goes under lever too: EU accounts are found automatically.)
 # Run  python run_agent.py --check-companies  to validate the list.
 
 greenhouse:
@@ -41,6 +42,7 @@ greenhouse:
 lever:
   - cloudinary
   - walkme
+  - mobileye          # EU Lever account
 
 ashby:
   - moonactive
@@ -61,3 +63,15 @@ workday:
   - {tenant: intel, wd: wd1, site: External}
   - {tenant: nvidia, wd: wd5, site: NVIDIAExternalCareerSite}
   - {tenant: marvell, wd: wd1, site: MarvellCareers}
+
+# Comeet (common at Israeli companies): "<slug>/<uid>" from https://www.comeet.com/jobs/<slug>/<uid>
+comeet:
+  - drivenets/72.006
+  - coralogix/06.004
+  - kaltura/E2.00D
+  - global-e/62.002
+  - exodigo/89.005
+  - comm-it/76.008
+  - kelatechnologies/2A.007
+  - team8/61.003
+  - vastdata/43.001

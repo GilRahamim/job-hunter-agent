@@ -30,10 +30,9 @@ def greenhouse(slug):
 
 
 def lever(slug):
-    r = S.get(f"https://api.lever.co/v0/postings/{slug}?mode=json", timeout=15)
-    r.raise_for_status()
-    jobs = r.json()
-    return len(jobs), sum(bool(IL.search(" ".join((j.get("categories") or {}).get("allLocations") or []))) for j in jobs)
+    from jobhunter.collectors.ats import fetch_lever      # also finds EU accounts (jobs.eu.lever.co)
+    jobs = fetch_lever(slug)
+    return len(jobs), sum(bool(IL.search(j.location)) for j in jobs)
 
 
 def ashby(slug):
@@ -52,19 +51,23 @@ def smartrecruiters(slug):
 
 
 def workday(entry):
-    # entry: {"tenant": "intel", "wd": "wd1", "site": "External"}
-    t, wd, site = entry["tenant"], entry["wd"], entry["site"]
-    url = f"https://{t}.{wd}.myworkdayjobs.com/wday/cxs/{t}/{site}/jobs"
-    body = lambda q: {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": q}
-    hdr = {"Content-Type": "application/json", "Accept": "application/json"}
-    r = S.post(url, json=body(""), headers=hdr, timeout=20)
-    r.raise_for_status()
-    total = r.json().get("total", 0)
-    il = S.post(url, json=body("Israel"), headers=hdr, timeout=20).json().get("total", 0)
-    return total, il
+    # entry: {"tenant": "intel", "wd": "wd1", "site": "External"}; Israel = the collector's location facet
+    from jobhunter.collectors.ats import WORKDAY_BASE, _workday_search, israel_facets
+    base = WORKDAY_BASE.format(**entry)
+    first = _workday_search(base, {}, 0)
+    facets = israel_facets(first)
+    return first.get("total", 0), _workday_search(base, facets, 0).get("total", 0) if facets else 0
 
 
-ATS = {"greenhouse": greenhouse, "lever": lever, "ashby": ashby, "smartrecruiters": smartrecruiters, "workday": workday}
+def comeet(entry):
+    # entry: "<slug>/<uid>" from https://www.comeet.com/jobs/<slug>/<uid>
+    from jobhunter.collectors.ats import fetch_comeet
+    jobs = fetch_comeet(entry)
+    return len(jobs), sum(bool(IL.search(j.location)) for j in jobs)
+
+
+ATS = {"greenhouse": greenhouse, "lever": lever, "ashby": ashby, "smartrecruiters": smartrecruiters,
+       "workday": workday, "comeet": comeet}
 
 
 def label(slug):
@@ -82,7 +85,7 @@ def check(ats, slug):
 def main():
     args = sys.argv[1:]
     if args and args[0] == "--probe":
-        tasks = [(a, s) for s in args[1:] for a in ATS if a != "workday"]  # workday needs tenant/wd/site
+        tasks = [(a, s) for s in args[1:] for a in ATS if a not in ("workday", "comeet")]  # need tenant / uid
     else:
         path = args[0] if args else "companies.yaml"
         with open(path, encoding="utf-8") as f:

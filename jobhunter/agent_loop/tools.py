@@ -13,6 +13,7 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 from jobhunter.collectors import collect_all
+from jobhunter.collectors.details import fetch_description
 from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
 from jobhunter.matcher import prescore
 from jobhunter.models import CandidateProfile, Job
@@ -23,13 +24,14 @@ log = logging.getLogger(__name__)
 # fetch their full lists once per run and the query is matched against job titles.
 AGENT_SOURCES: dict[str, list[str]] = {
     "linkedin": ["jobspy"],
-    "company_pages": ["ats"],
+    "company_pages": ["ats", "techmap", "getro"],
     "remote_boards": ["remotive", "remoteok", "himalayas", "arbeitnow", "weworkremotely"],
 }
 QUERY_SOURCES = {"linkedin"}
 _CONFIG_KEY = {"jobspy": "jobspy", "ats": "company_boards", "remotive": "remotive",
                "remoteok": "remoteok", "himalayas": "himalayas", "arbeitnow": "arbeitnow",
-               "weworkremotely": "weworkremotely"}
+               "weworkremotely": "weworkremotely", "techmap": "techmap",
+               "getro": "getro"}
 
 
 @dataclass
@@ -133,7 +135,18 @@ def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
         ctx.cache[source] = [j for r in results for j in r.jobs]
         ctx.collected += len(ctx.cache[source])
     words = _WORD.findall(query.lower())
-    return [j for j in ctx.cache[source] if all(w in j.title.lower() for w in words)]
+    # "Junior AI Engineer" must still find "AI Engineer": the junior check runs in the filters,
+    # so junior words only narrow the title match when the query has nothing else ("Student").
+    junior = {w for k in _junior_words(ctx) for w in _WORD.findall(k.lower())}
+    words = [w for w in words if w not in junior] or words
+    return [j for j in ctx.cache[source] if title_matches(j.title, words)]
+
+
+def title_matches(title: str, words: list[str]) -> bool:
+    """Every query word starts a word of the title: "engineer" hits "Engineering",
+    but "ai" does not hit "Retail" or "Maintenance"."""
+    title_words = _WORD.findall(title.lower())
+    return all(any(t.startswith(w) for t in title_words) for w in words)
 
 
 def _new_and_filtered(ctx: AgentContext, jobs: list[Job]) -> tuple[list[Job], Counter]:
@@ -205,6 +218,8 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
     ctx.read.add(job.id)
+    if not job.description.strip():               # LinkedIn / Tech Map jobs: read the posting now
+        job.description = fetch_description(job)
     years = required_years(f"{job.title}\n{job.description}")
     remote = f" (remote; region: {job.remote_region or 'unspecified'})" if job.is_remote else ""
     text = job.description[: ctx.settings["max_posting_chars"]] or "(no description available)"

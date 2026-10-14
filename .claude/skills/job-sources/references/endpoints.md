@@ -91,8 +91,27 @@ Detail: `GET https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}{ex
 
 Fetch details only for Israel/remote postings. `postedOn` is relative text — use `startDate` from the detail instead.
 
-## Comeet (common at Israeli startups) — not verified
-Comeet's careers API needs a per-company `uid` and public `token`, which are embedded in the company's Comeet careers widget/page. Endpoint pattern: `https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token={token}&details=true`. Could not verify a working example on 2026-10-13 — before implementing, take one company that uses Comeet, read the uid/token from its careers page HTML, and record a fixture. Until then these jobs arrive via JobSpy (LinkedIn/Google).
+## Comeet (common at Israeli companies) — verified 2026-10-14
+Careers page `https://www.comeet.com/jobs/{slug}/{uid}` (e.g. `drivenets/72.006`); its HTML embeds `"company_uid": "<uid>"` and `"token": "<32 hex chars>"` (another `"token": COMPANY...` match is JS — take the hex one). Guessing `/jobs/{slug}` without the uid returns 404.
+API: `GET https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token={token}&details=true` → JSON **list**.
+
+| Job field | From |
+|---|---|
+| title / company | `name` / `company_name` |
+| url | `url_active_page` (company site) or `url_comeet_hosted_page` |
+| location | `location.name`; `location.country` ("IL"), `location.is_remote` |
+| description | `details[]`: `{name: "Description" / "Requirements", value: HTML}` |
+| date_posted | `time_updated` (ISO) |
+| is_remote | `workplace_type == "Remote"` (values: `On-site`, `Hybrid`, `Remote`) |
+| extra | `department`, `experience_level`, `employment_type` |
+
+## Lever EU accounts
+Some companies (Mobileye) are on Lever's EU host: careers links go to `jobs.eu.lever.co/{slug}` and `api.lever.co` answers **404**. Same API and payload at `https://api.eu.lever.co/v0/postings/{slug}?mode=json`.
+
+## Workday notes (verified 2026-10-14)
+- Only the **first** search page carries the real `total`; later pages return `total: 0` — keep the first value when paginating.
+- Israel facet examples: Nvidia `locationHierarchy1` → one "Israel" entry (≈420 jobs); Intel `locations` → city entries "Israel, Haifa" etc. nested under `locationMainGroup`; Marvell `Country` → "Israel". Use one facet parameter only (several are ANDed).
+- Detail calls get 403 / timeouts above ~4 in parallel.
 
 ## Remotive
 `GET https://remotive.com/api/remote-jobs?category={slug}` for `software-development`, `artificial-intelligence`, `data`, `devops`, `qa` (full list: `GET /api/remote-jobs/categories`). `?search=python` also works.

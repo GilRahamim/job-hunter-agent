@@ -140,7 +140,7 @@ def test_experience_filter_modes():
 
 
 def test_filter_jobs_drops_with_experience_reason(cfg):
-    kept, dropped = filter_jobs([j(desc="Python"), j("Data Analyst", "2+ years experience")], cfg)
+    kept, dropped = filter_jobs([j(desc="Python"), j("Data Analyst", "3+ years experience")], cfg)
     assert [x.title for x in kept] == ["Python Developer"] and dropped["experience"] == 1
 
 
@@ -170,18 +170,27 @@ def test_required_years_more_phrasings(text, years):
 
 @pytest.mark.parametrize("title,desc,reason", [
     ("Python Developer", "Python, SQL. Fresh graduates welcome.", None),
-    ("Junior Data Engineer", "1-2 years of experience in data engineering", None),  # junior title: up to 1
-    ("Junior Data Engineer", "3+ years of experience", "experience"),
-    ("Data Analyst", "1+ years of experience with SQL", "experience"),
+    ("Junior Data Engineer", "0-1 years of experience in data engineering", None),   # lower bound 0
+    ("Junior Data Engineer", "1-2 years of experience in data engineering", "experience"),
+    ("Data Analyst", "1+ years of experience with SQL", "experience"),  # no experience at all
+    ("Data Analyst", "SQL. No experience needed.", None),
     ("Embedded Engineer", "Proven experience in embedded C", "experience"),
     ("Software Engineer II", "Python", "senior"),
     ("Backend Platform Team Leader", "Python", "senior"),
-    ("Software Engineer", "", "unverified"),            # no description: cannot check experience
+    ("Software Engineer", "", None),                    # no description: kept (drop_unverified: false)
     ("Junior Software Engineer", "", None),
     ("סטודנט/ית לפיתוח תוכנה", "", None),
 ])
 def test_junior_reason(cfg, title, desc, reason):
     assert junior_reason(j(title, desc), cfg) == reason
+
+
+def test_unverified_jobs_dropped_only_when_configured(cfg):
+    import copy
+    strict = copy.deepcopy(cfg)
+    strict["filters"]["drop_unverified"] = True
+    assert junior_reason(j("Software Engineer", ""), strict) == "unverified"
+    assert junior_reason(j("Junior Software Engineer", ""), strict) is None
 
 
 def test_junior_signals_english_and_hebrew(cfg):
@@ -190,3 +199,23 @@ def test_junior_signals_english_and_hebrew(cfg):
         ["graduate", "no experience"]
     assert "ללא ניסיון" in junior_signals(j("מפתח/ת", "משרה ללא ניסיון לבוגרי תואר"), words)
     assert junior_signals(j("Internal Tools Engineer", "Python"), words) == []   # "intern" is a whole word
+
+
+@pytest.mark.parametrize("text,years", [
+    ("3.5 years of experience", 3.5),                  # not "5 years"
+    ("1.5+ years with Python", 1.5),
+    ("Founded 2012 years", 0),                         # digits inside a larger number
+    ("With over 20 years in the industry, we build", 0),   # describes the company
+])
+def test_required_years_decimals_and_company_age(text, years):
+    assert required_years(text) == years
+
+
+def test_role_fit_reads_the_requirements_not_only_the_title(cfg):
+    from jobhunter.filters import role_fit
+    driver = j("Test Driver for Autonomous Vehicles", "B.A. \ B.sc. 4+ years of driving experience. Technical background.")
+    assert role_fit(driver, cfg)                                     # Mobileye: degree + technical background
+    assert required_years(driver.description) == 0                   # driving experience is not work experience
+    assert not role_fit(j("Delivery Driver", "Driving license"), cfg)
+    assert not role_fit(j("Sales Engineer", "B.Sc. in computer science"), cfg)   # excluded titles stay out
+    assert not role_fit(j("Office Assistant", "Excel and phones"), cfg)

@@ -110,5 +110,7 @@ def scored_row(job: Job, pre: float, match: JobMatch | None, cv_hash: str, model
                    missing_skills=match.missing_skills, reasons=match.reasons, cv_tip=match.cv_tip,
                    scored_by=f"llm:{model}")
     else:
-        row.update(score=round(pre, 1), scored_by="heuristic")
+        # clear an earlier LLM verdict: it no longer belongs to this score (CV changed or the call failed)
+        row.update(score=round(pre, 1), scored_by="heuristic", verdict=None, seniority_fit=None,
+                   matching_skills=None, missing_skills=None, reasons=None, cv_tip=None)
     return row

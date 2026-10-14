@@ -38,7 +38,7 @@ def test_jobs_render_with_kpis(tmp_path, monkeypatch):
     assert not at.exception
     assert [t.label for t in at.tabs] == ["משרות", "תהליך", "תובנות", "מקורות", "פרופיל"]
     kpis = {m.label: m.value for m in at.metric}
-    assert kpis["משרות מתאימות"] == "2" and kpis["הוגשה מועמדות"] == "0"
+    assert kpis["משרות מתאימות"] == "2" and kpis["קו״ח נשלחו"] == "0"
 
 
 class _Ok:
@@ -148,3 +148,32 @@ def test_stop_toggle_asks_the_running_search_to_stop(tmp_path, monkeypatch):
     assert not at.exception and stop.stop_requested()
     next(t for t in at.toggle if t.key == "stop_search").set_value(False).run()
     assert not stop.stop_requested()                                    # switched back off
+
+
+def test_sent_cv_button_marks_the_job_applied_and_undo_reverts(tmp_path, monkeypatch):
+    job = Job("greenhouse", "Junior Python Developer", "Acme", "https://a/1", location="Tel Aviv, Israel")
+    at = _app(tmp_path, monkeypatch, [job])
+    next(b for b in at.button if b.label == "שלחתי קורות חיים").click().run()
+    saved = db.job_detail(job.id)
+    assert not at.exception and saved["status"] == "applied" and saved["status_updated"]
+    assert any("קו״ח נשלחו ב־" in h.proto.body for h in at.get("html"))
+    assert {m.label: m.value for m in at.metric}["קו״ח נשלחו"] == "1"
+    next(b for b in at.button if b.label == "בטל סימון שליחה").click().run()
+    assert db.job_detail(job.id)["status"] == "interested"
+
+
+def test_sent_checkbox_in_the_table():
+    import ast
+
+    import pandas as pd
+    # dashboard.py runs the app when imported, so load just this one function from its source
+    tree = ast.parse(DASHBOARD.read_text(encoding="utf-8"))
+    fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "table_changes")
+    ns = {"HE_STATUS": {"חדש": "new", "ראיון": "interview"}, "UNSENT": "interested", "pd": pd}
+    exec(compile(ast.Module([fn], []), "dashboard.py", "exec"), ns)
+    table = pd.DataFrame({"status_he": ["חדש", "חדש", "חדש"], "sent": [False, False, True]}, index=["a", "b", "c"])
+    edited = table.copy()
+    edited.loc["a", "sent"] = True                          # ticked -> applied
+    edited.loc["b", "status_he"] = "ראיון"                  # status picked -> that status
+    edited.loc["c", "sent"] = False                         # unticked -> interested
+    assert ns["table_changes"](table, edited) == {"a": "applied", "b": "interview", "c": "interested"}

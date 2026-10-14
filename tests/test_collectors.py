@@ -197,3 +197,114 @@ def test_collect_all_respects_enabled_flags_and_rejects_unknown(monkeypatch):
     with pytest.raises(ValueError):
         collect_all({}, only=["nope"])
     assert "ats" in SOURCE_NAMES
+
+
+# ---------------------------------------------------------------- Workday / Comeet / Lever EU
+
+def test_workday_israel_facet_prefers_the_country(fixture):
+    # Nvidia: a country entry under locationHierarchy1 and city entries under locations
+    assert ats.israel_facets(fixture("workday_nvidia_search.json")) == \
+        {"locationHierarchy1": ["2fcb99c455831013ea52bbe14cf9326c"]}
+
+
+def test_workday_israel_facet_falls_back_to_cities():
+    data = {"facets": [{"facetParameter": "locationMainGroup", "values": [{"facetParameter": "locations", "values": [
+        {"descriptor": "Israel, Haifa", "id": "h"}, {"descriptor": "Israel, Jerusalem", "id": "j"},
+        {"descriptor": "United States, Oregon", "id": "o"}]}]}]}
+    assert ats.israel_facets(data) == {"locations": ["h", "j"]}
+    assert ats.israel_facets({"facets": []}) == {}
+
+
+def test_workday_detail(fixture):
+    job = ats.parse_workday_posting(fixture("workday_nvidia_detail.json")["jobPostingInfo"], "nvidia")
+    assert_clean([job])
+    assert job.source == "workday" and job.company == "Nvidia" and "Israel" in job.location
+    assert job.description and job.date_posted
+
+
+def test_comeet(fixture):
+    jobs = ats.parse_comeet(fixture("comeet_drivenets.json"))
+    assert_clean(jobs)
+    assert all(j.source == "comeet" and j.company and j.description for j in jobs)
+
+
+def test_comeet_reads_the_token_from_the_careers_page(monkeypatch, fixture):
+    seen = {}
+    monkeypatch.setattr(ats, "get_text", lambda url, **kw: 'x = {"company_uid": "72.006", "token": "ABCDEF0123456789AB"}')
+    monkeypatch.setattr(ats, "get_json", lambda url, **kw: seen.setdefault("url", url) and fixture("comeet_drivenets.json"))
+    assert ats.fetch_comeet("drivenets/72.006")
+    assert "company/72.006/positions?token=ABCDEF0123456789AB" in seen["url"]
+
+
+def test_lever_falls_back_to_the_eu_host(monkeypatch, fixture):
+    import requests
+    calls = []
+
+    def fake(url, **kw):
+        calls.append(url)
+        if "api.eu.lever.co" not in url:
+            resp = requests.Response()
+            resp.status_code = 404
+            raise requests.HTTPError(response=resp)
+        return fixture("lever_cloudinary.json")
+    monkeypatch.setattr(ats, "get_json", fake)
+    assert ats.fetch_lever("mobileye") and "api.eu.lever.co" in calls[-1]
+
+
+def test_company_boards_accept_workday_and_comeet_entries(monkeypatch):
+    monkeypatch.setitem(ats.FETCHERS, "workday", lambda e: [Job("workday", "Engineer", "Intel", "https://w/1")])
+    monkeypatch.setitem(ats.FETCHERS, "comeet", lambda e: (_ for _ in ()).throw(RuntimeError("no token")))
+    res = ats.collect_company_boards({}, companies={"workday": [{"tenant": "intel", "wd": "wd1", "site": "External"}],
+                                                    "comeet": ["acme/1.001"]})
+    assert [j.title for j in res.jobs] == ["Engineer"] and "acme/1.001(RuntimeError" in res.error
+
+
+# ---------------------------------------------------------------- Tech Map / VC boards / descriptions
+
+def test_techmap(fixture):
+    from jobhunter.collectors import techmap
+    text = (Path(__file__).parent / "fixtures" / "techmap_software.csv").read_text(encoding="utf-8")
+    jobs = techmap.parse_techmap(text)
+    assert_clean(jobs)
+    assert all(j.source == "techmap" and j.company and j.location.endswith("Israel") for j in jobs)
+    assert all(j.description.startswith("Level: ") for j in jobs)
+
+
+def test_getro_board(fixture):
+    from jobhunter.collectors import getro
+    jobs = getro.parse_getro(fixture("getro_israelvcforum.json")["results"])
+    assert_clean(jobs)
+    assert all(j.source == "getro" and j.company for j in jobs)
+    assert any(j.description.startswith("Seniority: ") for j in jobs)
+
+
+def test_getro_pages_until_the_count(monkeypatch, fixture):
+    from jobhunter.collectors import getro
+    page = fixture("getro_israelvcforum.json")["results"]
+    pages = []
+
+    def fake(board_id, n, location="Israel"):
+        pages.append(n)
+        return {**page, "count": 2 * len(page["jobs"])}
+    monkeypatch.setattr(getro, "search_page", fake)
+    monkeypatch.setattr(getro, "PAUSE_S", 0)
+    assert len(getro.fetch_board(10949)) == 2 * len(page["jobs"]) and pages == [0, 1]
+
+
+def test_linkedin_job_ids():
+    from jobhunter.collectors.details import linkedin_job_id
+    assert linkedin_job_id("https://il.linkedin.com/jobs/view/java-developer-at-infinidat-4475696123?utm_source=x") \
+        == "4475696123"
+    assert linkedin_job_id("https://www.linkedin.com/jobs/view/4475696123") == "4475696123"
+    assert linkedin_job_id("https://www.comeet.com/jobs/x/1.002/y/3.004") is None
+
+
+def test_fill_descriptions_only_reads_jobs_without_one(monkeypatch):
+    from jobhunter.collectors import details
+    monkeypatch.setattr(details, "fetch_description", lambda job: "3+ years of Java")
+    bare = Job("techmap", "Java Developer", "A", "https://il.linkedin.com/jobs/view/java-at-a-1234567")
+    full = Job("techmap", "Python Developer", "B", "https://il.linkedin.com/jobs/view/py-at-b-7654321",
+               description="Python, no experience needed")
+    other = Job("techmap", "QA", "C", "https://www.comeet.com/jobs/c/1.002/qa/3.004")
+    assert details.fill_descriptions([bare, full, other], limit=5, pause=(0, 0)) == 1
+    assert bare.description == "3+ years of Java" and full.description.startswith("Python") and not other.description

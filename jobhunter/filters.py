@@ -8,14 +8,17 @@ from typing import Any
 
 from jobhunter.models import Job
 
-_YEARS = re.compile(r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:or more\s+)?"
+# (?<![\d.]): "3.5 years" is not "5 years" and "2012 years" is not "12 years"
+_YEARS = re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d)?)(?:\s*(?:-|–|to)\s*\d{1,2}(?:\.\d)?)?\s*\+?\s*(?:or more\s+)?"
                     r"(?:years?\b|yrs?\b|שנות|שנים|שנה)"
-                    r"(?!\s*(?:ago|old)\b)", re.I)       # "founded 10 years ago" is not a requirement
+                    # not a job requirement: "founded 10 years ago", "18 years old", "4+ years of driving"
+                    r"(?!\s*(?:ago|old|(?:of\s+)?driving)\b)", re.I)
 _NUM_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
               "nine": 9, "ten": 10}
 # "four years", "two (2) years", "three or more years" -> digits, so _YEARS can read them
 _NUM_WORD = re.compile(r"\b(" + "|".join(_NUM_WORDS) + r")\b(?:\s*\(\d{1,2}\))?(?=\s*\+?\s*(?:or more\s+)?"
                        r"(?:years?|yrs?)\b)", re.I)
+MAX_REQUIRED_YEARS = 15     # larger numbers describe the company ("over 20 years in the industry")
 _HE_YEARS = ((re.compile(r"שנתיים"), 2), (re.compile(r"שנת\s+ניסיון"), 1))
 _HEBREW = re.compile(r"[֐-׿]")
 
@@ -102,6 +105,17 @@ def role_ok(title: str, cfg: dict[str, Any]) -> bool:
     return contains_any(title, f["role_keywords"]) and not contains_any(title, f.get("exclude_keywords", []))
 
 
+def role_fit(job: Job, cfg: dict[str, Any]) -> bool:
+    """A computer-science role: a CS title, or a description asking for a CS / engineering
+    degree or technical background ("Test Driver" at Mobileye asking for a B.Sc.).
+    Excluded titles (sales, recruiter...) stay excluded either way."""
+    f = cfg["filters"]
+    if contains_any(job.title, f.get("exclude_keywords", [])):
+        return False
+    return contains_any(job.title, f["role_keywords"]) or \
+        bool(keyword_hits(job.description, f.get("role_description_keywords") or []))
+
+
 def seniority_ok(title: str, cfg: dict[str, Any]) -> bool:
     f = cfg["filters"]
     return not (f.get("exclude_senior") and word_match(title, f.get("senior_keywords", [])))
@@ -111,7 +125,7 @@ def required_years(text: str) -> float:
     """Largest 'N years' lower bound mentioned in the text (0 if none).
     Reads "3+ years", "1 year", "four years", "שנתיים" and "שנת ניסיון"."""
     text = _NUM_WORD.sub(lambda m: str(_NUM_WORDS[m.group(1).lower()]), text)
-    found = [int(m.group(1)) for m in _YEARS.finditer(text)]
+    found = [y for m in _YEARS.finditer(text) if (y := float(m.group(1))) <= MAX_REQUIRED_YEARS]
     found += [n for rx, n in _HE_YEARS if rx.search(text)]
     return float(max(found)) if found else 0.0
 
@@ -182,7 +196,7 @@ def drop_reason(job: Job, cfg: dict[str, Any], ok: re.Pattern[str], today: date 
     remote = f.get("remote", True) and remote_ok(job.location, job.remote_region, job.is_remote, ok)
     if not (israel or remote):
         return "location"
-    if not role_ok(job.title, cfg):
+    if not role_fit(job, cfg):
         return "role"
     reason = junior_reason(job, cfg)
     if reason:

@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 CV_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
 MIN_PDF_CHARS = 200
 HEURISTIC_SUFFIX = ":heuristic"
+NOT_A_CV = {"cv_master", "template"}      # files the CV Tailoring Agent keeps in cv/
 
 
 class CVError(RuntimeError):
@@ -32,7 +33,7 @@ def find_cv(cv_dir: str | Path) -> Path:
         folder = ROOT / folder
     files = [p for p in folder.glob("*")
              if p.suffix.lower() in CV_EXTENSIONS and p.name.lower() != "readme.md"
-             and not p.name.startswith("~$") and p.stem.lower() != "cv_master"]
+             and not p.name.startswith("~$") and p.stem.lower() not in NOT_A_CV]
     if not files:
         raise CVError(f"No CV found in {folder}. Put a PDF/DOCX/TXT file there.")
     return max(files, key=lambda p: p.stat().st_mtime)      # newest wins

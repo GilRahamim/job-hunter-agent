@@ -21,6 +21,8 @@ _SOURCES: dict[str, tuple[str, str, str]] = {
     "arbeitnow": ("remote_boards", "collect_arbeitnow", "arbeitnow"),
     "weworkremotely": ("remote_boards", "collect_weworkremotely", "weworkremotely"),
     "serpapi": ("serpapi", "collect_serpapi", "serpapi_google_jobs"),
+    "techmap": ("techmap", "collect_techmap", "techmap"),
+    "getro": ("getro", "collect_getro", "getro"),
 }
 
 SOURCE_NAMES = list(_SOURCES)

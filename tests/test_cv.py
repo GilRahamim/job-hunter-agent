@@ -167,3 +167,11 @@ def test_get_llm_none_when_disabled_or_no_key(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     assert get_llm({"llm": {"provider": "none", "model": "x"}}) is None
     assert get_llm({"llm": {"provider": "anthropic", "model": "x"}}) is None
+
+
+def test_find_cv_skips_the_tailoring_template(cfg):
+    folder = cv.Path(cfg["profile"]["cv_dir"])
+    real = write_cv(cfg, "resume.txt")
+    os.utime(real, (1, 1))
+    (folder / "template.docx").write_bytes(b"")        # newer, but it is the tailoring template
+    assert cv.find_cv(folder) == real

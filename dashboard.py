@@ -40,6 +40,9 @@ GOAL_RANGE = (3, 10)            # agent mode: matches to find, chosen in the sid
 STARTUP_GRACE_S = 20            # a run just launched may not have written run.lock yet
 FORCE_STOP_AFTER_S = 60         # offer a hard stop when a graceful stop takes longer than this
 WHERE = ["הכול", "ישראל", "מרחוק"]
+MAX_DAYS = 365                  # the recency filter's range; the default shows everything
+SENT = ("applied", "interview", "offer")   # statuses that mean "CV sent"
+UNSENT = "interested"                      # where "undo sent" puts a job back
 FUNNEL = ["new", "interested", "applied", "interview", "offer"]
 VERDICT_HE = {"strong": "חזקה", "good": "טובה", "stretch": "מתיחה", "poor": "חלשה"}
 
@@ -104,9 +107,9 @@ def is_running() -> int | None:
 def start_run(goal: int | None = None) -> None:
     """goal=None: the fixed pipeline; otherwise the tool-using agent with that goal."""
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    log = open(LOG_PATH, "w", encoding="utf-8")
     cmd = [sys.executable, "run_agent.py"] + (["--agent", "--goal", str(goal)] if goal else [])
-    subprocess.Popen(cmd, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+    with open(LOG_PATH, "w", encoding="utf-8") as log:      # the child keeps its own handle
+        subprocess.Popen(cmd, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
     st.session_state["launched_at"] = time.time()
 
 
@@ -226,16 +229,17 @@ def run_summary_html(run: dict) -> str:
 # A reload (the theme switch reloads the page) or a bookmark keeps the filters and the run mode.
 
 def pref_defaults(cfg: dict) -> dict:
-    return {"q": "", "min_score": 60, "sources": [], "where": "הכול", "days": 60, "junior": True,
+    # Nothing is hidden by default: every stored job shows until the owner narrows the view.
+    return {"q": "", "min_score": 0, "sources": [], "where": "הכול", "days": MAX_DAYS, "junior": False,
             "only_new": False, "agent_mode": False, "agent_goal": default_goal(cfg),
-            "stages": [v for k, v in STATUS_HE.items() if k != "not_relevant"]}
+            "stages": list(STATUS_HE.values())}
 
 
 def _valid(key: str, value, default, df: pd.DataFrame):
     if key == "min_score":
         return min(max(value, 0), 100)
     if key == "days":
-        return min(max(value, 1), 90)
+        return min(max(value, 1), MAX_DAYS)
     if key == "agent_goal":
         return min(max(value, GOAL_RANGE[0]), GOAL_RANGE[1])
     if key == "where":
@@ -327,10 +331,13 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
                            label_visibility="collapsed") or "הכול"
         with st.container(key="sb-recency"):
             question("פורסמו לאחרונה", "במספר הימים האחרונים")
-            days = st.number_input("ימים", 1, 90, step=5, format="%d", key="days", label_visibility="collapsed")
+            days = st.number_input("ימים", 1, MAX_DAYS, step=5, format="%d", key="days", label_visibility="collapsed")
         with st.container(key="sb-prefs"):
-            junior = st.toggle("רק משרות ללא דרישת ניסיון", key="junior",
-                               help="מסתיר משרות בכירות, משרות שדורשות שנות ניסיון ומשרות בלי תיאור שלא מוגדרות כג׳וניור")
+            years = cfg["filters"].get("max_required_years") or 0
+            label = "רק משרות ללא דרישת ניסיון" if not years else f"רק משרות עד {years:g} שנות ניסיון"
+            junior = st.toggle(label, key="junior",
+                               help="מסתיר משרות בכירות ומשרות שדורשות "
+                                    + ("ניסיון" if not years else f"יותר מ־{years:g} שנות ניסיון"))
             only_new = st.toggle("רק חדשות ב־24 השעות האחרונות", key="only_new")
             theme_toggle()
     save_prefs(defaults)
@@ -360,7 +367,7 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
 def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
     kpi_row([("משרות מתאימות", len(shown)), ("חדשות היום", int(shown["is_new"].sum())),
              ("התאמה חזקה (75+)", int((shown["score"] >= 75).sum())),
-             ("הוגשה מועמדות", int((df["status"] == "applied").sum()))])
+             ("קו״ח נשלחו", int(df["status"].isin(SENT).sum()))])
     st.space("small")
 
     if shown.empty:
@@ -370,31 +377,66 @@ def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
     view = shown.sort_values("score", ascending=False).copy()
     view["verdict_he"] = [VERDICT_HE.get(v) or "ראשוני" for v in view["verdict"]]
     view["status_he"] = view["status"].map(STATUS_HE)
+    view["sent"] = view["status"].isin(SENT)
     view["title_flag"] = [("● " if n else "○ " if s else "") + t
                           for t, n, s in zip(view["title"], view["is_new"], view["stale"])]
-    cols = ["score", "title_flag", "company", "where", "source", "age_days", "verdict_he", "status_he", "url"]
+    cols = ["score", "title_flag", "company", "where", "source", "age_days", "verdict_he", "sent", "status_he", "url"]
     table = view[cols]
     # RTL trick: the grid stays LTR (canvas), so columns are listed right-to-left in reverse
     edited = st.data_editor(
         table, hide_index=True, column_order=cols[::-1], height="content", row_height=44, key="jobs_editor",
-        disabled=[c for c in cols if c != "status_he"],
+        disabled=[c for c in cols if c not in ("status_he", "sent")],
         column_config={
             "score": st.column_config.ProgressColumn("ציון", min_value=0, max_value=100, format="%d", width="small"),
             "title_flag": st.column_config.TextColumn("תפקיד", width="medium"),
             "company": "חברה", "where": "מיקום", "source": "מקור",
             "age_days": st.column_config.NumberColumn("ימים", format="%d", width="small"),
             "verdict_he": "הערכה",
+            "sent": st.column_config.CheckboxColumn("נשלחו קו״ח", width="small",
+                                                    help="סמנו כששלחתם קורות חיים למשרה"),
             "status_he": st.column_config.SelectboxColumn("סטטוס", options=list(STATUS_HE.values()), required=True),
             "url": st.column_config.LinkColumn("קישור", display_text="פתח", width="small"),
         })
-    changed = edited.index[edited["status_he"] != table["status_he"]]
-    for job_id in changed:
-        db.update_status(job_id, HE_STATUS[edited.loc[job_id, "status_he"]])
-    if len(changed):
+    changed = table_changes(table, edited)
+    for job_id, status in changed.items():
+        db.update_status(job_id, status)
+    if changed:
         st.toast("נשמר")
         refresh()
     st.caption("● = חדשה (24 שעות) · ○ = לא נראתה מעל שבועיים, ייתכן שנסגרה · ציון 'ראשוני' = הערכה אוטומטית ללא מודל שפה")
     detail_panel(view)
+
+
+def table_changes(table: pd.DataFrame, edited: pd.DataFrame) -> dict[str, str]:
+    """New status per edited row. Ticking "CV sent" marks the job applied (and records the date);
+    unticking puts it back to interested. A status picked in the status column wins."""
+    out = {}
+    for job_id in edited.index:
+        if edited.loc[job_id, "status_he"] != table.loc[job_id, "status_he"]:
+            out[job_id] = HE_STATUS[edited.loc[job_id, "status_he"]]
+        elif bool(edited.loc[job_id, "sent"]) != bool(table.loc[job_id, "sent"]):
+            out[job_id] = "applied" if edited.loc[job_id, "sent"] else UNSENT
+    return out
+
+
+def set_status(job_id: str, status: str, message: str) -> None:
+    db.update_status(job_id, status)
+    load_jobs.clear()
+    st.toast(message)
+
+
+def sent_controls(job: dict) -> None:
+    """The "CV sent" button, or when it was sent and an undo."""
+    if job["status"] in SENT:
+        when = to_il(job["status_updated"])
+        st.html(f'<div class="jh-note">קו״ח נשלחו{f" ב־<bdi>{when:%d/%m/%Y}</bdi>" if when else ""} · '
+                f'{STATUS_HE[job["status"]]}</div>')
+        st.button("בטל סימון שליחה", key=f"unsend_{job['id']}", on_click=set_status,
+                  args=(job["id"], UNSENT, "הסימון בוטל"))
+    else:
+        st.button("שלחתי קורות חיים", type="primary", icon=":material/send:", key=f"send_{job['id']}",
+                  on_click=set_status, args=(job["id"], "applied", "סומן: קו״ח נשלחו"),
+                  help="מסמן את המשרה כ״הוגשה מועמדות״ ושומר את תאריך השליחה")
 
 
 def detail_panel(view: pd.DataFrame) -> None:
@@ -439,7 +481,8 @@ def detail_panel(view: pd.DataFrame) -> None:
             st.info(job["cv_tip"])
         notes = st.text_area("הערות", job["notes"] or "", height=90, key=f"notes_{job_id}")
         with st.container(horizontal=True, gap="small"):
-            if st.button("שמור הערות", type="primary", key=f"save_{job_id}"):
+            sent_controls(job)
+            if st.button("שמור הערות", key=f"save_{job_id}"):
                 db.update_notes(job_id, notes)
                 st.toast("נשמר")
                 load_jobs.clear()
@@ -491,7 +534,8 @@ def insights_tab(df: pd.DataFrame) -> None:
     per_src = df.groupby("source")["score"].agg(["count", "mean"]).sort_values("count", ascending=False)
     left.subheader("משרות וציון ממוצע לפי מקור")
     left.dataframe(per_src.rename(columns={"count": "משרות", "mean": "ציון ממוצע"}).round(1), width="stretch")
-    per_day = df.dropna(subset=["first_seen_il"]).groupby(df["first_seen_il"].map(lambda d: d.date())).size()
+    seen = df.dropna(subset=["first_seen_il"])
+    per_day = seen.groupby(seen["first_seen_il"].map(lambda d: d.date())).size()
     right.subheader("משרות חדשות ליום")
     right.bar_chart(per_day, color=SEA)
 
@@ -552,7 +596,7 @@ def main() -> None:
     title("משרות")
     if df.empty:
         st.info('עוד אין משרות. שימו את קורות החיים בתיקיית cv/ ולחצו '
-                    '"הרץ סוכן עכשיו".')
+                    '"בואו נמצא את המשרה הבאה".')
         tabs = st.tabs(["מקורות", "פרופיל"])
         with tabs[0]:
             sources_tab()

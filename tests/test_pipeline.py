@@ -142,3 +142,44 @@ def test_lock_rejects_live_foreign_pid(tmp_path, monkeypatch):
     monkeypatch.setattr(agent, "pid_alive", lambda pid: True)
     with pytest.raises(agent.RunLocked):
         agent.run_lock(lock).__enter__()
+
+
+def test_rescore_slots_are_not_wasted_on_non_junior_jobs(env, monkeypatch):
+    cfg, path = env
+    cfg["matching"]["llm_top_n"] = 2
+    # stored before the junior filters: high pre-scores, but they need experience
+    old = [Job("greenhouse", f"Python Developer {i}", f"Old{i}", f"https://old/{i}", location="Tel Aviv, Israel",
+               description="Python. 5+ years of experience.") for i in range(3)]
+    ok = Job("greenhouse", "Junior Python Developer", "Fine", "https://fine/1", location="Tel Aviv, Israel",
+             description="Python and SQL, no experience needed.")
+    db.upsert_jobs([{**j.to_dict(), "prescore": 90 - i, "score": 90 - i, "scored_by": "heuristic", "cv_hash": "x"}
+                    for i, j in enumerate(old)] + [{**ok.to_dict(), "prescore": 50, "score": 50,
+                                                    "scored_by": "heuristic", "cv_hash": "x"}], path)
+    monkeypatch.setattr(agent, "collect_all", lambda config, only=None, limit=None: ([], []))
+    monkeypatch.setattr(agent, "get_llm", lambda c: FakeLLM())
+    state = agent.run(cfg, db_path=path)
+    assert state["rescored_ids"] == {ok.id}            # the junior job is reached despite its lower pre-score
+
+
+def test_heuristic_rescore_clears_a_stale_llm_verdict(env, monkeypatch):
+    cfg, path = env
+    monkeypatch.setattr(agent, "get_llm", lambda c: FakeLLM())
+    agent.run(cfg, db_path=path)
+    assert any(j["verdict"] for j in db.all_jobs(path=path))
+    monkeypatch.setattr(agent, "get_llm", lambda c: None)
+    agent.run(cfg, db_path=path, rescore=True)          # new CV, no LLM: heuristic scores only
+    for j in db.all_jobs(path=path):
+        assert j["scored_by"] == "heuristic" and j["verdict"] is None and j["reasons"] is None
+
+
+def test_jobs_without_description_are_read_then_checked_for_experience(env, monkeypatch):
+    cfg, path = env
+    cfg["matching"]["fetch_descriptions"] = 5
+    bare = Job("techmap", "Junior Python Developer", "Zed", "https://il.linkedin.com/jobs/view/py-at-zed-1234567",
+               location="Tel Aviv, Israel")
+    monkeypatch.setattr(agent, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult("techmap", [bare])], [{"source": "techmap", "fetched": 1, "error": None, "duration_s": 0}]))
+    from jobhunter.collectors import details
+    monkeypatch.setattr(details, "fetch_description", lambda job: "Python. 2+ years of experience required.")
+    state = agent.run(cfg, db_path=path, no_llm=True)
+    assert state["stats"]["filtered_by_reason"] == {"experience": 1} and state["stats"]["kept"] == 0

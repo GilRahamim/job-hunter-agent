@@ -147,8 +147,13 @@ def role_groups_text(groups: dict[str, list[str]]) -> str:
     return "\n".join(f"- {g}: {', '.join(titles)}" for g, titles in groups.items())
 
 
+def experience_limit(years: float) -> str:
+    return "no professional experience" if not years else f"at most {years:g} years of experience"
+
+
 def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
     s = ctx.settings
+    years = ctx.config["filters"].get("max_required_years") or 0
     system = AGENT_SYSTEM.format(goal=s["goal_matches"], min_score=s["min_match_score"],
                                  sources=", ".join(allowed_sources(ctx.config)),
                                  max_searches=s["max_searches"],
@@ -156,6 +161,7 @@ def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
                                  role_groups=role_groups_text(s.get("role_groups") or {}),
                                  junior_words=", ".join(ctx.config["filters"].get("junior_keywords")
                                                         or ["junior", "entry level", "graduate"]),
+                                 max_years=f"{years:g}", experience_limit=experience_limit(years),
                                  language=_language(ctx.config))
     return [SystemMessage(system),
             HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]))]

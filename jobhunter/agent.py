@@ -14,6 +14,7 @@ from langgraph.graph import END, START, StateGraph
 from jobhunter import db, stop
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.base import CollectorResult
+from jobhunter.collectors.details import fill_descriptions
 from jobhunter.config import ROOT, load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.filters import filter_jobs, junior_reason
@@ -123,7 +124,19 @@ def dedupe_node(state: PipelineState) -> dict:
 
 
 def filter_node(state: PipelineState) -> dict:
-    kept, dropped = filter_jobs(state["new_jobs"], state["config"])
+    cfg = state["config"]
+    kept, dropped = filter_jobs(state["new_jobs"], cfg)
+    # Jobs without a description (LinkedIn, Tech Map) cannot be checked for experience: read the
+    # descriptions of the most promising ones, then apply the experience rules again.
+    limit = int(cfg["matching"].get("fetch_descriptions") or 0)
+    bare = [j for j in kept if not j.description.strip()]
+    if limit and bare:
+        ranked = [j for _, j in sorted(zip(prescore_jobs(state["profile"], bare), bare),
+                                       key=lambda p: p[0], reverse=True)]
+        fill_descriptions(ranked, limit)
+        failed = {j.id: r for j in bare if j.description and (r := junior_reason(j, cfg))}
+        kept = [j for j in kept if j.id not in failed]
+        dropped.update(failed.values())
     log.info("filter: kept %d, dropped %s", len(kept), dict(dropped) or "none")
     return {"kept_jobs": kept, "drop_reasons": dict(dropped)}
 
@@ -135,12 +148,15 @@ def prescore_node(state: PipelineState) -> dict:
     rescored: set[str] = set()
     if opts.get("rescore") or m.get("rescore_on_cv_change") or state["llm_enabled"]:
         rows = db.jobs_needing_rescore(
-            state["cv_hash"], m["llm_top_n"], _db(state), force=bool(opts.get("rescore")),
+            state["cv_hash"], None, _db(state), force=bool(opts.get("rescore")),
             include_heuristic=state["llm_enabled"], min_prescore=m["min_prescore_for_llm"])
         have = {j.id for j in to_score}
         for row in rows:
+            if len(rescored) >= m["llm_top_n"]:
+                break
             job = job_from_row(row)
-            # stored before the junior filters (or before they were tightened): do not score it again
+            # stored before the junior filters (or before they were tightened): do not score it again.
+            # Filter before capping, or non-junior rows would fill every slot run after run.
             if row["id"] not in have and junior_reason(job, cfg) is None:
                 to_score.append(job)
                 rescored.add(row["id"])

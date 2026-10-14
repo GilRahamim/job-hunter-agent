@@ -48,6 +48,8 @@ def to_iso(value) -> str | None:  # handles ISO strings, unix seconds, unix ms
 | `company_boards` | ~40 Israeli tech companies' own boards | none | Highest-quality data (full descriptions). Slugs in `companies.yaml`. |
 | `workday` | Large employers' boards (Intel, Nvidia, Marvell…) | none | POST JSON API; Israel filter via location facet. Entries in `companies.yaml` → `workday`. |
 | `remotive`, `remoteok`, `himalayas`, `weworkremotely`, `arbeitnow` | Remote jobs worldwide | none | Most are US-only; region filtering matters. |
+| `techmap` | Israeli Tech Map daily job CSVs (github.com/mluggy/techmap, ODbL), ~470 Israeli companies | none | One download per category; title/company/level/city, **no description** (links are mostly LinkedIn). |
+| `getro` | VC portfolio job boards (Israel VC Forum ≈880 companies) | none | `POST api.getro.com/api/v2/collections/{id}/search/jobs` with `Accept: application/json` (406 without), `filters: {searchable_locations: ["Israel"]}`, 20 per page; seniority tag, no description. |
 | `serpapi_google_jobs` | Google Jobs (indexes AllJobs, Drushim, Comeet pages…) | `SERPAPI_API_KEY` | Optional; limited free quota. |
 
 Exact endpoints, response shapes and field mappings for each source: **read `references/endpoints.md`** before writing a collector. Those mappings were verified against live responses on 2026-10-13.
@@ -74,6 +76,12 @@ df = scrape_jobs(
 - Indeed Israel returns Hebrew city names (`רחובות, M, Israel`) — that is fine; `filters.py` handles Hebrew.
 - `source` = `f"jobspy:{site}"` so the dashboard can show LinkedIn vs Indeed separately.
 - Wrap each site separately if one fails: a Glassdoor error should not lose the LinkedIn results (call `scrape_jobs` per site when the combined call raises).
+
+## Adding companies in bulk
+`python scripts/sync_companies.py [--scan-careers] [--dry-run]` reads the Israeli Tech Map company files (comeetId / greenhouseId / leverId / careersUrl), its job links and the Getro boards' job links, checks every board live, and appends the ones with Israel jobs to `companies.yaml`.
+
+## Missing descriptions
+`collectors/details.py` reads a LinkedIn job's description with JobSpy's own job-page reader (`LinkedIn()._fetch_details`), never custom LinkedIn scraping. The pipeline does it for the best-pre-scored kept jobs without one (`matching.fetch_descriptions`), then re-applies the experience rules; the agent does it in `read_posting`.
 
 ## Adding a company
 

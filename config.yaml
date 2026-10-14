@@ -21,14 +21,14 @@ filters:
   # … and remote jobs that are open to candidates in Israel / EMEA / worldwide
   remote: true
   remote_regions_ok: [worldwide, anywhere, global, emea, europe, israel, "middle east", international]
-  # Junior mode: drop postings that state a years-of-experience requirement above this.
+  # Drop postings that state a years-of-experience requirement above this ("1+ years" is dropped at 0).
   # 0 = only jobs without an experience requirement; null = do not filter by years.
   max_required_years: 0
   # A title that says junior ("Junior Data Engineer, 1-2 years") may state up to this many years.
-  junior_max_required_years: 1
-  # Drop postings with no description unless the title says junior: their experience
-  # requirement cannot be checked (LinkedIn without fetch_linkedin_descriptions).
-  drop_unverified: true
+  junior_max_required_years: 0
+  # true = drop postings with no description unless the title says junior (their experience
+  # requirement cannot be checked: LinkedIn without fetch_linkedin_descriptions). false = keep them.
+  drop_unverified: false
   # Words that mark a junior / entry-level job (title or description). Used by the filters,
   # the agent's searches and its save guard.
   junior_keywords: [junior, jr, "jr.", "entry level", "entry-level", graduate, "new grad", "recent grad",
@@ -40,14 +40,58 @@ filters:
   # Ignored when the title says junior.
   experienced_phrases: ["extensive experience", "seasoned", "senior-level", "proven track record",
                         "proven experience", "deep experience", "significant experience",
-                        "strong professional experience", "ניסיון רב", "ניסיון מוכח", "ניסיון משמעותי"]
+                        "strong professional experience", "ניסיון רב", "ניסיון מוכח", "ניסיון משמעותי",
+                        # Getro boards' seniority tags (VC portfolio jobs have no description)
+                        "seniority: mid senior", "seniority: senior", "seniority: manager", "seniority: director",
+                        "seniority: executive", "seniority: principal"]
   # Drop titles that are clearly above your level (set to false to keep them)
   exclude_senior: true
   senior_keywords: [experienced, "mid-level", "mid level", senior, "sr.", "sr ", staff, principal, lead, leader,
                     "head of", director, manager, architect, "vp ", chief, expert, ii, iii, iv,
                     "בכיר", "בכירה", "ראש צוות", "מנהל", "מנהלת", "מוביל", "מובילה", "ותיק"]
-  # A job must match at least one of these (title) to count as a development / data role
+  # A job counts as a computer-science role when its title has one of `role_keywords`, OR its
+  # description asks for one of `role_description_keywords` (a CS / engineering degree or a
+  # technical background) - so "Test Driver for Autonomous Vehicles" asking for a B.Sc. counts too.
+  role_description_keywords: ["computer science", "software engineering", "computer engineering",
+                              "electrical engineering", "engineering degree", "degree in engineering",
+                              "b.sc", "bsc", "b.s.", "technical background", "technical degree",
+                              "stem", "מדעי המחשב", "הנדסת תוכנה", "הנדסת חשמל", "הנדסאי", "תואר טכני",
+                              "רקע טכני", "תואר ראשון בהנדסה"]
   role_keywords:
+    - engineering
+    - " test"
+    - validation
+    - integration
+    - frontend
+    - front-end
+    - front end
+    - web
+    - mobile
+    - android
+    - " ios"
+    - embedded
+    - firmware
+    - cyber
+    - security
+    - " soc "
+    - penetration
+    - cloud
+    - " sre "
+    - "site reliability"
+    - database
+    - " dba "
+    - " it "
+    - "system administrator"
+    - sysadmin
+    - network
+    - verification
+    - game
+    - סייבר
+    - אבטחת מידע
+    - מתכנת
+    - מתכנתת
+    - תכנות
+    - מערכות מידע
     - developer
     - engineer
     - programmer
@@ -85,13 +129,14 @@ filters:
     - דאטה
     - אלגוריתם
   # Titles containing these are always dropped
-  exclude_keywords: [sales, account executive, "customer success", recruiter, "talent acquisition", marketing, legal, counsel, accountant, "hr ", payroll, "office manager", nurse, driver, "technician", "מכירות", "גיוס"]
+  exclude_keywords: [sales, account executive, "customer success", recruiter, "talent acquisition", marketing, legal, counsel, accountant, "hr ", payroll, "office manager", nurse, "delivery driver", "truck driver", "bus driver", courier, "technician", guard, "מכירות", "גיוס"]
   # Ignore postings older than this (days). Sources that give no date are kept.
   max_age_days: 21
 
 search:
   # Search terms used for LinkedIn / Indeed / Glassdoor / Google Jobs and remote boards
-  # Junior wording only: the owner is looking for entry-level roles.
+  # Junior wording finds entry-level roles; the experience filter drops any stated experience requirement.
+  # Every query is one LinkedIn/Indeed pass (~15 s each): more queries = longer runs.
   queries:
     - Junior AI Engineer
     - Junior Machine Learning Engineer
@@ -106,11 +151,29 @@ search:
     - Junior Full Stack Developer
     - Junior Algorithm Developer
     - Software Engineering Student
+    - Junior Frontend Developer
+    - Junior Mobile Developer
+    - Junior Embedded Software Engineer
+    - Junior Cyber Security Analyst
+    - Junior DevOps Engineer
+    - Junior QA Automation Engineer
+    - Junior Cloud Engineer
+    - Junior IT Support
+    - Junior Validation Engineer
+    - Test Engineer Student
   location: Israel
   results_per_query: 40
   hours_old: 168          # last 7 days
 
 sources:
+  techmap:                 # Israeli Tech Map daily job lists (github.com/mluggy/techmap, ODbL): ~470 Israeli
+    enabled: true          # companies incl. ones without a public careers API; title/company/city only
+    categories: [software, data-science, devops, frontend, hardware, qa, security, support]
+  getro:                   # venture-capital portfolio job boards (Israel jobs only); id = the board's network id
+    enabled: true
+    boards:
+      - {name: Israel VC Forum, id: 10949}          # israelvcforum.getro.com: ~880 companies of member funds
+      - {name: Innovation Endeavors, id: 156}       # jobs.innovationendeavors.com
   jobspy:                  # LinkedIn, Indeed, Glassdoor, Google Jobs
     enabled: true
     sites: [linkedin, indeed, glassdoor, google]
@@ -135,6 +198,9 @@ matching:
   llm_top_n: 60
   # Jobs below this pre-score are never sent to the LLM
   min_prescore_for_llm: 15
+  # Jobs that arrive without a description (LinkedIn, Tech Map) get it read from their LinkedIn page,
+  # best pre-scores first, so the experience rules can be checked. ~2 s each; 0 = off.
+  fetch_descriptions: 80
   # Re-score jobs already in the DB when your CV changes
   rescore_on_cv_change: true
 
@@ -142,7 +208,7 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
   goal_matches: 10         # stop after this many saved jobs scoring >= min_match_score
   min_match_score: 70
   max_steps: 50            # model turns per run (hard stop)
-  max_searches: 12         # search_jobs calls per run (LinkedIn rate-limits: keep modest)
+  max_searches: 20         # search_jobs calls per run: every role group once, then repeats
   max_searches_per_group: 3  # cap per role group, so one kind of job cannot use the whole budget
   # Kinds of jobs the agent must cover. Every group is searched before any group is repeated.
   # A query belongs to a group when its words match one of the group's titles.
@@ -150,9 +216,16 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
     AI / ML: [AI Engineer, GenAI Engineer, LLM Engineer, Machine Learning Engineer, NLP Engineer]
     Data: [Data Analyst, Data Scientist, Data Engineer, BI Developer, BI Analyst]
     Software: [Software Engineer, Junior Software Engineer, Python Developer, Backend Developer,
-               Full Stack Developer, Frontend Developer]
+               Full Stack Developer, Java Developer, C++ Developer]
+    Web / Mobile: [Frontend Developer, Web Developer, Mobile Developer, Android Developer, iOS Developer]
     Algorithms / Research: [Algorithm Developer, Algorithm Engineer, Computer Vision Engineer]
-    Automation / QA / DevOps: [Automation Engineer, QA Automation Engineer, DevOps Engineer]
+    Embedded / Hardware: [Embedded Software Engineer, Firmware Engineer, Verification Engineer]
+    Cyber Security: [Cyber Security Analyst, Security Engineer, SOC Analyst, Penetration Tester]
+    Automation / QA / DevOps: [Automation Engineer, QA Automation Engineer, DevOps Engineer,
+                               Cloud Engineer, Site Reliability Engineer]
+    IT / Systems: [IT Support, System Administrator, Network Engineer, Database Administrator]
+    Testing / Validation / Field: [Test Engineer, Validation Engineer, Test Driver, Integration Engineer,
+                                   Field Engineer, Technical Support Engineer, Application Engineer]
   results_per_search: 10   # results shown to the model per search
   # Guardrail: LinkedIn queries without a junior word get this prefix ("AI Engineer" -> "Junior AI Engineer")
   junior_query_prefix: Junior
