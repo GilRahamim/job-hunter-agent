@@ -142,7 +142,7 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
   # Ollama instead:  llm: {provider: ollama, model: "qwen3:8b", num_ctx: 16384}
   llm:
     provider: openai
-    base_url: http://localhost:1234/v1
+    base_url: http://127.0.0.1:1234/v1   # not "localhost": on Windows it tries IPv6 first (+2s per call)
     model: qwen/qwen3.6-35b-a3b   # LM Studio identifier (`lms ls`); alt: openai/gpt-oss-20b
     max_tokens: 8000         # Qwen thinks first; 4096 cut off profile extraction. Load with --context-length 32768
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import html
 import subprocess
 import sys
+import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -34,6 +35,8 @@ STATUS_HE = {"new": "חדש", "interested": "מעניין", "applied": "הוגש
              "offer": "הצעה", "rejected": "נדחה", "not_relevant": "לא רלוונטי"}
 HE_STATUS = {v: k for k, v in STATUS_HE.items()}
 GOAL_RANGE = (3, 10)            # agent mode: matches to find, chosen in the sidebar
+STARTUP_GRACE_S = 20            # a run just launched may not have written run.lock yet
+WHERE = ["הכול", "ישראל", "מרחוק"]
 FUNNEL = ["new", "interested", "applied", "interview", "offer"]
 VERDICT_HE = {"strong": "חזקה", "good": "טובה", "stretch": "מתיחה", "poor": "חלשה"}
 
@@ -100,20 +103,24 @@ def start_run(goal: int | None = None) -> None:
     log = open(LOG_PATH, "w", encoding="utf-8")
     cmd = [sys.executable, "run_agent.py"] + (["--agent", "--goal", str(goal)] if goal else [])
     subprocess.Popen(cmd, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
-    st.session_state["was_running"] = True
+    st.session_state["launched_at"] = time.time()
 
 
-def local_llm_down(cfg: dict) -> str | None:
-    """Base URL of the agent's local model server when it does not answer; None when it is fine
-    or the agent uses a cloud provider."""
-    base = (cfg["agent"].get("llm") or {}).get("base_url")
+def _health_url(base: str) -> str:
+    # Windows resolves "localhost" to IPv6 first and waits ~2s before trying 127.0.0.1
+    return base.rstrip("/").replace("//localhost", "//127.0.0.1") + "/models"
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def local_llm_down(base: str | None) -> bool:
+    """True when the agent's local model server (agent.llm.base_url) does not answer."""
     if not base:
-        return None
+        return False                                   # cloud provider: nothing local to check
     try:
-        requests.get(f"{base.rstrip('/')}/models", timeout=2).raise_for_status()
+        requests.get(_health_url(base), timeout=2).raise_for_status()
     except requests.RequestException:
-        return base
-    return None
+        return True
+    return False
 
 
 def default_goal(cfg: dict) -> int:
@@ -121,87 +128,169 @@ def default_goal(cfg: dict) -> int:
     return min(max(int(cfg["agent"].get("goal_matches", hi)), lo), hi)
 
 
+def run_active() -> bool:
+    return bool(is_running()) or time.time() - st.session_state.get("launched_at", 0) < STARTUP_GRACE_S
+
+
 @st.fragment(run_every=3)
-def run_panel() -> None:
-    pid = is_running()
-    if pid:
-        st.session_state["was_running"] = True
-        st.info("הסוכן רץ עכשיו…")
-        if LOG_PATH.exists():
-            st.code("\n".join(LOG_PATH.read_text(encoding="utf-8", errors="replace").splitlines()[-12:]),
-                    language=None)
-    elif st.session_state.pop("was_running", False):
+def run_status() -> None:
+    """Live log while a run is going; only this fragment polls, the controls stay still."""
+    if not run_active():
+        st.session_state.pop("launched_at", None)
         load_jobs.clear()
-        st.rerun()
-    else:
-        cfg = load_config()
-        smart = st.toggle("סוכן חכם (המודל בוחר חיפושים)", key="agent_mode",
-                          help="המודל המקומי כותב את החיפושים, קורא משרות ושומר את המתאימות. איטי יותר מהחיפוש הרגיל.")
-        goal, down = None, None
-        if smart:
-            goal = st.slider("כמה משרות מתאימות למצוא", *GOAL_RANGE, default_goal(cfg), key="agent_goal",
-                             help=f"הסוכן עוצר אחרי שמצא משרות בציון {cfg['agent']['min_match_score']} ומעלה, "
-                                  "או כשנגמרים החיפושים.")
-            down = local_llm_down(cfg)
-            if down:
-                st.warning(f"השרת המקומי של המודל לא עונה ({down}). "
-                           "יש להפעיל את LM Studio ולטעון את המודל.", icon=":material/warning:")
-        if st.button("בואו נמצא את המשרה הבאה", type="primary", width="stretch",
-                     disabled=bool(down)):
-            start_run(goal)
-            st.rerun()
+        st.rerun(scope="app")
+    st.info("הסוכן רץ עכשיו…" if is_running() else "הסוכן מתחיל…")
+    if LOG_PATH.exists():
+        st.code("\n".join(LOG_PATH.read_text(encoding="utf-8", errors="replace").splitlines()[-12:]),
+                language=None)
+
+
+def run_controls(cfg: dict) -> None:
+    if run_active():
+        run_status()
+        return
+    smart = st.toggle("סוכן חכם (המודל בוחר חיפושים)", key="agent_mode",
+                      help="המודל המקומי כותב את החיפושים, קורא משרות ושומר את המתאימות. איטי יותר מהחיפוש הרגיל.")
+    goal, down = None, False
+    if smart:
+        goal = st.slider("כמה משרות מתאימות למצוא", *GOAL_RANGE, key="agent_goal",
+                         help=f"הסוכן עוצר אחרי שמצא משרות בציון {cfg['agent']['min_match_score']} ומעלה, "
+                              "או כשנגמרים החיפושים.")
+        down = local_llm_down((cfg["agent"].get("llm") or {}).get("base_url"))
+        if down:
+            st.warning("המודל המקומי לא זמין. יש להפעיל את LM Studio ולטעון את המודל.",
+                       icon=":material/warning:")
+    st.button("בואו נמצא את המשרה הבאה", type="primary", width="stretch", disabled=down,
+              on_click=start_run, args=(goal,))
+
+
+def run_summary_html(run: dict) -> str:
+    """Two short lines; every number is isolated with <bdi> so Hebrew and digits keep their order."""
+    s = run["stats"]
+    when = to_il(run["finished"] or run["started"])
+    secs = float(s.get("duration_s") or 0)
+    took = f"<bdi>{secs / 60:.1f}</bdi> דק׳" if secs >= 60 else f"<bdi>{secs:.0f}</bdi> שנ׳"
+    failed = len(s.get("errors", []))
+    parts = [f"<bdi>{s.get('kept', 0)}</bdi> חדשות"]
+    if failed:
+        parts.append("מקור אחד עם תקלה" if failed == 1 else f"<bdi>{failed}</bdi> מקורות עם תקלה")
+    return (f'<div class="jh-run-summary">ריצה אחרונה: <bdi>{when:%d/%m %H:%M}</bdi> · {took}<br>'
+            f'{" · ".join(parts)}</div>')
+
+
+# ------------------------------------------------------------ sidebar settings, kept in the URL
+# A reload (the theme switch reloads the page) or a bookmark keeps the filters and the run mode.
+
+def pref_defaults(cfg: dict) -> dict:
+    return {"q": "", "min_score": 60, "sources": [], "where": "הכול", "days": 60, "junior": True,
+            "only_new": False, "agent_mode": False, "agent_goal": default_goal(cfg),
+            "stages": [v for k, v in STATUS_HE.items() if k != "not_relevant"]}
+
+
+def _valid(key: str, value, default, df: pd.DataFrame):
+    if key == "min_score":
+        return min(max(value, 0), 100)
+    if key == "days":
+        return min(max(value, 1), 90)
+    if key == "agent_goal":
+        return min(max(value, GOAL_RANGE[0]), GOAL_RANGE[1])
+    if key == "where":
+        return value if value in WHERE else default
+    if key == "sources":
+        return [v for v in value if v in set(df["source"])] if not df.empty else []
+    if key == "stages":
+        return [v for v in value if v in STATUS_HE.values()]
+    return value
+
+
+def init_prefs(defaults: dict, df: pd.DataFrame) -> None:
+    """Seed widget state from the URL when a widget has no state yet (widgets then take only a key)."""
+    qp = st.query_params
+    for key, default in defaults.items():
+        if key in st.session_state:
+            continue
+        value = default
+        if key in qp:
+            try:
+                if isinstance(default, bool):
+                    value = qp[key] == "1"
+                elif isinstance(default, int):
+                    value = int(qp[key])
+                elif isinstance(default, list):
+                    value = qp.get_all(key)
+                else:
+                    value = qp[key]
+            except ValueError:
+                value = default
+        st.session_state[key] = _valid(key, value, default, df)
+
+
+def save_prefs(defaults: dict) -> None:
+    """Write non-default settings to the URL; defaults are left out to keep it short."""
+    qp = st.query_params
+    for key, default in defaults.items():
+        value = st.session_state.get(key, default)
+        if value == default or value is None:
+            if key in qp:
+                del qp[key]
+        elif isinstance(value, bool):
+            qp[key] = "1" if value else "0"
+        elif isinstance(value, list):
+            qp[key] = value if value else ["-"]          # an empty multi-select is not the default
+        else:
+            qp[key] = str(value)
 
 
 def sidebar(df: pd.DataFrame) -> pd.DataFrame:
-    max_years = load_config()["filters"].get("max_required_years")
+    cfg = load_config()
+    max_years = cfg["filters"].get("max_required_years")
+    defaults = pref_defaults(cfg)
+    init_prefs(defaults, df)
     with st.sidebar:
         brand_header()
         st.html('<div class="jh-hello">הצעד הבא שלך מתחיל כאן.</div>'
                 '<div class="jh-hello-sub">מכוונים את החיפוש, והסוכן יוצא למצוא הזדמנויות.</div>')
         with st.container(key="sb-launch"):
-            run_panel()
+            run_controls(cfg)
             runs = db.last_runs(1)
             if runs:
-                r, s = runs[0], runs[0]["stats"]
-                when = to_il(r["finished"] or r["started"])
-                failed = len(s.get("errors", []))
-                st.html(f'<div class="jh-run-summary">ריצה אחרונה: {when:%d/%m %H:%M} · {s.get("duration_s", "?")} שנ׳ · '
-                        f'{s.get("kept", 0)} חדשות · {failed} מקורות עם תקלה</div>')
+                st.html(run_summary_html(runs[0]))
         if df.empty:
             with st.container(key="sb-prefs"):
                 theme_toggle()
+            save_prefs(defaults)
             return df
 
         with st.container(key="sb-search"):
             question("מה מחפשים?")
             query = st.text_input("חיפוש חופשי (כותרת / חברה)", placeholder="כותרת משרה או שם חברה",
-                                  label_visibility="collapsed")
+                                  key="q", label_visibility="collapsed")
         with st.container(key="sb-match"):
             st.html('<div class="jh-q-sub">ההתאמה שלך</div>'
-                    f'<div class="jh-range"><span class="jh-range-num">{st.session_state.get("min_score", 60)}</span>'
+                    f'<div class="jh-range"><span class="jh-range-num">{st.session_state["min_score"]}</span>'
                     '<span class="jh-range-label">ציון מינימלי</span></div>')
-            min_score = st.slider("ציון מינימלי", 0, 100, 60, key="min_score", label_visibility="collapsed")
+            min_score = st.slider("ציון מינימלי", 0, 100, key="min_score", label_visibility="collapsed")
         with st.container(key="sb-source"):
             question("מאיפה מגיעות המשרות?")
             sources = st.multiselect("מקור", sorted(df["source"].unique()), placeholder="כל המקורות",
-                                     label_visibility="collapsed")
+                                     key="sources", label_visibility="collapsed")
         with st.container(key="sb-stage"):
             question("איפה אנחנו בתהליך?")
-            statuses = st.pills("סטטוס", list(STATUS_HE.values()), selection_mode="multi",
-                                default=[v for k, v in STATUS_HE.items() if k != "not_relevant"],
+            statuses = st.pills("סטטוס", list(STATUS_HE.values()), selection_mode="multi", key="stages",
                                 label_visibility="collapsed")
         with st.container(key="sb-where"):
             question("איפה תרצו לעבוד?")
-            loc = st.pills("מיקום", ["הכול", "ישראל", "מרחוק"], selection_mode="single", default="הכול",
+            loc = st.pills("מיקום", WHERE, selection_mode="single", key="where",
                            label_visibility="collapsed") or "הכול"
         with st.container(key="sb-recency"):
             question("פורסמו לאחרונה", "במספר הימים האחרונים")
-            days = st.number_input("ימים", 1, 90, 60, step=5, format="%d", label_visibility="collapsed")
+            days = st.number_input("ימים", 1, 90, step=5, format="%d", key="days", label_visibility="collapsed")
         with st.container(key="sb-prefs"):
-            junior = st.toggle("רק משרות ללא דרישת ניסיון", value=True,
+            junior = st.toggle("רק משרות ללא דרישת ניסיון", key="junior",
                                help="מסתיר משרות שמציינות שנות ניסיון נדרשות")
-            only_new = st.toggle("רק חדשות ב־24 השעות האחרונות")
+            only_new = st.toggle("רק חדשות ב־24 השעות האחרונות", key="only_new")
             theme_toggle()
+    save_prefs(defaults)
 
     out = df[df["score"] >= min_score]
     if junior and max_years is not None:

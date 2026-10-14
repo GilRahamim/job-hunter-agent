@@ -10,6 +10,10 @@
 /* English content inside Hebrew layout */
 .ltr, [data-testid="stDataFrame"], [data-testid="stDataFrameResizable"], code, pre { direction: ltr; }
 [data-testid="stMarkdownContainer"] p, [data-testid="stCaptionContainer"] { text-align: right; }
+/* Toggle track: the knob moves with translateX(+), which in RTL pushes it out of the track. */
+[data-testid="stCheckbox"] label > div:not([data-testid]) { direction: ltr; }
+/* Slider: the track runs left→right (min on the left); keep the min/max labels under it in the same order. */
+[data-testid="stSlider"] [role="group"] { direction: ltr; }
 
 /* ---------- Page title: Heebo ExtraBold, like "משרות" ---------- */
 .jh-title { font-size: 48px; font-weight: 800; line-height: 1.1; margin: 8px 0 4px; color: var(--jh-ink); }

@@ -17,7 +17,7 @@ import streamlit as st
 
 from .tokens import DARK, LIGHT, css_vars
 
-_CSS = (Path(__file__).parent / "theme.css").read_text(encoding="utf-8")
+_CSS_PATH = Path(__file__).parent / "theme.css"   # read per run: edits apply without a restart
 
 
 def current_scheme() -> str:
@@ -28,7 +28,7 @@ def current_scheme() -> str:
 def inject_theme() -> None:
     """Call once at the top of the page, after st.set_page_config."""
     tokens = DARK if current_scheme() == "dark" else LIGHT
-    st.html(f"<style>{css_vars(tokens)}\n{_CSS}</style>")
+    st.html(f"<style>{css_vars(tokens)}\n{_CSS_PATH.read_text(encoding='utf-8')}</style>")
 
 
 def brand_header() -> None:
