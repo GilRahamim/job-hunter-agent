@@ -1,6 +1,8 @@
 """Streamlit dashboard: browse scored jobs, track applications. Hebrew UI, RTL.
 
-Reads from SQLite; writes only `status` and `notes`."""
+Reads from SQLite; writes only `status` and `notes` (and, when asked, an uploaded CV / a new user).
+One Streamlit process serves every browser session, so the selected user is passed explicitly
+(USER, CFG, DB below) instead of through JOBHUNTER_USER."""
 from __future__ import annotations
 
 import html
@@ -20,14 +22,16 @@ import streamlit as st
 
 from jobhunter import db, stop
 from jobhunter.config import ROOT, load_config, run_dir
-from jobhunter.runlock import running_pid
+from jobhunter.llm import llm_available
+from jobhunter.models import CandidateProfile
+from jobhunter.personalize import personalize
+from jobhunter.runlock import lock_path, running_pid
+from jobhunter.users import UserError, create_user, display_name, list_users, parse_titles, save_cv
 from ui.components import (brand_header, chips, inject_theme, kpi_row, question, score_box,
                            section_label, theme_toggle, title)
 from ui.tokens import DARK, LIGHT
 
 IL = ZoneInfo("Asia/Jerusalem")
-LOG_PATH = run_dir() / "logs" / "dashboard-run.log"
-LOCK_PATH = run_dir() / "run.lock"
 
 _scheme = getattr(getattr(st.context, "theme", None), "type", None) or "light"
 _T = DARK if _scheme == "dark" else LIGHT
@@ -47,8 +51,35 @@ UNSENT = "interested"                      # where "undo sent" puts a job back
 FUNNEL = ["new", "interested", "applied", "interview", "offer"]
 VERDICT_HE = {"strong": "חזקה", "good": "טובה", "stretch": "מתיחה", "poor": "חלשה"}
 
+CV_TYPES = ["pdf", "docx", "txt"]
+
 st.set_page_config(page_title="Job Hunter", page_icon=":material/work_history:", layout="wide")
 inject_theme()
+
+
+# ------------------------------------------------------------ who is searching
+
+def selected_user() -> str:
+    """The user this browser session looks at: "" (the owner) or a users/<id> folder; kept in the URL."""
+    ss = st.session_state
+    if "user" not in ss:
+        ss["user"] = st.query_params.get("user", "")
+    if ss["user"] and ss["user"] not in list_users():
+        ss["user"] = ""
+    return ss["user"]
+
+
+def search_config(user: str, path) -> dict:
+    """The config this user's runs use: auto_from_cv users get the filters derived from their CV."""
+    cfg = load_config(user)
+    latest = db.latest_profile(path)
+    return personalize(cfg, CandidateProfile(**latest["data"])) if latest else cfg
+
+
+USER = selected_user()
+DB = db.db_path(user=USER)
+CFG = search_config(USER, DB)
+LOG_PATH = run_dir(USER) / "logs" / "dashboard-run.log"
 
 
 # ------------------------------------------------------------ data
@@ -64,9 +95,9 @@ def to_il(ts: str | None) -> datetime | None:
 
 
 @st.cache_data(ttl=30)
-def load_jobs() -> pd.DataFrame:
-    db.backfill_required_years()      # jobs saved before the experience filter existed
-    rows = db.jobs_table()
+def load_jobs(path: str, cfg: dict) -> pd.DataFrame:
+    db.backfill_required_years(path)      # jobs saved before the experience filter existed
+    rows = db.jobs_table(path)
     if not rows:
         return pd.DataFrame()
     df = pd.DataFrame(rows)
@@ -83,7 +114,7 @@ def load_jobs() -> pd.DataFrame:
     df["score"] = df["score"].fillna(0).astype(float)
     df["notes"] = df["notes"].fillna("")
     df["required_years"] = pd.to_numeric(df["required_years"], errors="coerce")
-    df["junior_ok"] = ~df["id"].isin(db.not_junior_ids(load_config()))
+    df["junior_ok"] = ~df["id"].isin(db.not_junior_ids(cfg, path))
     for col in ("matching_skills", "missing_skills"):
         df[col] = df[col].map(lambda v: v if isinstance(v, list) else [])
     return df.set_index("id", drop=False)
@@ -95,7 +126,7 @@ def refresh() -> None:
 
 
 def is_running() -> int | None:
-    return running_pid()
+    return running_pid(USER)
 
 
 # ------------------------------------------------------------ sidebar
@@ -103,7 +134,8 @@ def is_running() -> int | None:
 def start_run(goal: int | None = None) -> None:
     """goal=None: the fixed pipeline; otherwise the tool-using agent with that goal."""
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [sys.executable, "run_agent.py"] + (["--agent", "--goal", str(goal)] if goal else [])
+    cmd = [sys.executable, "run_agent.py"] + (["--user", USER] if USER else []) \
+        + (["--agent", "--goal", str(goal)] if goal else [])
     with open(LOG_PATH, "w", encoding="utf-8") as log:      # the child keeps its own handle
         subprocess.Popen(cmd, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
     st.session_state["launched_at"] = time.time()
@@ -115,8 +147,8 @@ def force_stop(pid: int) -> None:
         os.kill(pid, signal.SIGTERM)          # TerminateProcess on Windows
     except OSError:
         pass
-    LOCK_PATH.unlink(missing_ok=True)
-    stop.clear_stop()
+    lock_path(USER).unlink(missing_ok=True)
+    stop.clear_stop(USER)
 
 
 def _health_url(base: str) -> str:
@@ -151,10 +183,10 @@ RUN_KEYS = ("launched_at", "stop_search", "stop_at", "force_offered")
 def on_stop_toggle() -> None:
     """The "stop search" toggle: ask the running search to finish its step, save and stop."""
     if st.session_state.get("stop_search"):
-        stop.request_stop()
+        stop.request_stop(USER)
         st.session_state["stop_at"] = time.time()
     else:                                                  # switched back off before it stopped
-        stop.clear_stop()
+        stop.clear_stop(USER)
         for key in ("stop_at", "force_offered"):
             st.session_state.pop(key, None)
 
@@ -165,7 +197,7 @@ def run_status() -> None:
     if not run_active():
         for key in RUN_KEYS:
             st.session_state.pop(key, None)
-        stop.clear_stop()
+        stop.clear_stop(USER)
         load_jobs.clear()
         st.rerun(scope="app")
     stop_at = st.session_state.get("stop_at")
@@ -192,9 +224,11 @@ def run_controls(cfg: dict) -> None:
                       help="הסוכן לא נעצר בזמן. עצירה מיידית לא שומרת את התוצאות של הריצה הזו.")
         run_status()
         return
-    smart = st.toggle("סוכן חכם (המודל בוחר חיפושים)", key="agent_mode",
-                      help="המודל המקומי כותב את החיפושים, קורא משרות ושומר את המתאימות. איטי יותר מהחיפוש הרגיל.")
-    goal, down = None, False
+    goal, down, smart = None, False, False
+    if not cfg.get("auto_from_cv"):            # the agent loop is tuned for the owner's search
+        smart = st.toggle("סוכן חכם (המודל בוחר חיפושים)", key="agent_mode",
+                          help="המודל המקומי כותב את החיפושים, קורא משרות ושומר את המתאימות. "
+                               "איטי יותר מהחיפוש הרגיל.")
     if smart:
         goal = st.slider("כמה משרות מתאימות למצוא", *GOAL_RANGE, key="agent_goal",
                          help=f"הסוכן עוצר אחרי שמצא משרות בציון {cfg['agent']['min_match_score']} ומעלה, "
@@ -303,16 +337,17 @@ def save_prefs(defaults: dict) -> None:
 
 
 def sidebar(df: pd.DataFrame) -> pd.DataFrame:
-    cfg = load_config()
+    cfg = CFG
     defaults = pref_defaults(cfg)
     init_prefs(defaults, df)
     with st.sidebar:
         brand_header()
         st.html('<div class="jh-hello">הצעד הבא שלך מתחיל כאן.</div>'
                 '<div class="jh-hello-sub">מכוונים את החיפוש, והסוכן יוצא למצוא הזדמנויות.</div>')
+        user_picker()
         with st.container(key="sb-launch"):
             run_controls(cfg)
-            runs = db.last_runs(1)
+            runs = db.last_runs(1, DB)
             if runs:
                 st.html(run_summary_html(runs[0]))
                 llm_failure_notice(runs[0]["stats"])
@@ -413,7 +448,7 @@ def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
         })
     changed = table_changes(table, edited)
     for job_id, status in changed.items():
-        db.update_status(job_id, status)
+        db.update_status(job_id, status, path=DB)
     if changed:
         st.toast("נשמר")
         refresh()
@@ -434,7 +469,7 @@ def table_changes(table: pd.DataFrame, edited: pd.DataFrame) -> dict[str, str]:
 
 
 def set_status(job_id: str, status: str, message: str) -> None:
-    db.update_status(job_id, status)
+    db.update_status(job_id, status, path=DB)
     load_jobs.clear()
     st.toast(message)
 
@@ -457,7 +492,7 @@ def detail_panel(view: pd.DataFrame) -> None:
     ids = list(view.index)
     labels = {i: f"{view.loc[i, 'score']:.0f} · {view.loc[i, 'title']} — {view.loc[i, 'company']}" for i in ids}
     job_id = st.selectbox("פרטי משרה", ids, format_func=labels.get)
-    job = db.job_detail(job_id)
+    job = db.job_detail(job_id, DB)
     if not job:
         return
     where = job["location"] or job["remote_region"] or ("Remote" if job["is_remote"] else "")
@@ -497,7 +532,7 @@ def detail_panel(view: pd.DataFrame) -> None:
         with st.container(horizontal=True, gap="small"):
             sent_controls(job)
             if st.button("שמור הערות", key=f"save_{job_id}"):
-                db.update_notes(job_id, notes)
+                db.update_notes(job_id, notes, DB)
                 st.toast("נשמר")
                 load_jobs.clear()
             if job["url"]:
@@ -568,11 +603,11 @@ def insights_tab(df: pd.DataFrame) -> None:
 
 
 def sources_tab() -> None:
-    runs = db.last_runs(1)
+    runs = db.last_runs(1, DB)
     if not runs:
         st.info('עוד לא הייתה ריצה.')
         return
-    health = pd.DataFrame(db.health_for_run(runs[0]["id"]))
+    health = pd.DataFrame(db.health_for_run(runs[0]["id"], DB))
     if health.empty:
         return
     warnings = health["warning"] if "warning" in health else pd.Series(None, index=health.index)
@@ -580,17 +615,27 @@ def sources_tab() -> None:
                      for e, w in zip(health["error"], warnings)]
     st.dataframe(health[["source", "fetched", "duration_s", "מצב"]].rename(
         columns={"source": "מקור", "fetched": "נשלפו", "duration_s": "שניות"}), hide_index=True, width="stretch")
-    hist = pd.DataFrame(db.health_history(14))
+    hist = pd.DataFrame(db.health_history(14, DB))
     if not hist.empty and hist["run_id"].nunique() > 1:
         st.subheader("נשלפו לפי ריצה")
         st.line_chart(hist.pivot_table(index="run_id", columns="source", values="fetched"))
 
 
 def profile_tab() -> None:
-    latest = db.latest_profile()
-    if not latest:
-        st.info('אין פרופיל עדיין. שימו את קורות החיים בתיקיית cv/ והריצו את הסוכן.')
-        return
+    latest = db.latest_profile(DB)
+    if latest:
+        profile_view(latest)
+    else:
+        st.info("אין פרופיל עדיין. מעלים קורות חיים כאן למטה ולוחצים על \"בואו נמצא את המשרה הבאה\".")
+    st.divider()
+    left, right = st.columns(2, gap="large")
+    with left:
+        cv_upload_form()
+    with right:
+        add_user_form()
+
+
+def profile_view(latest: dict) -> None:
     p = latest["data"]
     heuristic = latest["cv_hash"].endswith(":heuristic")
     st.html(f'<p class="jh-job-title">{html.escape(p.get("name") or "—")}</p>'
@@ -601,23 +646,121 @@ def profile_tab() -> None:
     chips(p.get("skills", []), "plain")
     st.markdown("**תפקידי יעד**")
     chips(p.get("target_roles", []), "good")
+    if CFG.get("auto_from_cv"):
+        titles = ", ".join(CFG["search"]["queries"])
+        st.caption(f"החיפוש נבנה מקורות החיים: {titles}")
     st.info("כדי לתקן את החילוץ בלי לערוך את קורות החיים: config.yaml ← profile.overrides")
+
+
+# ------------------------------------------------------------ users and CV upload
+
+def owner_label() -> str:
+    latest = db.latest_profile(db.db_path(user=""))
+    return (latest or {}).get("data", {}).get("name") or "המשתמש הראשי"
+
+
+def switch_user(user: str) -> None:
+    """Start the other user's view clean: filters, table edits and run state belong to one user."""
+    ss = st.session_state
+    keep = {"user", "dark_mode"}
+    for key in [k for k in ss if k not in keep]:
+        del ss[key]
+    ss["user"] = user
+    for key in [k for k in st.query_params if k != "user"]:
+        del st.query_params[key]
+
+
+def user_picker() -> None:
+    users = list_users()
+    if not users:
+        return
+    labels = {"": owner_label(), **{u: display_name(u) for u in users}}
+    with st.container(key="sb-user"):
+        question("מי מחפש/ת?")
+        st.selectbox("משתמש", list(labels), key="user", format_func=labels.get, label_visibility="collapsed",
+                     on_change=lambda: switch_user(st.session_state["user"]))
+
+
+def on_add_user() -> None:
+    ss = st.session_state
+    upload = ss.get("new_user_cv")
+    titles = parse_titles(ss.get("new_user_titles", ""))
+    if upload is None:
+        ss["add_user_msg"] = ("error", "נא לבחור קובץ קורות חיים.")
+        return
+    if not titles and not llm_available(load_config("")):
+        ss["add_user_msg"] = ("error", "בלי מודל שפה צריך לכתוב לפחות תפקיד אחד לחיפוש.")
+        return
+    try:
+        user = create_user(ss.get("new_user_name", ""), upload.name, upload.getvalue(), titles)
+    except UserError as e:
+        ss["add_user_msg"] = ("error", str(e))
+        return
+    switch_user(user)
+    ss["add_user_msg"] = ("success", f"נוצר חיפוש עבור {display_name(user)}. "
+                                     "עכשיו לוחצים על \"בואו נמצא את המשרה הבאה\".")
+
+
+def add_user_form() -> None:
+    section_label("הוספת אדם נוסף")
+    st.caption("לכל אחד חיפוש משלו: קורות חיים, משרות וסטטוסים נפרדים. "
+               "התפקידים לחיפוש נלקחים מקורות החיים.")
+    with st.form("add_user", clear_on_submit=True, border=False):
+        st.text_input("שם", key="new_user_name")
+        st.file_uploader("קורות חיים (PDF / DOCX / TXT)", type=CV_TYPES, key="new_user_cv")
+        st.text_area("תפקידים לחיפוש (לא חובה, מופרדים בפסיקים)", key="new_user_titles", height=70,
+                     help="ריק = התפקידים שמודל השפה מציע לפי קורות החיים. בלי מודל שפה זה שדה חובה.")
+        st.form_submit_button("יצירת חיפוש", type="primary", icon=":material/person_add:", on_click=on_add_user)
+    show_message("add_user_msg")
+
+
+def on_cv_upload() -> None:
+    ss = st.session_state
+    upload = ss.get("cv_upload")
+    if upload is None:
+        ss["cv_upload_msg"] = ("error", "נא לבחור קובץ.")
+        return
+    try:
+        save_cv(USER, upload.name, upload.getvalue())
+    except UserError as e:
+        ss["cv_upload_msg"] = ("error", str(e))
+        return
+    ss["cv_upload_msg"] = ("success", "קורות החיים נשמרו. הריצה הבאה תקרא אותם ותדרג מחדש את המשרות.")
+
+
+def cv_upload_form() -> None:
+    section_label("קורות חיים חדשים")
+    st.caption("הקובץ החדש מחליף את הקודם בריצה הבאה, והמשרות מדורגות מחדש לפיו.")
+    with st.form("cv_upload_form", clear_on_submit=True, border=False):
+        st.file_uploader("קובץ קורות חיים", type=CV_TYPES, key="cv_upload")
+        st.form_submit_button("שמירת קורות החיים", icon=":material/upload_file:", on_click=on_cv_upload)
+    show_message("cv_upload_msg")
+
+
+def show_message(key: str) -> None:
+    msg = st.session_state.pop(key, None)
+    if msg:
+        (st.success if msg[0] == "success" else st.error)(msg[1])
 
 
 # ------------------------------------------------------------ main
 
 def main() -> None:
-    df = load_jobs()
+    df = load_jobs(str(DB), CFG)
     shown = sidebar(df)
+    if USER:
+        st.query_params["user"] = USER
+    elif "user" in st.query_params:
+        del st.query_params["user"]
     title("משרות")
     if df.empty:
-        st.info('עוד אין משרות. שימו את קורות החיים בתיקיית cv/ ולחצו '
-                    '"בואו נמצא את המשרה הבאה".')
-        tabs = st.tabs(["מקורות", "פרופיל"])
-        with tabs[0]:
-            sources_tab()
-        with tabs[1]:
+        st.info('עוד אין משרות. מעלים קורות חיים בלשונית "פרופיל" ולוחצים '
+                '"בואו נמצא את המשרה הבאה".')
+        t_prof, t_src = st.tabs(["פרופיל", "מקורות"])
+        with t_prof:
             profile_tab()
+        with t_src:
+            sources_tab()
         return
     t_jobs, t_flow, t_ins, t_src, t_prof = st.tabs(["משרות", "תהליך", "תובנות", "מקורות", "פרופיל"])
     with t_jobs:

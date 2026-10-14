@@ -27,16 +27,24 @@ def _has_key(provider: str) -> bool:
     return env is None or bool(os.environ.get(env))
 
 
-def get_llm(cfg: dict[str, Any]) -> Any | None:
-    """A LangChain chat model, or None -> callers fall back to heuristics."""
+def llm_available(cfg: dict[str, Any]) -> bool:
+    """True when get_llm() would return a model (provider set and its key present), without building it."""
     load_env()
     llm_cfg = cfg["llm"]
     provider = llm_cfg["provider"]
     local = provider == "openai" and bool(llm_cfg.get("base_url"))
-    if provider == "none" or not (local or _has_key(provider)):
+    return provider != "none" and (local or _has_key(provider))
+
+
+def get_llm(cfg: dict[str, Any]) -> Any | None:
+    """A LangChain chat model, or None -> callers fall back to heuristics."""
+    llm_cfg = cfg["llm"]
+    provider = llm_cfg["provider"]
+    if not llm_available(cfg):
         if provider != "none":
             log.warning("LLM provider %r has no API key in .env; using heuristics only", provider)
         return None
+    local = provider == "openai" and bool(llm_cfg.get("base_url"))
     from langchain.chat_models import init_chat_model
 
     kwargs: dict[str, Any] = {k: v for k, v in llm_cfg.items() if k not in _OWN_KEYS}

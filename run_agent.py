@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import runpy
 import sys
 from datetime import datetime
@@ -96,8 +97,16 @@ def main() -> int:
                         help="tool-using agent: the LLM writes the searches and picks the matches")
     parser.add_argument("--goal", type=int, help="with --agent: matches to find (default agent.goal_matches)")
     parser.add_argument("--max-steps", type=int, help="with --agent: model turns (default agent.max_steps)")
+    parser.add_argument("--user", help="search for a user added in the dashboard (folder name under users/); "
+                                       "default: the owner (cv/, data/, config.yaml)")
     args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if args.user:
+        from jobhunter.users import list_users
+        if args.user not in list_users():
+            print(f"unknown user {args.user!r}; known: {', '.join(list_users()) or 'none'}")
+            return 2
+        os.environ["JOBHUNTER_USER"] = args.user       # every path and the config follow this user
 
     if args.check_companies:
         sys.argv = ["check_boards.py", str(ROOT / "companies.yaml")]

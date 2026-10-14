@@ -7,15 +7,19 @@
   powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -At 7:15am
   powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -RunNow    # register + start once
   powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -Remove
+  powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -User dana   # a user added in the dashboard
 #>
 param(
   [string]$At = "8:30am",
   [string]$TaskName = "JobHunterAgent",
+  [string]$User = "",
   [switch]$RunNow,
   [switch]$Remove
 )
 
 $ErrorActionPreference = "Stop"
+# One task per user: "JobHunterAgent-dana" runs  run_agent.py --user dana
+if ($User) { $TaskName = "$TaskName-$User" }
 
 if ($Remove) {
   if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
@@ -36,7 +40,8 @@ $real = & $python -c "import sys; print(sys.executable)" 2>$null
 if ($LASTEXITCODE -eq 0 -and $real -and (Test-Path $real)) { $python = $real.Trim() }
 
 # powershell -WindowStyle Hidden keeps a console window from popping up at 08:30.
-$command = "& '$python' run_agent.py"
+$userArg = if ($User) { " --user $User" } else { "" }
+$command = "& '$python' run_agent.py$userArg"
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
   -Argument "-NoProfile -WindowStyle Hidden -Command `"$command`"" -WorkingDirectory $proj
 $trigger = New-ScheduledTaskTrigger -Daily -At $At
@@ -53,5 +58,6 @@ Write-Host "Next run: $($info.NextRunTime)"
 
 if ($RunNow) {
   Start-ScheduledTask -TaskName $TaskName
-  Write-Host "Started once now. Logs: $proj\data\logs"
+  $logs = if ($User) { "$proj\users\$User\data\logs" } else { "$proj\data\logs" }
+  Write-Host "Started once now. Logs: $logs"
 }

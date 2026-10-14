@@ -176,3 +176,61 @@ def test_sent_checkbox_in_the_table():
     edited.loc["b", "status_he"] = "ראיון"                  # status picked -> that status
     edited.loc["c", "sent"] = False                         # unticked -> interested
     assert ns["table_changes"](table, edited) == {"a": "applied", "b": "interview", "c": "interested"}
+
+
+# ---------------------------------------------------------------- several users
+
+def _two_users(tmp_path, monkeypatch):
+    """The owner with one job and a user created from a CV with two jobs of their own."""
+    from jobhunter.users import create_user
+
+    st.cache_data.clear()
+    monkeypatch.setenv("JOBHUNTER_DB", str(tmp_path / "jobs.db"))
+    owner = JOBS[0].to_dict()
+    owner.update(score=80, prescore=80, scored_by="heuristic", cv_hash="h", description="Python")
+    db.upsert_jobs([owner])
+    user = create_user("Dana", "cv.txt", b"Dana\nMarketing Specialist\n", ["Marketing Specialist"])
+    rows = []
+    for i, title in enumerate(["Marketing Specialist", "Content Marketing Specialist"]):
+        row = Job("greenhouse", title, "Acme", f"https://m/{i}", location="Tel Aviv, Israel",
+                  description="SEO").to_dict()
+        row.update(score=70 - i, prescore=70 - i, scored_by="heuristic", cv_hash="h")
+        rows.append(row)
+    db.upsert_jobs(rows, db.db_path(user=user))
+    return user
+
+
+def test_user_picker_shows_each_users_own_jobs_and_runs(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr("subprocess.Popen", lambda cmd, **kw: calls.append(cmd))
+    user = _two_users(tmp_path, monkeypatch)
+    at = AppTest.from_file(str(DASHBOARD), default_timeout=60).run()
+    assert not at.exception
+    assert {m.label: m.value for m in at.metric}["משרות מתאימות"] == "1"        # the owner's view
+    assert at.selectbox(key="user").options == ["המשתמש הראשי", "Dana"]
+    at.selectbox(key="user").set_value(user).run()
+    assert not at.exception
+    assert {m.label: m.value for m in at.metric}["משרות מתאימות"] == "2"        # Dana's own DB
+    assert at.query_params["user"] in (user, [user])
+    assert not [t for t in at.toggle if t.key == "agent_mode"]     # the agent loop is the owner's
+    _launch(at).click().run()
+    assert calls[-1][1:] == ["run_agent.py", "--user", user]
+
+
+def test_user_is_restored_from_the_url_and_unknown_users_fall_back(tmp_path, monkeypatch):
+    user = _two_users(tmp_path, monkeypatch)
+    at = AppTest.from_file(str(DASHBOARD), default_timeout=60)
+    at.query_params["user"] = user
+    at.run()
+    assert at.selectbox(key="user").value == user
+    at = AppTest.from_file(str(DASHBOARD), default_timeout=60)
+    at.query_params["user"] = "nobody"
+    at.run()
+    assert not at.exception and at.selectbox(key="user").value == ""
+
+
+def test_profile_tab_offers_cv_upload_and_add_user(tmp_path, monkeypatch):
+    at = _app(tmp_path, monkeypatch, JOBS)
+    buttons = [b.label for b in at.get("form_submit_button")] if at.get("form_submit_button") else []
+    assert not at.exception
+    assert "שמירת קורות החיים" in buttons and "יצירת חיפוש" in buttons

@@ -5,7 +5,7 @@ Put this in `jobhunter/prompts.py` as `SCORE_SYSTEM` and `SCORE_USER`. Variables
 ## System
 
 ```text
-You are a pragmatic tech recruiter in Israel evaluating whether a specific
+You are a pragmatic recruiter in Israel evaluating whether a specific
 candidate should apply to a specific job. Judge realistically: would this
 candidate plausibly get an interview?
 
@@ -37,7 +37,7 @@ Rules:
 ```text
 <candidate>
 Headline: {headline}
-Seniority: {seniority} ({years_experience} years professional software experience)
+Seniority: {seniority} ({years_experience} years of professional experience in their field)
 Skills: {skills}
 Projects: {projects}
 Education: {education}

@@ -189,6 +189,9 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     if options.get("max_steps"):
         cfg["agent"] = {**cfg["agent"], "max_steps": options["max_steps"]}
     path, dry = options.get("db_path"), bool(options.get("dry_run"))
+    if cfg.get("auto_from_cv"):
+        raise AgentUnavailable("the agent loop is tuned for the owner's search (junior CS roles); "
+                               "users created from a CV use the standard search (run without --agent)")
 
     llm = get_llm(cfg)
     if llm is None or not hasattr(llm, "bind_tools"):

@@ -79,7 +79,7 @@
 
 /* colored blocks */
 [class*="st-key-sb-"] { border-radius: 24px; padding: 16px 18px !important; margin-bottom: 4px; }
-.st-key-sb-launch, .st-key-sb-stage { background: var(--jh-sb-card); }
+.st-key-sb-launch, .st-key-sb-stage, .st-key-sb-user { background: var(--jh-sb-card); }
 .st-key-sb-match { background: var(--jh-sb-peach); }
 .st-key-sb-source, .st-key-sb-prefs { background: var(--jh-sb-lilac); }
 .st-key-sb-recency { background: var(--jh-sb-lime); }

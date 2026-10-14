@@ -12,3 +12,6 @@ __pycache__/
 .claude/skills/diagram-design/
 diagrams/
 skills-lock.json
+
+# people added in the dashboard: their CVs and job data
+users/

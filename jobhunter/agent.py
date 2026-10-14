@@ -23,6 +23,7 @@ from jobhunter.matcher import prescore as prescore_jobs
 from jobhunter.matcher import scored_row, select_for_llm
 from jobhunter.models import CandidateProfile, Job, JobMatch
 from jobhunter.notify import notify_strong_matches
+from jobhunter.personalize import personalize
 
 log = logging.getLogger(__name__)
 
@@ -65,13 +66,14 @@ def load_profile_node(state: PipelineState) -> dict:
     cfg, opts = state["config"], state["options"]
     llm = None if opts.get("no_llm") else get_llm(cfg)
     profile, cv_hash, hit = load_cv_profile(cfg, llm, _db(state))
+    cfg = personalize(cfg, profile)          # auto_from_cv users: search terms from their CV
     run_id = None if opts.get("dry_run") else db.start_run(_db(state))
     opts["_run_id"] = run_id          # so run() can close the row if a later node crashes
     model = cfg["llm"]["model"]
     log.info("mode: %s | profile: %d skills, %s (cache %s)",
              f"LLM ({model})" if llm else "heuristic only", len(profile.skills), profile.seniority,
              "hit" if hit else "miss")
-    return {"llm": llm, "llm_enabled": llm is not None, "model": model, "profile": profile,
+    return {"config": cfg, "llm": llm, "llm_enabled": llm is not None, "model": model, "profile": profile,
             "cv_hash": cv_hash, "run_id": run_id, "started": time.monotonic()}
 
 

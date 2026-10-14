@@ -164,6 +164,7 @@ search:
   location: Israel
   results_per_query: 40
   hours_old: 168          # last 7 days
+  auto_queries: 8         # users created from a CV (auto_from_cv): how many of its target roles to search
 
 sources:
   techmap:                 # Israeli Tech Map daily job lists (github.com/mluggy/techmap, ODbL): ~470 Israeli

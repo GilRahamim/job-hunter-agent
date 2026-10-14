@@ -5,11 +5,13 @@ You extract a structured candidate profile from a CV for job matching.
 Be faithful to the CV: do not invent skills or experience. Normalize skill
 names to their common English form (e.g. "פייתון" -> "Python", "LangGraph").
 Rules:
-- skills: every technology, language, framework, library, cloud, database and
-  tool mentioned anywhere (including in projects and courses). Deduplicate.
-- years_experience: professional software/data work only. Non-software jobs
-  (e.g. manufacturing technician) count as 0 software years but mention them
-  in summary. Academic and course projects are not professional years.
+- skills: every technology, language, framework, library, cloud, database,
+  tool and professional method mentioned anywhere (including in projects and
+  courses). Hard skills only, no soft skills. Deduplicate.
+- years_experience: professional work in the field of the candidate's target
+  roles only. Work in an unrelated field (e.g. a manufacturing technician who
+  now applies for software roles) counts as 0 years but is mentioned in
+  summary. Academic and course projects are not professional years.
 - seniority: student | junior | mid | senior, judged from the above.
 - target_roles: 6-10 realistic job titles this person should apply to now,
   from most to least fitting.
@@ -23,7 +25,7 @@ PROFILE_USER = """\
 """
 
 SCORE_SYSTEM = """\
-You are a pragmatic tech recruiter in Israel evaluating whether a specific
+You are a pragmatic recruiter in Israel evaluating whether a specific
 candidate should apply to a specific job. Judge realistically: would this
 candidate plausibly get an interview?
 
@@ -108,7 +110,7 @@ AGENT_NUDGE = ("You stopped before reaching the goal. Use a tool to continue, or
 SCORE_USER = """\
 <candidate>
 Headline: {headline}
-Seniority: {seniority} ({years_experience} years professional software experience)
+Seniority: {seniority} ({years_experience} years of professional experience in their field)
 Skills: {skills}
 Projects: {projects}
 Education: {education}
