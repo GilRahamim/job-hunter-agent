@@ -4,6 +4,11 @@ A local AI agent that collects software, data and AI job postings (in Israel, pl
 
 Built with **LangGraph**, **LangChain**, **Pydantic**, **SQLite** and **Streamlit**. The LLM is optional: without an API key, everything still runs on a free heuristic score.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-dark.png">
+  <img alt="Job Hunter dashboard: KPI cards, the scored jobs table and the run sidebar (Hebrew, RTL)" src="docs/images/dashboard-light.png">
+</picture>
+
 ## What it does
 
 1. **Collects** jobs in parallel from:
