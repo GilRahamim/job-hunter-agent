@@ -42,6 +42,7 @@ class AgentContext:
     profile: CandidateProfile
     known_ids: set[str]
     known_keys: set[str]
+    choices: str = ""                                            # jobs the user pursued / dismissed
     candidates: dict[str, Job] = field(default_factory=dict)     # new jobs that passed the filters
     prescores: dict[str, float] = field(default_factory=dict)
     read: set[str] = field(default_factory=set)
@@ -166,7 +167,7 @@ def get_profile(ctx: AgentContext) -> str:
         f"Skills: {', '.join(p.skills[:40]) or '-'}",
         f"Target roles: {', '.join(p.target_roles) or '-'}",
         f"Projects: {'; '.join(p.projects[:6]) or '-'}",
-    ])
+    ]) + ctx.choices
 
 
 def search_jobs(ctx: AgentContext, query: str, source: str) -> str:

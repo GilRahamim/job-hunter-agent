@@ -20,7 +20,7 @@ from jobhunter.filters import filter_jobs, junior_reason
 from jobhunter.llm import get_llm
 from jobhunter.matcher import llm_score as score_with_llm
 from jobhunter.matcher import prescore as prescore_jobs
-from jobhunter.matcher import scored_row, select_for_llm
+from jobhunter.matcher import choices_text, scored_row, select_for_llm
 from jobhunter.models import CandidateProfile, Job, JobMatch
 from jobhunter.notify import notify_strong_matches
 from jobhunter.personalize import personalize
@@ -155,7 +155,9 @@ def llm_score_node(state: PipelineState) -> dict:
     jobs = [state["to_score"][i] for i in picks]
     log.info("llm: scoring %d of %d jobs", len(jobs), len(state["to_score"]))
     errors: list[str] = []
-    results = score_with_llm(state["llm"], state["profile"], jobs, state["config"], errors)
+    n = int(state["config"]["matching"].get("feedback_examples") or 0)
+    choices = choices_text(db.status_examples(n, _db(state)))      # learn from the user's own statuses
+    results = score_with_llm(state["llm"], state["profile"], jobs, state["config"], errors, choices)
     if errors:
         log.error("llm: %d of %d jobs could not be scored, e.g. %s", len(errors), len(jobs), errors[0])
     return {"matches": {j.id: r for j, r in zip(jobs, results)}, "llm_error": errors[0] if errors else None}

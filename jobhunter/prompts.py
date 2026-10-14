@@ -125,6 +125,16 @@ Description:
 </job>
 """
 
+# Appended to SCORE_USER (and to the agent's get_profile) once the user has marked some jobs.
+CHOICES_BLOCK = """
+<candidate_choices>
+Jobs this candidate chose to pursue: {liked}
+Jobs this candidate marked as not relevant: {disliked}
+Use these only as a hint about the kinds of roles and companies they want. Still judge
+this job on its own requirements and the score anchors.
+</candidate_choices>
+"""
+
 # ---------------------------------------------------------------- Claude handoff (jobhunter/handoff.py)
 # A brief for Claude Code or a claude.ai chat, which runs on the person's Claude subscription instead of
 # the API. Rules follow the cv-tailoring skill: select, reorder and rephrase, never add facts.

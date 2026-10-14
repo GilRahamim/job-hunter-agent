@@ -206,6 +206,9 @@ matching:
   fetch_descriptions: 80
   # Re-score jobs already in the DB when your CV changes
   rescore_on_cv_change: true
+  # Show the LLM up to this many jobs you marked interested/applied and not-relevant (newest first),
+  # so scores follow what you actually want. 0 = off.
+  feedback_examples: 8
 
 agent:                     # tool-using agent loop:  python run_agent.py --agent
   goal_matches: 10         # stop after this many saved jobs scoring >= min_match_score

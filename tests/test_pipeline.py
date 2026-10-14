@@ -109,6 +109,29 @@ def test_llm_run_scores_top_jobs(env, monkeypatch):
     assert again["kept"] == 0 and llm.calls == state["stats"]["llm_scored"]    # nothing re-scored
 
 
+def test_llm_scoring_sees_the_users_choices(env, monkeypatch):
+    cfg, path = env
+    agent.run(cfg, db_path=path, no_llm=True)
+    liked = db.all_jobs(path=path)[0]
+    db.update_status(liked["id"], "interested", path=path)
+    prompts = []
+
+    class Recording(FakeLLM):
+        def with_structured_output(self, cls):
+            inner = super().with_structured_output(cls)
+
+            class S:
+                def invoke(self, messages):
+                    prompts.append(messages[1][1])
+                    return inner.invoke(messages)
+            return S()
+
+    monkeypatch.setattr(agent, "get_llm", lambda c: Recording())
+    agent.run(cfg, db_path=path)
+    scoring = [p for p in prompts if p.startswith("<candidate>")]           # not the CV extraction
+    assert scoring and all(f"chose to pursue: {liked['title']}" in p for p in scoring)
+
+
 def test_dry_run_writes_nothing(env):
     cfg, path = env
     state = agent.run(cfg, db_path=path, no_llm=True, dry_run=True)

@@ -106,3 +106,16 @@ def test_backfill_required_years(path):
     assert db.backfill_required_years(path) == 1
     assert db.all_jobs(path=path)[0]["required_years"] == 3
     assert db.backfill_required_years(path) == 0           # nothing left to fill
+
+
+def test_status_examples_are_the_users_latest_choices(path):
+    rows = [Job("greenhouse", t, c, f"https://x/{i}").to_dict()
+            for i, (t, c) in enumerate([("Data Analyst", "A"), ("QA Tester", "B"), ("ML Engineer", "C"),
+                                        ("Sales Rep", ""), ("Backend Dev", "E")])]
+    db.upsert_jobs(rows, path)
+    for row, status in zip(rows, ["interested", "applied", "rejected", "not_relevant", "new"]):
+        db.update_status(row["id"], status, path=path)
+    got = db.status_examples(5, path)
+    assert got == {"liked": ["QA Tester @ B", "Data Analyst @ A"], "disliked": ["Sales Rep"]}
+    assert db.status_examples(1, path)["liked"] == ["QA Tester @ B"]          # newest first
+    assert db.status_examples(0, path) == {"liked": [], "disliked": []}       # off

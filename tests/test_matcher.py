@@ -135,3 +135,14 @@ def test_failure_returns_none_and_falls_back_to_prescore(profile, cfg):
     row = matcher.scored_row(GOOD, 40.0, res[0], "hash1", "claude-x")
     assert row["score"] == 85 and row["scored_by"] == "llm:claude-x" and row["prescore"] == 40.0
     assert row["matching_skills"] == ["Python"]
+
+
+def test_choices_reach_the_prompt_only_when_the_user_marked_jobs(profile, cfg):
+    assert matcher.choices_text({"liked": [], "disliked": []}) == ""
+    choices = matcher.choices_text({"liked": ["Data Analyst @ Acme"], "disliked": []})
+    assert "chose to pursue: Data Analyst @ Acme" in choices and "not relevant: -" in choices
+    _, user = matcher.build_messages(profile, GOOD, cfg, choices)
+    assert user[1].endswith(choices)
+    seen = FakeLLM(by_title)
+    matcher.llm_score(seen, profile, [GOOD], cfg, choices=choices)
+    assert "<candidate_choices>" in seen.calls[0]

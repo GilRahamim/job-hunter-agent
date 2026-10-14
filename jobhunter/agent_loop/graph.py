@@ -15,7 +15,7 @@ from jobhunter.agent_loop.tools import AgentContext, allowed_sources, make_tools
 from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.llm import get_llm
-from jobhunter.matcher import explanation_language, scored_row
+from jobhunter.matcher import choices_text, explanation_language, scored_row
 from jobhunter.models import JobMatch
 from jobhunter.prompts import AGENT_NUDGE, AGENT_START, AGENT_SYSTEM
 from jobhunter.stop import stop_requested
@@ -201,7 +201,8 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     started = time.monotonic()
     profile, cv_hash, _ = load_cv_profile(cfg, llm, path)
     ids, keys = db.existing_ids_and_keys(path)
-    ctx = AgentContext(config=cfg, profile=profile, known_ids=ids, known_keys=keys)
+    choices = choices_text(db.status_examples(int(cfg["matching"].get("feedback_examples") or 0), path))
+    ctx = AgentContext(config=cfg, profile=profile, known_ids=ids, known_keys=keys, choices=choices)
     run_id = None if dry else db.start_run(path)
     log.info("agent: %s | goal %d matches >= %d | max %d steps, %d searches", model,
              ctx.settings["goal_matches"], ctx.settings["min_match_score"], ctx.settings["max_steps"],

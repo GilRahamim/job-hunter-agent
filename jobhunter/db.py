@@ -14,6 +14,10 @@ from jobhunter.models import Job
 
 STATUSES = ["new", "interested", "applied", "interview", "offer", "rejected", "not_relevant"]
 _HIDDEN_STATUSES = ("rejected", "not_relevant")
+# Preference signals for scoring: jobs the user chose to pursue vs. marked as not for them.
+# "rejected" (the company said no) says nothing about what the user wants.
+LIKED_STATUSES = ("interested", "applied", "interview", "offer")
+DISLIKED_STATUSES = ("not_relevant",)
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
@@ -160,6 +164,21 @@ def update_status(job_id: str, status: str, notes: str | None = None,
         else:
             con.execute("UPDATE jobs SET status = ?, notes = ?, status_updated = ? WHERE id = ?",
                         (status, notes, now_utc(), job_id))
+
+
+def status_examples(n: int, path: str | Path | None = None) -> dict[str, list[str]]:
+    """The user's latest choices as "Title @ Company", newest first, at most n of each:
+    {"liked": [...], "disliked": [...]}."""
+    def pick(statuses: tuple[str, ...]) -> list[str]:
+        marks = ",".join("?" * len(statuses))
+        rows = con.execute(f"SELECT title, company FROM jobs WHERE status IN ({marks}) "
+                           "ORDER BY status_updated DESC LIMIT ?", [*statuses, n]).fetchall()
+        return [f"{r['title']} @ {r['company']}" if r["company"] else r["title"] for r in rows]
+
+    if n <= 0:
+        return {"liked": [], "disliked": []}
+    with connect(path) as con:
+        return {"liked": pick(LIKED_STATUSES), "disliked": pick(DISLIKED_STATUSES)}
 
 
 def all_jobs(min_score: float | None = None, path: str | Path | None = None) -> list[dict]:

@@ -10,7 +10,7 @@ from typing import Any
 from jobhunter.db import now_utc
 from jobhunter.filters import required_years
 from jobhunter.models import CandidateProfile, Job, JobMatch
-from jobhunter.prompts import SCORE_SYSTEM, SCORE_USER
+from jobhunter.prompts import CHOICES_BLOCK, SCORE_SYSTEM, SCORE_USER
 from jobhunter.skills import extract_skills
 
 log = logging.getLogger(__name__)
@@ -64,14 +64,23 @@ def explanation_language(cfg: dict[str, Any]) -> str:
     return "Hebrew" if cfg.get("profile", {}).get("explanation_language", "he") == "he" else "English"
 
 
-def build_messages(profile: CandidateProfile, job: Job, cfg: dict[str, Any]) -> list[tuple[str, str]]:
+def choices_text(examples: dict[str, list[str]]) -> str:
+    """CHOICES_BLOCK for the user's marked jobs, or "" while they have marked none."""
+    liked, disliked = examples.get("liked") or [], examples.get("disliked") or []
+    if not (liked or disliked):
+        return ""
+    return CHOICES_BLOCK.format(liked="; ".join(liked) or "-", disliked="; ".join(disliked) or "-")
+
+
+def build_messages(profile: CandidateProfile, job: Job, cfg: dict[str, Any],
+                   choices: str = "") -> list[tuple[str, str]]:
     remote_note = f"(remote; region: {job.remote_region or 'unspecified'})" if job.is_remote else ""
     user = SCORE_USER.format(
         headline=profile.headline, seniority=profile.seniority,
         years_experience=profile.years_experience, skills=", ".join(profile.skills),
         projects="; ".join(profile.projects), education="; ".join(profile.education),
         title=job.title, company=job.company, location=job.location, remote_note=remote_note,
-        description=job.description[:MAX_DESCRIPTION_CHARS])
+        description=job.description[:MAX_DESCRIPTION_CHARS]) + choices
     return [("system", SCORE_SYSTEM.format(language=explanation_language(cfg))), ("user", user)]
 
 
@@ -90,16 +99,17 @@ def _score_one(structured: Any, messages: list[tuple[str, str]], title: str,
     return None
 
 
-def llm_score(llm: Any, profile: CandidateProfile, jobs: list[Job],
-              cfg: dict[str, Any], errors: list[str] | None = None) -> list[JobMatch | None]:
+def llm_score(llm: Any, profile: CandidateProfile, jobs: list[Job], cfg: dict[str, Any],
+              errors: list[str] | None = None, choices: str = "") -> list[JobMatch | None]:
     """One JobMatch per job (None when all retries failed). Order matches `jobs`.
-    The last error of each failed job is appended to `errors` when given."""
+    The last error of each failed job is appended to `errors` when given.
+    `choices` (choices_text) tells the model which jobs the user pursued or dismissed."""
     errors = [] if errors is None else errors
     if not jobs:
         return []
     structured = llm.with_structured_output(JobMatch)
     with ThreadPoolExecutor(max_workers=cfg["llm"].get("max_workers", 6)) as pool:
-        futures = [pool.submit(_score_one, structured, build_messages(profile, j, cfg), j.title, errors)
+        futures = [pool.submit(_score_one, structured, build_messages(profile, j, cfg, choices), j.title, errors)
                    for j in jobs]
         return [f.result() for f in futures]
 

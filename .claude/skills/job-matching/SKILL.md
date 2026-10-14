@@ -46,6 +46,7 @@ This is a ranking signal, not a final answer — it only needs to put good jobs 
 - Truncate the job description to ~6,000 characters (requirements usually come early; this bounds cost).
 - Retry each call up to 3 times with backoff on rate-limit / validation errors; on final failure return `None` and keep the prescore. Never let one bad response fail the batch.
 - Explanations (`reasons`, `seniority_fit`, `cv_tip`) are written in `config.profile.explanation_language` (default Hebrew); skill names stay in English.
+- Learning from the user: once they have marked jobs, `choices_text(db.status_examples(matching.feedback_examples))` appends a `<candidate_choices>` block (`prompts.CHOICES_BLOCK`) to every scoring prompt and to the agent's `get_profile`: up to N jobs they pursued (interested/applied/interview/offer) and N they marked not relevant, newest first. It is a hint, not a rule; `rejected` (the company said no) is not a preference and is left out. `feedback_examples: 0` turns it off.
 
 The prompt and the calibration rubric are in **`references/scoring-prompt.md`** — read it before changing the prompt. The rubric matters more than the wording: without anchors, models cluster everything at 70–85 and the ranking becomes useless.
 
