@@ -22,22 +22,22 @@ headingFontWeights = [800, 700, 700, 600, 600, 600]
 [theme.light]
 primaryColor = "#0f766e"                 # color/sea
 backgroundColor = "#ffffff"              # white so data-grid rows are white; page color (= sidebar #f5f1ff) is set in theme.css
-secondaryBackgroundColor = "#e6ecea"     # color/mist
+secondaryBackgroundColor = "#e8deff"     # sidebar lilac
 textColor = "#16232b"
-borderColor = "#d5dedb"
+borderColor = "#d9cfea"
 linkColor = "#0f766e"
-dataframeBorderColor = "#d5dedb"
-dataframeHeaderBackgroundColor = "#e6ecea"
-dataframeHeaderTextColor = "#51636b"
+dataframeBorderColor = "#d9cfea"
+dataframeHeaderBackgroundColor = "#e8deff"
+dataframeHeaderTextColor = "#706581"
 greenBackgroundColor = "#d6efea"
 greenTextColor = "#0b5a53"
 redBackgroundColor = "#f6dad6"
 redTextColor = "#8e2f26"
-grayBackgroundColor = "#e6ecea"
+grayBackgroundColor = "#e8deff"
 grayTextColor = "#51636b"
 blueBackgroundColor = "#d6efea"          # tip box (st.info) uses the sea tint
 blueTextColor = "#0b5a53"
-chartCategoricalColors = ["#0f766e", "#51636b", "#8e2f26", "#d5dedb", "#0b5a53"]
+chartCategoricalColors = ["#0f766e", "#51636b", "#8e2f26", "#d9cfea", "#0b5a53"]
 chartSequentialColors = ["#e6ecea", "#cedcd9", "#b5ccc8", "#9dbbb8", "#85aba7", "#6c9b96", "#548b85", "#3c7a75", "#236a64", "#0b5a53"]
 
 [theme.light.sidebar]                    # "Playful career toolkit": lavender canvas, violet accent

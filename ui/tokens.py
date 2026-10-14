@@ -12,13 +12,14 @@ LIGHT = {
     "slate": "#51636b",      # color/slate        — secondary text, labels
     "accent": "#0f766e",     # color/sea          — primary actions, score, active tab
     "on_accent": "#ffffff",  # text on the accent color
-    "line": "#d5dedb",       # color/line         — borders, rules
-    "mist": "#e6ecea",       # color/mist         — KPI cards, table header
+    "line": "#d9cfea",       # borders, rules — sidebar line (sb_line)
+    "mist": "#e8deff",       # table header, tints — sidebar lilac (sb_lilac)
     "bg": "#f5f1ff",         # page — same as the sidebar (sb_bg)
     "surface": "#ffffff",    # color/surface      — cards, inputs
     "good_bg": "#d6efea", "good_text": "#0b5a53",   # color/chip-good-*
     "gap_bg": "#f6dad6", "gap_text": "#8e2f26",     # color/chip-gap-*
-    "kpi_bg": "#e6ecea", "kpi_border": "0", "kpi_radius": "10px", "kpi_shadow": "none",
+    "kpi_bg": "#ffffff", "kpi_border": "1px solid #d9cfea",   # white cards like the sidebar's
+    "kpi_radius": "10px", "kpi_shadow": "none",
     # sidebar: Playful career toolkit
     "sb_bg": "#f5f1ff", "sb_card": "#ffffff", "sb_ink": "#282045", "sb_muted": "#706581",
     "sb_line": "#d9cfea", "sb_accent": "#7046e8", "sb_on_accent": "#ffffff",
