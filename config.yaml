@@ -174,9 +174,9 @@ sources:
     boards:
       - {name: Israel VC Forum, id: 10949}          # israelvcforum.getro.com: ~880 companies of member funds
       - {name: Innovation Endeavors, id: 156}       # jobs.innovationendeavors.com
-  jobspy:                  # LinkedIn, Indeed, Glassdoor, Google Jobs
+  jobspy:                  # LinkedIn, Indeed (Glassdoor has no Israel search; Google Jobs blocks scraping)
     enabled: true
-    sites: [linkedin, indeed, glassdoor, google]
+    sites: [linkedin, indeed]
     fetch_linkedin_descriptions: false   # true = better matching but much slower
   company_boards:          # Greenhouse / Lever / Ashby / SmartRecruiters (companies.yaml)
     enabled: true

@@ -78,7 +78,7 @@ def collect_jobspy(config: dict[str, Any], limit: int | None = None) -> Collecto
         return CollectorResult("jobspy", error="python-jobspy is not installed")
 
     src = config["sources"]["jobspy"]
-    sites = src.get("sites", ["linkedin", "indeed", "glassdoor", "google"])
+    sites = src.get("sites", ["linkedin", "indeed"])
     queries = config["search"]["queries"]
     if limit:
         queries = queries[:max(1, limit // 10)] if limit < 20 else queries
