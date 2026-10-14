@@ -252,3 +252,17 @@ def test_claude_panel_prepares_a_brief_and_lists_claudes_files(tmp_path, monkeyp
     at.run()
     assert any(b.label == "עדכון התיק" for b in at.button)
     assert "cover_letter.md" in [d.proto.label for d in at.get("download_button")]
+
+
+def test_experience_toggle_follows_each_users_cv(tmp_path, monkeypatch):
+    user = _two_users(tmp_path, monkeypatch)
+    at = AppTest.from_file(str(DASHBOARD), default_timeout=60).run()
+    assert at.toggle(key="junior").label == "רק משרות ללא דרישת ניסיון"         # the owner's config
+    profile = {"seniority": "mid", "years_experience": 4.5, "target_roles": ["Marketing Specialist"]}
+    db.save_profile("h", "cv.txt", profile, db.db_path(user=user))
+    at.selectbox(key="user").set_value(user).run()
+    assert not at.exception and at.toggle(key="junior").label == "רק משרות עד 7 שנות ניסיון"
+    db.save_profile("h2", "cv.txt", {**profile, "seniority": "senior"}, db.db_path(user=user))
+    st.cache_data.clear()
+    at.run()
+    assert not at.exception and not [t for t in at.toggle if t.key == "junior"]  # no limit, no toggle

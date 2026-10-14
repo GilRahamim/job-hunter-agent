@@ -245,7 +245,9 @@ def load_profile(cv_hash: str, path: str | Path | None = None) -> dict | None:
 
 def latest_profile(path: str | Path | None = None) -> dict | None:
     with connect(path) as con:
-        row = con.execute("SELECT cv_hash, cv_file, data FROM profile ORDER BY created DESC LIMIT 1").fetchone()
+        # created has 1 s resolution; rowid breaks ties (two CVs extracted within the same second)
+        row = con.execute("SELECT cv_hash, cv_file, data FROM profile "
+                          "ORDER BY created DESC, rowid DESC LIMIT 1").fetchone()
     if not row:
         return None
     return {"cv_hash": row["cv_hash"], "cv_file": row["cv_file"], "data": json.loads(row["data"])}

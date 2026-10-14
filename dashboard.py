@@ -382,11 +382,7 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
             question("פורסמו לאחרונה", "במספר הימים האחרונים")
             days = st.number_input("ימים", 1, MAX_DAYS, step=5, format="%d", key="days", label_visibility="collapsed")
         with st.container(key="sb-prefs"):
-            years = cfg["filters"].get("max_required_years") or 0
-            label = "רק משרות ללא דרישת ניסיון" if not years else f"רק משרות עד {years:g} שנות ניסיון"
-            junior = st.toggle(label, key="junior",
-                               help="מסתיר משרות בכירות ומשרות שדורשות "
-                                    + ("ניסיון" if not years else f"יותר מ־{years:g} שנות ניסיון"))
+            junior = experience_toggle(cfg["filters"])
             only_new = st.toggle("רק חדשות ב־24 השעות האחרונות", key="only_new")
             theme_toggle()
     save_prefs(defaults)
@@ -409,6 +405,20 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
     if only_new:
         out = out[out["is_new"]]
     return out
+
+
+def experience_toggle(f: dict) -> bool:
+    """The "experience limit" view toggle, worded for this user's limit; none when there is no limit."""
+    years, senior = f.get("max_required_years"), f.get("exclude_senior")
+    if years is None and not senior:
+        return False                      # an experienced user without a limit: nothing to hide
+    if years is None:
+        label, hides = "בלי משרות בכירות", "משרות בכירות"
+    elif not years:
+        label, hides = "רק משרות ללא דרישת ניסיון", "משרות בכירות ומשרות שדורשות ניסיון"
+    else:
+        label, hides = f"רק משרות עד {years:g} שנות ניסיון", f"משרות שדורשות יותר מ־{years:g} שנות ניסיון"
+    return st.toggle(label, key="junior", help=f"מסתיר {hides}")
 
 
 # ------------------------------------------------------------ tabs
@@ -698,9 +708,8 @@ def profile_view(latest: dict) -> None:
     chips(p.get("skills", []), "plain")
     st.markdown("**תפקידי יעד**")
     chips(p.get("target_roles", []), "good")
-    if CFG.get("auto_from_cv"):
-        titles = ", ".join(CFG["search"]["queries"])
-        st.caption(f"החיפוש נבנה מקורות החיים: {titles}")
+    if CFG.get("auto_from_cv") and CFG["search"].get("queries"):
+        st.caption(f"התפקידים בחיפוש: {', '.join(CFG['search']['queries'])}")
     st.info("כדי לתקן את החילוץ בלי לערוך את קורות החיים: config.yaml ← profile.overrides")
 
 
