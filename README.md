@@ -1,5 +1,7 @@
 # Job Hunter Agent
 
+[![tests](https://github.com/GilRahamim/job-hunter-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/GilRahamim/job-hunter-agent/actions/workflows/tests.yml)
+
 A local AI agent that collects software, data and AI job postings (in Israel, plus remote jobs open to Israel), scores each one against your CV, and shows the results in a Streamlit dashboard where you track your applications.
 
 Built with **LangGraph**, **LangChain**, **Pydantic**, **SQLite** and **Streamlit**. The LLM is optional: without an API key, everything still runs on a free heuristic score.
@@ -155,7 +157,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the data model, the scori
 - **One broken site never stops a run.** Every collector catches its own errors and reports them in a source-health record, which the dashboard shows.
 - **The LLM sees only pre-scored jobs.** Only the top N go to the model, which keeps runs cheap and fast.
 - **Your data is protected.** Collecting or re-scoring never touches `status` or `notes`.
-- **Offline tests.** The test suite runs on recorded fixtures and a deterministic fake LLM, so it makes no network or API calls.
+- **Offline tests.** The test suite runs on recorded fixtures and a deterministic fake LLM, so it makes no network or API calls. GitHub Actions runs it on every push and pull request (Ubuntu with Python 3.11 and 3.13, Windows with Python 3.13).
 
 ## Troubleshooting
 

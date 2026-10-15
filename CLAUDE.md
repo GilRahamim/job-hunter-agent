@@ -62,7 +62,7 @@ python run_agent.py --agent --goal 5 --dry-run          # tool-using agent loop 
 python run_agent.py --user dana                         # run for a person added in the dashboard
 python -m jobhunter.handoff --list | <job_id> [--launch] # brief for Claude (subscription)
 streamlit run dashboard.py
-pytest -q
+pytest -q                           # also runs in CI on every push: .github/workflows/tests.yml
 ```
 
 ## Conventions
