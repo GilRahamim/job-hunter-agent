@@ -60,7 +60,7 @@ So the Tech Map cannot show which other ATSs Israeli companies use. That has to 
 ## 3. Tier 1: config-only additions (no new code)
 
 ### 3.1 More Workday tenants 🟡
-The Workday collector already exists: add entries under `workday:` in `companies.yaml`, then run `python run_agent.py --check-companies`. These tenants had postings in Israel in 2025–2026 (job URLs found through web search):
+The Workday collector already exists: add entries under `workday:` in `companies.yaml`, then run `python run_agent.py --check-companies`. These tenants had postings in Israel in 2025–2026 (job URLs found through web search). **Added to `companies.yaml` on 2026-10-15; not live-checked yet.**
 
 ```yaml
   - {tenant: dell, wd: wd1, site: External}                     # Herzliya (Dell Israel R&D)
@@ -73,7 +73,7 @@ To check next (all have Israeli sites): KLA, Applied Materials, Salesforce, HP /
 
 ### 3.2 More Getro boards 🟡
 The Getro collector takes `{name, id}` in `config.yaml → sources.getro.boards`.
-- **Aleph**: `jobs.aleph.vc`. Aleph says the board syncs with its portfolio companies' careers pages (Bringg, Anecdotes, Nexar, Healthy.io, Fabric…).
+- **Aleph**: `jobs.aleph.vc`. Aleph says the board syncs with its portfolio companies' careers pages (Bringg, Anecdotes, Nexar, Healthy.io, Fabric…). It is in `config.yaml` as a commented-out line until its network id is known. It is not yet confirmed that the board runs on Getro.
 - Worth checking for a Getro board: OurCrowd, Pitango, Viola, TLV Partners, Team8, Glilot, 83North, Vertex Israel, Grove, JVP, Entrée. Many of their companies are already among the Israel VC Forum's 876 companies, so expect partial overlap.
 - **How to find a board's `id`:** open the board, then in the browser dev tools watch the request `POST api.getro.com/api/v2/collections/{id}/search/jobs`. Or search the page source for `"network":{"id"`.
 

@@ -178,6 +178,9 @@ sources:
     boards:
       - {name: Israel VC Forum, id: 10949}          # israelvcforum.getro.com: ~880 companies of member funds
       - {name: Innovation Endeavors, id: 156}       # jobs.innovationendeavors.com
+      # Aleph (jobs.aleph.vc): add once its network id is known. Open the board, and in the browser's
+      # dev tools look for the request POST api.getro.com/api/v2/collections/<id>/search/jobs.
+      # - {name: Aleph, id: <id>}
   jobspy:                  # LinkedIn, Indeed (Glassdoor has no Israel search; Google Jobs blocks scraping)
     enabled: true
     sites: [linkedin, indeed]

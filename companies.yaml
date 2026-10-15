@@ -108,6 +108,11 @@ workday:
   - {tenant: intel, wd: wd1, site: External}
   - {tenant: nvidia, wd: wd5, site: NVIDIAExternalCareerSite}
   - {tenant: marvell, wd: wd1, site: MarvellCareers}
+  # Israeli R&D centers seen in 2025–2026 job links (docs/JOB_SOURCES_RESEARCH.md §3.1)
+  - {tenant: dell, wd: wd1, site: External}                  # Herzliya
+  - {tenant: workday, wd: wd5, site: Workday}                # Tel Aviv
+  - {tenant: generalmotors, wd: wd5, site: Careers_GM}       # Herzliya, incl. student roles
+  - {tenant: forcepoint, wd: wd1, site: external-careers}    # Tel Aviv, incl. student roles
 
 # Comeet (common at Israeli companies): "<slug>/<uid>" from https://www.comeet.com/jobs/<slug>/<uid>
 comeet:
