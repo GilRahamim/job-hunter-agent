@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -123,6 +124,51 @@ def test_serpapi_skipped_without_key(monkeypatch):
     monkeypatch.setattr(serpapi, "load_env", lambda: None)
     res = serpapi.collect_serpapi({"search": {"queries": ["x"]}})
     assert res.jobs == [] and res.error is None
+    assert "SERPAPI_API_KEY" in res.warning          # enabled but no key: say why it found nothing
+
+
+def _fake_serpapi(monkeypatch, fixture) -> list[str]:
+    """Record the queries sent to SerpAPI; answer each with the sample fixture."""
+    sent: list[str] = []
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    monkeypatch.setattr(serpapi, "load_env", lambda: None)
+    monkeypatch.setattr(serpapi, "get_json", lambda url, params: sent.append(params["q"])
+                        or fixture("serpapi_sample.json"))
+    return sent
+
+
+def test_serpapi_uses_its_own_query_list(monkeypatch, fixture):
+    sent = _fake_serpapi(monkeypatch, fixture)
+    config = {"search": {"queries": ["a", "b", "c"]},
+              "sources": {"serpapi_google_jobs": {"queries": ["מפתח תוכנה ג'וניור", "Junior QA"]}}}
+    res = serpapi.collect_serpapi(config)
+    assert sent == ["מפתח תוכנה ג'וניור", "Junior QA"]
+    assert res.jobs and res.error is None
+
+
+def test_serpapi_falls_back_to_search_queries(monkeypatch, fixture):
+    sent = _fake_serpapi(monkeypatch, fixture)
+    serpapi.collect_serpapi({"search": {"queries": ["a", "b"]}, "sources": {"serpapi_google_jobs": {}}})
+    assert sent == ["a", "b"]
+
+
+def test_serpapi_relative_posted_at():
+    now = datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc)
+    assert serpapi.posted_at_to_iso("2 days ago", now) == "2026-10-13"
+    assert serpapi.posted_at_to_iso("21 hours ago", now) == "2026-10-14"
+    assert serpapi.posted_at_to_iso("30+ days ago", now) == "2026-09-15"
+    assert serpapi.posted_at_to_iso("1 week ago", now) == "2026-10-08"
+    assert serpapi.posted_at_to_iso("1 month ago", now) == "2026-09-15"
+    assert serpapi.posted_at_to_iso("Just posted", now) == "2026-10-15"
+    assert serpapi.posted_at_to_iso("2026-10-01", now) == "2026-10-01"
+    assert serpapi.posted_at_to_iso("full-time", now) is None
+    assert serpapi.posted_at_to_iso(None, now) is None
+
+
+def test_serpapi_jobs_get_a_date(fixture):
+    jobs = serpapi.parse_serpapi(fixture("serpapi_sample.json"))
+    assert jobs[0].date_posted                       # "2 days ago" in the fixture
+    assert jobs[1].date_posted is None               # no posted_at at all
 
 
 # ---------------------------------------------------------------- JobSpy

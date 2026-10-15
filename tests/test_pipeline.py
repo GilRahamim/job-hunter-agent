@@ -220,3 +220,11 @@ def test_closed_linkedin_jobs_are_not_saved(env, monkeypatch):
     monkeypatch.setattr(details, "fetch_posting", lambda job: details.Posting("Junior Python role", closed=True))
     state = agent.run(cfg, db_path=path, no_llm=True)
     assert state["stats"]["filtered_by_reason"] == {"closed": 1} and not db.all_jobs(path=path)
+
+
+def test_run_summary_shows_source_notes():
+    import run_agent
+    assert run_agent.source_status({"error": None, "warning": None}) == "ok"
+    assert run_agent.source_status({"error": "boom", "warning": "x"}) == "ERROR: boom"
+    assert "SERPAPI_API_KEY" in run_agent.source_status(
+        {"error": None, "warning": "SERPAPI_API_KEY is not set in .env; skipped"})

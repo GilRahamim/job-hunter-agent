@@ -179,6 +179,9 @@ sources:
     boards:
       - {name: Israel VC Forum, id: 10949}          # israelvcforum.getro.com: ~880 companies of member funds
       - {name: Innovation Endeavors, id: 156}       # jobs.innovationendeavors.com
+      # Aleph (jobs.aleph.vc): add once its network id is known. Open the board, and in the browser's
+      # dev tools look for the request POST api.getro.com/api/v2/collections/<id>/search/jobs.
+      # - {name: Aleph, id: <id>}
   jobspy:                  # LinkedIn, Indeed (Glassdoor has no Israel search; Google Jobs blocks scraping)
     enabled: true
     sites: [linkedin, indeed]
@@ -197,8 +200,20 @@ sources:
     enabled: true
   weworkremotely:
     enabled: true
-  serpapi_google_jobs:     # optional – needs SERPAPI_API_KEY in .env
-    enabled: false
+  serpapi_google_jobs:     # Google Jobs: reaches AllJobs, Drushim, JobMaster pages; needs SERPAPI_API_KEY in .env
+    enabled: true
+    # Its own short list: every query is one SerpAPI search. The free plan has 250 searches a month,
+    # so 8 queries x 30 daily runs = 240 (runs started from the dashboard count too).
+    # Without this list, search.queries is used.
+    queries:
+      - מפתח תוכנה ג'וניור
+      - פיתוח תוכנה ללא ניסיון
+      - בוגר מדעי המחשב
+      - אנליסט נתונים ג'וניור
+      - Junior Software Engineer
+      - Junior Python Developer
+      - Junior AI Engineer
+      - Junior Data Analyst
 
 matching:
   # How many jobs (best pre-scores first) get a full LLM evaluation each run
