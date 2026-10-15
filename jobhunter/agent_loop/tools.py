@@ -13,7 +13,7 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 from jobhunter.collectors import collect_all
-from jobhunter.collectors.details import fetch_description
+from jobhunter.collectors.details import fetch_posting, linkedin_job_id
 from jobhunter.dedupe import dedupe_batch, is_new
 from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
 from jobhunter.matcher import prescore
@@ -46,6 +46,7 @@ class AgentContext:
     candidates: dict[str, Job] = field(default_factory=dict)     # new jobs that passed the filters
     prescores: dict[str, float] = field(default_factory=dict)
     read: set[str] = field(default_factory=set)
+    closed: set[str] = field(default_factory=set)                # LinkedIn: no longer accepting applications
     matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason"}
     cache: dict[str, list[Job]] = field(default_factory=dict)    # fixed-list source -> jobs
     health: list[dict] = field(default_factory=list)
@@ -216,9 +217,17 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
     job = ctx.candidates.get(job_id.strip())
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
+    first_read = job.id not in ctx.read
     ctx.read.add(job.id)
-    if not job.description.strip():               # LinkedIn / Tech Map jobs: read the posting now
-        job.description = fetch_description(job)
+    if first_read and linkedin_job_id(job.url):   # the page says whether it still accepts applications
+        posting = fetch_posting(job)
+        job.description = job.description.strip() or posting.description
+        if posting.closed:
+            ctx.closed.add(job.id)
+            ctx.drop_reasons["closed"] += 1
+    if job.id in ctx.closed:
+        return (f"CLOSED: {job.title} @ {job.company} is no longer accepting applications on LinkedIn. "
+                "Do not save it; find another job.")
     years = required_years(f"{job.title}\n{job.description}")
     remote = f" (remote; region: {job.remote_region or 'unspecified'})" if job.is_remote else ""
     text = job.description[: ctx.settings["max_posting_chars"]] or "(no description available)"
@@ -235,6 +244,8 @@ def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
     if job.id not in ctx.read:
         return "ERROR: call read_posting on this job before saving it."
+    if job.id in ctx.closed:                                 # guardrail: open jobs only
+        return f"REFUSED: {job.title} @ {job.company} is no longer accepting applications. Do not save it."
     not_junior = junior_reason(job, ctx.config)              # guardrail: junior roles only
     if not_junior:
         ctx.drop_reasons[f"save_refused_{not_junior}"] += 1

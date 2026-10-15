@@ -449,7 +449,7 @@ def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
             "score": st.column_config.ProgressColumn("ציון", min_value=0, max_value=100, format="%d", width="small"),
             "title_flag": st.column_config.TextColumn("תפקיד", width="medium"),
             "company": "חברה", "where": "מיקום", "source": "מקור",
-            "age_days": st.column_config.NumberColumn("ימים", format="%d", width="small"),
+            "age_days": st.column_config.NumberColumn("ימים מפרסום", format="%d", width="small"),
             "verdict_he": "הערכה",
             "sent": st.column_config.CheckboxColumn("נשלחו קו״ח", width="small",
                                                     help="סמנו כששלחתם קורות חיים למשרה"),

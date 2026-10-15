@@ -82,6 +82,11 @@ df = scrape_jobs(
 
 ## Missing descriptions
 `collectors/details.py` reads a LinkedIn job's description with JobSpy's own job-page reader (`LinkedIn()._fetch_details`), never custom LinkedIn scraping. The pipeline does it for the best-pre-scored kept jobs without one (`matching.fetch_descriptions`), then re-applies the experience rules; the agent does it in `read_posting`.
+The same page request (`fetch_posting`) also reports closed jobs: LinkedIn marks them with
+`<figcaption class="closed-job__flavor--closed">No longer accepting applications</figcaption>`
+(verified 2026-10-15). JobSpy's `_fetch_details` ignores that banner, so we GET the page with JobSpy's
+session and parse it with JobSpy's helpers. Closed jobs are dropped (reason `closed`) in the pipeline,
+and the agent's `save_match` refuses them.
 
 ## Adding a company
 

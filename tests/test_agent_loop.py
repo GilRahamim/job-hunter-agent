@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from jobhunter import agent_loop, db
 from jobhunter.agent_loop import graph, tools
 from jobhunter.collectors.base import CollectorResult
+from jobhunter.collectors.details import Posting
 from jobhunter.config import load_config
 from jobhunter.models import CandidateProfile, Job
 
@@ -347,3 +348,20 @@ def test_board_query_ignores_junior_words_in_the_title_match(env):
     ctx.cache["company_pages"] = [ai, student]
     assert tools._fetch(ctx, "company_pages", "Junior AI Engineer") == [ai]     # junior check is the filter's job
     assert tools._fetch(ctx, "company_pages", "Student") == [student]          # only junior words: keep them
+
+
+def test_agent_cannot_save_a_closed_linkedin_job(env, monkeypatch):
+    cfg, path, _ = env
+    job = Job("jobspy:linkedin", "Junior Python Developer", "Zed",
+              "https://il.linkedin.com/jobs/view/py-at-zed-1234567", location="Tel Aviv, Israel",
+              description="Junior Python role")
+    monkeypatch.setattr(tools, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult("jobspy", [job])], [{"source": "jobspy", "fetched": 1, "error": None,
+                                              "duration_s": 0.1}]))
+    monkeypatch.setattr(tools, "fetch_posting", lambda j: Posting("", closed=True))
+    ctx = tools.AgentContext(config=cfg, profile=CandidateProfile(skills=["Python"]),
+                             known_ids=set(), known_keys=set())
+    tools.search_jobs(ctx, "Junior Python Developer", "linkedin")
+    assert tools.read_posting(ctx, job.id).startswith("CLOSED")
+    assert tools.save_match(ctx, job.id, 90, "fits").startswith("REFUSED") and not ctx.matches
+    assert job.description == "Junior Python role"           # the search's description is kept

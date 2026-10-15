@@ -301,13 +301,28 @@ def test_linkedin_job_ids():
 
 def test_fill_descriptions_only_reads_jobs_without_one(monkeypatch):
     from jobhunter.collectors import details
-    monkeypatch.setattr(details, "fetch_description", lambda job: "3+ years of Java")
+    monkeypatch.setattr(details, "fetch_posting", lambda job: details.Posting("3+ years of Java"))
     bare = Job("techmap", "Java Developer", "A", "https://il.linkedin.com/jobs/view/java-at-a-1234567")
     full = Job("techmap", "Python Developer", "B", "https://il.linkedin.com/jobs/view/py-at-b-7654321",
                description="Python, no experience needed")
     other = Job("techmap", "QA", "C", "https://www.comeet.com/jobs/c/1.002/qa/3.004")
-    assert details.fill_descriptions([bare, full, other], limit=5, pause=(0, 0)) == 1
+    assert details.fill_descriptions([bare, full, other], limit=5, pause=(0, 0)) == set()
     assert bare.description == "3+ years of Java" and full.description.startswith("Python") and not other.description
+
+
+@pytest.mark.parametrize("name, closed", [("linkedin_job_closed.html", True), ("linkedin_job_open.html", False)])
+def test_linkedin_page_tells_if_job_is_closed(name, closed):
+    from jobhunter.collectors.details import parse_posting
+    posting = parse_posting((Path(__file__).parent / "fixtures" / name).read_text(encoding="utf-8"))
+    assert posting.closed is closed
+    assert "Junior Python Developer" in posting.description and "SQL" in posting.description
+
+
+def test_fill_descriptions_reports_closed_jobs(monkeypatch):
+    from jobhunter.collectors import details
+    monkeypatch.setattr(details, "fetch_posting", lambda job: details.Posting("Python", closed=True))
+    job = Job("techmap", "Python Developer", "A", "https://il.linkedin.com/jobs/view/py-at-a-1234567")
+    assert details.fill_descriptions([job], limit=5, pause=(0, 0)) == {job.id}
 
 
 def test_jobspy_partial_miss_is_a_warning_not_an_error(monkeypatch):

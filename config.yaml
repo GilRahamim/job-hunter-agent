@@ -111,6 +111,9 @@ filters:
     - "ai "
     - genai
     - llm
+    - forward deployed
+    - forward deploy
+    - " fde "
     - nlp
     - computer vision
     - algorithm
@@ -140,6 +143,7 @@ search:
   queries:
     - Junior AI Engineer
     - Junior Machine Learning Engineer
+    - Forward Deployed Engineer
     - Junior Python Developer
     - Junior Backend Developer
     - Junior Software Engineer
@@ -219,7 +223,8 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
   # Kinds of jobs the agent must cover. Every group is searched before any group is repeated.
   # A query belongs to a group when its words match one of the group's titles.
   role_groups:
-    AI / ML: [AI Engineer, GenAI Engineer, LLM Engineer, Machine Learning Engineer, NLP Engineer]
+    AI / ML: [AI Engineer, GenAI Engineer, LLM Engineer, Machine Learning Engineer, NLP Engineer,
+              Forward Deployed Engineer, FDE]
     Data: [Data Analyst, Data Scientist, Data Engineer, BI Developer, BI Analyst]
     Software: [Software Engineer, Junior Software Engineer, Python Developer, Backend Developer,
                Full Stack Developer, Java Developer, C++ Developer]

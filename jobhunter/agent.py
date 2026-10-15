@@ -104,14 +104,17 @@ def filter_node(state: PipelineState) -> dict:
     cfg = state["config"]
     kept, dropped = filter_jobs(state["new_jobs"], cfg)
     # Jobs without a description (LinkedIn, Tech Map) cannot be checked for experience: read the
-    # descriptions of the most promising ones, then apply the experience rules again.
+    # descriptions of the most promising ones, then apply the experience rules again. LinkedIn jobs
+    # that no longer accept applications are dropped too.
     limit = int(cfg["matching"].get("fetch_descriptions") or 0)
     bare = [j for j in kept if not j.description.strip()]
     if limit and bare:
         ranked = [j for _, j in sorted(zip(prescore_jobs(state["profile"], bare), bare),
                                        key=lambda p: p[0], reverse=True)]
-        fill_descriptions(ranked, limit)
-        failed = {j.id: r for j in bare if j.description and (r := junior_reason(j, cfg))}
+        closed = fill_descriptions(ranked, limit)
+        failed = {j.id: "closed" for j in bare if j.id in closed}
+        failed |= {j.id: r for j in bare
+                   if j.id not in failed and j.description and (r := junior_reason(j, cfg))}
         kept = [j for j in kept if j.id not in failed]
         dropped.update(failed.values())
     log.info("filter: kept %d, dropped %s", len(kept), dict(dropped) or "none")

@@ -203,6 +203,20 @@ def test_jobs_without_description_are_read_then_checked_for_experience(env, monk
     monkeypatch.setattr(agent, "collect_all", lambda config, only=None, limit=None: (
         [CollectorResult("techmap", [bare])], [{"source": "techmap", "fetched": 1, "error": None, "duration_s": 0}]))
     from jobhunter.collectors import details
-    monkeypatch.setattr(details, "fetch_description", lambda job: "Python. 2+ years of experience required.")
+    monkeypatch.setattr(details, "fetch_posting",
+                        lambda job: details.Posting("Python. 2+ years of experience required."))
     state = agent.run(cfg, db_path=path, no_llm=True)
     assert state["stats"]["filtered_by_reason"] == {"experience": 1} and state["stats"]["kept"] == 0
+
+
+def test_closed_linkedin_jobs_are_not_saved(env, monkeypatch):
+    cfg, path = env
+    cfg["matching"]["fetch_descriptions"] = 5
+    bare = Job("techmap", "Junior Python Developer", "Zed", "https://il.linkedin.com/jobs/view/py-at-zed-1234567",
+               location="Tel Aviv, Israel")
+    monkeypatch.setattr(agent, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult("techmap", [bare])], [{"source": "techmap", "fetched": 1, "error": None, "duration_s": 0}]))
+    from jobhunter.collectors import details
+    monkeypatch.setattr(details, "fetch_posting", lambda job: details.Posting("Junior Python role", closed=True))
+    state = agent.run(cfg, db_path=path, no_llm=True)
+    assert state["stats"]["filtered_by_reason"] == {"closed": 1} and not db.all_jobs(path=path)
