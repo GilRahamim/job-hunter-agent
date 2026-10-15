@@ -167,7 +167,8 @@ Fields: `title, company_name, location, remote (bool), url, description (HTML), 
 
 ## SerpAPI — Google Jobs (optional)
 `GET https://serpapi.com/search.json?engine=google_jobs&q={query}&location=Israel&hl=en&api_key=...`
-Results in `jobs_results[]`: `title, company_name, location, description, detected_extensions.posted_at, apply_options[].link, share_link, job_id`. Use the first `apply_options[].link` as URL (fallback `share_link`). Paginate with `next_page_token`. Skip the source entirely when `SERPAPI_API_KEY` is missing (not an error).
+Results in `jobs_results[]`: `title, company_name, location, description, detected_extensions.posted_at, apply_options[].link, share_link, job_id`. Use the first `apply_options[].link` as URL (fallback `share_link`). Paginate with `next_page_token`. Skip the source entirely when `SERPAPI_API_KEY` is missing (not an error; a `warning` says why).
+`detected_extensions.posted_at` is relative text ("2 days ago", "30+ days ago", "Just posted"); `serpapi.posted_at_to_iso` turns it into a date. Every request is one search from the monthly quota, so queries come from `sources.serpapi_google_jobs.queries`, not the 24 `search.queries`.
 
 ## JobSpy DataFrame columns (v1.3)
 `id, site, job_url, job_url_direct, title, company, location, date_posted, job_type, is_remote, description, min_amount, max_amount, currency, job_level, company_industry, skills, experience_range, ...`

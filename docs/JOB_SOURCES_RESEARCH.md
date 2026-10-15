@@ -78,6 +78,8 @@ The Getro collector takes `{name, id}` in `config.yaml → sources.getro.boards`
 - **How to find a board's `id`:** open the board, then in the browser dev tools watch the request `POST api.getro.com/api/v2/collections/{id}/search/jobs`. Or search the page source for `"network":{"id"`.
 
 ### 3.3 SerpAPI Google Jobs: enable it, but give it its own query budget ✅
+**Done on 2026-10-15:** enabled, with 8 queries of its own in `config.yaml` and relative-date parsing. A live run still needs `SERPAPI_API_KEY` in `.env`.
+
 This is the cheapest legal way to reach **AllJobs, Drushim, JobMaster and Comeet-hosted pages**, because Google for Jobs indexes all of them. The collector exists, but it sends **every** `search.queries` entry (24 today) on every run. Third-party 2026 pricing pages report a free plan of **250 searches a month**. Daily runs would need
 
 $$24 \times 30 = 720 > 250.$$

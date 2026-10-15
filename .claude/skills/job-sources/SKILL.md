@@ -50,7 +50,7 @@ def to_iso(value) -> str | None:  # handles ISO strings, unix seconds, unix ms
 | `remotive`, `remoteok`, `himalayas`, `weworkremotely`, `arbeitnow` | Remote jobs worldwide | none | Most are US-only; region filtering matters. |
 | `techmap` | Israeli Tech Map daily job CSVs (github.com/mluggy/techmap, ODbL), ~470 Israeli companies | none | One download per category; title/company/level/city, **no description** (links are mostly LinkedIn). |
 | `getro` | VC portfolio job boards (Israel VC Forum ≈880 companies) | none | `POST api.getro.com/api/v2/collections/{id}/search/jobs` with `Accept: application/json` (406 without), `filters: {searchable_locations: ["Israel"]}`, 20 per page; seniority tag, no description. |
-| `serpapi_google_jobs` | Google Jobs (indexes AllJobs, Drushim, Comeet pages…) | `SERPAPI_API_KEY` | Optional; limited free quota. |
+| `serpapi_google_jobs` | Google Jobs (indexes AllJobs, Drushim, Comeet pages…) | `SERPAPI_API_KEY` | Free plan 250 searches/month, one per query: uses its own short `queries` list (falls back to `search.queries`). |
 
 Exact endpoints, response shapes and field mappings for each source: **read `references/endpoints.md`** before writing a collector. Those mappings were verified against live responses on 2026-10-13.
 
