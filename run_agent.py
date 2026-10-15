@@ -26,14 +26,20 @@ def setup_logging() -> None:
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
+def source_status(h: dict) -> str:
+    """'ok', the error, or the note of a source that was skipped or partly missed."""
+    if h["error"]:
+        return f"ERROR: {h['error']}"
+    return f"ok (note: {h['warning']})" if h.get("warning") else "ok"
+
+
 def print_summary(state: dict, top: int) -> None:
     stats = state["stats"]
     print("\n=== Run summary ===")
     print(f"mode: {stats['mode']} | duration: {stats['duration_s']}s"
           f"{' | DRY RUN (nothing saved)' if stats['dry_run'] else ''}")
     for h in state["health"]:
-        status = f"ERROR: {h['error']}" if h["error"] else "ok"
-        print(f"  {h['source']:<16}{h['fetched']:>5} jobs  {status}")
+        print(f"  {h['source']:<16}{h['fetched']:>5} jobs  {source_status(h)}")
     print(f"collected {stats['collected']} | new {stats['new']} | already known {stats['known']}")
     print(f"filter drops: {stats['filtered_by_reason'] or 'none'} -> kept {stats['kept']}")
     print(f"scored: {stats['prescored']} (rescored {stats['rescored']}, llm {stats['llm_scored']}, "
@@ -51,8 +57,7 @@ def print_agent_summary(result: dict, top: int) -> None:
     print(f"mode: {stats['mode']} | stopped: {stats['stop_reason']} | steps: {stats['steps']} | "
           f"duration: {stats['duration_s']}s{' | DRY RUN (nothing saved)' if stats['dry_run'] else ''}")
     for h in result["health"]:
-        status = f"ERROR: {h['error']}" if h["error"] else "ok"
-        print(f"  {h['source']:<16}{h['fetched']:>5} jobs  {status}")
+        print(f"  {h['source']:<16}{h['fetched']:>5} jobs  {source_status(h)}")
     print(f"searches {stats['searches']} | collected {stats['collected']} | "
           f"new after filters {stats['kept']} | read {stats['read']}")
     print(f"filter drops: {stats['filtered_by_reason'] or 'none'}")
