@@ -49,6 +49,7 @@ def _linkedin_reader() -> Any:
 class Posting:
     description: str = ""
     closed: bool = False          # LinkedIn shows "No longer accepting applications"
+    rate_limited: bool = False    # LinkedIn answered 429: stop asking it this run
 
 
 def parse_posting(html: str) -> Posting:
@@ -85,7 +86,7 @@ def fetch_posting(job: Job) -> Posting:
         resp = reader.session.get(f"{reader.base_url}/jobs/view/{job_id}", timeout=15)
         if resp.status_code != 200 or not urlparse(resp.url).path.startswith("/jobs/view/"):
             log.warning("posting %s: status %s, url %s", job.url, resp.status_code, resp.url)
-            return Posting()
+            return Posting(rate_limited=resp.status_code == 429)
         return parse_posting(resp.text)
     except Exception as e:  # noqa: BLE001 - a missing description must never fail a run
         log.warning("posting %s failed: %s", job.url, e)
@@ -103,6 +104,10 @@ def fill_descriptions(jobs: list[Job], limit: int, pause: tuple[float, float] = 
         if i:
             time.sleep(random.uniform(*pause))          # LinkedIn blocks fast sequential calls
         posting = fetch_posting(job)
+        if posting.rate_limited:
+            log.warning("descriptions: LinkedIn rate-limited (429), skipping the remaining %d jobs",
+                        len(todo) - i)
+            break
         job.description = posting.description
         filled += bool(job.description)
         if posting.closed:

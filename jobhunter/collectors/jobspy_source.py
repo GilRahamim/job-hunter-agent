@@ -13,6 +13,29 @@ from jobhunter.models import Job
 
 log = logging.getLogger(__name__)
 
+# JobSpy logs a LinkedIn 429 and returns fewer jobs instead of raising. Logger names differ by version.
+LINKEDIN_LOGGERS = ("JobSpy:LinkedIn", "jobspy.linkedin")       # python-jobspy < 1.4 / 1.4+
+
+
+class RateLimitWatch(logging.Handler):
+    """Notices "status code 429" in JobSpy's LinkedIn log, so a run stops asking LinkedIn."""
+
+    def __init__(self) -> None:
+        super().__init__(logging.WARNING)
+        self.hit = False
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.hit = self.hit or "429" in record.getMessage()
+
+    def __enter__(self) -> "RateLimitWatch":
+        for name in LINKEDIN_LOGGERS:
+            logging.getLogger(name).addHandler(self)
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        for name in LINKEDIN_LOGGERS:
+            logging.getLogger(name).removeHandler(self)
+
 
 def frame_to_jobs(df: Any) -> list[Job]:
     """Convert a JobSpy DataFrame (or a CSV loaded with pandas) to Jobs."""
@@ -102,32 +125,44 @@ def collect_jobspy(config: dict[str, Any], limit: int | None = None) -> Collecto
     fetch_desc = bool(src.get("fetch_linkedin_descriptions", False))
 
     jobs: list[Job] = []
-    failed = 0
+    failed = skipped = 0
     # an extra worldwide "Remote" pass only for queries with a remote_query_keywords word (whole words)
     remote_words = src.get("remote_query_keywords") or []
     passes = [(q, base_loc, False) for q in queries] + [
         (q, "Remote", True) for q in queries if keyword_hits(q, remote_words)]
     # banks, health funds, defense, IT services: one search per employer group, Israel only
     passes += [(q, base_loc, False) for q in employer_queries(config["search"])]
-    for query, location, remote in passes:
-        if stop.stop_requested():
-            log.info("jobspy: stop requested, skipping the remaining queries")
-            break
-        try:
-            found = _scrape(sites, query, config, location, remote, fetch_desc)
-            jobs.extend(found)
-            if not found:
+    with RateLimitWatch() as watch:
+        for i, (query, location, remote) in enumerate(passes):
+            if stop.stop_requested():
+                log.info("jobspy: stop requested, skipping the remaining queries")
+                break
+            if watch.hit and "linkedin" in sites:
+                # more requests only extend the block; the other sites keep going
+                sites = [s for s in sites if s != "linkedin"]
+                skipped = len(passes) - i
+                log.warning("jobspy: LinkedIn rate-limited (429), skipping it for the remaining %d searches",
+                            skipped)
+                if not sites:
+                    break
+            try:
+                found = _scrape(sites, query, config, location, remote, fetch_desc)
+                jobs.extend(found)
+                if not found:
+                    failed += 1
+            except Exception as e:  # noqa: BLE001
                 failed += 1
-        except Exception as e:  # noqa: BLE001
-            failed += 1
-            log.warning("jobspy query %r failed: %s", query, e)
-        time.sleep(random.uniform(2, 4))   # parallel / fast queries get LinkedIn to block us
-        if limit and len(jobs) >= limit:
-            break
+                log.warning("jobspy query %r failed: %s", query, e)
+            time.sleep(random.uniform(2, 4))   # parallel / fast queries get LinkedIn to block us
+            if limit and len(jobs) >= limit:
+                break
 
     unique = list({j.id: j for j in jobs}.values())
+    limited = (f"LinkedIn rate-limited (429): skipped for {skipped} of {len(passes)} searches"
+               if watch.hit else "")
     if not unique:
-        return CollectorResult("jobspy", error="no jobs returned (rate-limited or blocked?)")
+        return CollectorResult("jobspy", error=limited or "no jobs returned (rate-limited or blocked?)")
     # Some queries simply have no matches; that is normal as long as others found jobs.
-    warning = f"{failed}/{len(passes)} query passes returned nothing" if failed else None
+    notes = [limited, f"{failed}/{len(passes)} query passes returned nothing" if failed else ""]
+    warning = "; ".join(n for n in notes if n) or None
     return CollectorResult("jobspy", unique[:limit] if limit else unique, warning=warning)

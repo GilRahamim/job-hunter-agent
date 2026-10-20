@@ -104,5 +104,5 @@ and the agent's `save_match` refuses them.
 ## Debugging a source that returns 0 jobs
 1. Hit the endpoint with `curl` and compare the JSON keys to `references/endpoints.md` — APIs drift.
 2. 404 on a company board usually means the company moved ATS; re-check its careers page.
-3. JobSpy returning empty for LinkedIn usually means rate-limiting: wait, lower `results_per_query`, keep sleeps.
+3. JobSpy returning empty for LinkedIn usually means rate-limiting: wait, lower `results_per_query`, keep sleeps. JobSpy logs a 429 instead of raising; `jobspy_source.RateLimitWatch` listens on its LinkedIn loggers (`JobSpy:LinkedIn` before 1.4, `jobspy.linkedin` from 1.4) and the run drops LinkedIn for the remaining searches (warning: "LinkedIn rate-limited (429): skipped for N of M searches"). `fill_descriptions` also stops at the first 429.
 4. Add a fixture for the new response shape and a failing parser test before fixing (see `offline-testing`).
