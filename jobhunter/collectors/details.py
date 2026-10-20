@@ -36,6 +36,12 @@ def _linkedin_reader() -> Any:
 
     reader = LinkedIn()
     reader.scraper_input = ScraperInput(site_type=[Site.LINKEDIN], description_format=DescriptionFormat.MARKDOWN)
+    if not hasattr(reader, "session"):        # python-jobspy 1.4+ builds it in scrape(), the same way
+        from jobspy.linkedin.constant import headers
+        from jobspy.util import RequestsRotating, create_session
+
+        reader.session = create_session(RequestsRotating(reader.scraper_input.proxies, clear_cookies=True),
+                                        reader.scraper_input, headers)
     return reader
 
 
@@ -47,15 +53,26 @@ class Posting:
 
 def parse_posting(html: str) -> Posting:
     """Description and closed flag from a LinkedIn job page, parsed with JobSpy's own helpers."""
-    from jobspy.linkedin import BeautifulSoup, format_description, remove_attributes
+    from bs4 import BeautifulSoup
     from jobspy.model import DescriptionFormat
 
     soup = BeautifulSoup(html or "", "html.parser")
     div = soup.find("div", class_="show-more-less-html__markup")
-    description, _ = format_description(
-        remove_attributes(div).prettify(formatter="html") if div else None, DescriptionFormat.MARKDOWN)
+    if div:
+        div.attrs.clear()
+    markup = div.prettify(formatter="html") if div else None
     closed = soup.find(class_="closed-job__flavor--closed") is not None
-    return Posting(clean(description), closed)
+    return Posting(clean(_to_markdown(markup, DescriptionFormat.MARKDOWN)), closed)
+
+
+def _to_markdown(markup: str | None, fmt: Any) -> str | None:
+    """JobSpy's own HTML -> markdown step; it moved in python-jobspy 1.4."""
+    try:
+        from jobspy.util import description_fields          # 1.4+
+    except ImportError:
+        from jobspy.linkedin import format_description      # up to 1.3
+        return format_description(markup, fmt)[0]
+    return description_fields(markup, fmt)["description"]
 
 
 def fetch_posting(job: Job) -> Posting:
