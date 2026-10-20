@@ -20,7 +20,7 @@ Implement each rule as a small pure function returning `(keep: bool, reason: str
 - `remote_ok`: job is remote **and** its region is acceptable. Acceptable = empty region, or contains any of `config.filters.remote_regions_ok` (worldwide, anywhere, EMEA, Europe, Israel…). Reject explicit restrictions that exclude Israel: `US only`, `USA`, `United States`, `Canada`, `LATAM`, `UK only`, `APAC`, and timezone-only restrictions like `US timezones`. A Himalayas `locationRestrictions` list is acceptable only if empty or it includes Israel.
 - A job whose `location` is a non-Israeli city and is not remote → drop.
 
-**Role** — title (lower-cased, padded with spaces so `" ai "` works) contains any `role_keywords` and none of `exclude_keywords`.
+**Role** — title (lower-cased, padded with spaces so `" ai "` works) contains any `role_keywords` and none of `exclude_keywords` — unless it also has an `exclude_exceptions` word (`" noc "`, `" soc "`, `secops`), so "NOC Technician" stays while "Field Technician" goes (`filters.excluded_title`).
 
 **Seniority** — if `exclude_senior`, drop titles containing `senior_keywords`. Note `"lead"` also matches "Leading"… use word boundaries (`\blead\b`). Titles like "Software Engineer II" are fine; "III"/"IV" lean senior — leave them for the LLM.
 
@@ -47,6 +47,7 @@ This is a ranking signal, not a final answer — it only needs to put good jobs 
 - Retry each call up to 3 times with backoff on rate-limit / validation errors; on final failure return `None` and keep the prescore. Never let one bad response fail the batch.
 - Explanations (`reasons`, `seniority_fit`, `cv_tip`) are written in `config.profile.explanation_language` (default Hebrew); skill names stay in English.
 - Learning from the user: once they have marked jobs, `choices_text(db.status_examples(matching.feedback_examples))` appends a `<candidate_choices>` block (`prompts.CHOICES_BLOCK`) to every scoring prompt and to the agent's `get_profile`: up to N jobs they pursued (interested/applied/interview/offer) and N they marked not relevant, newest first. It is a hint, not a rule; `rejected` (the company said no) is not a preference and is left out. `feedback_examples: 0` turns it off.
+- `profile.preferences` (free text) goes into the same prompts as a `<candidate_preferences>` block (`prompts.PREFERENCES_BLOCK`, `matcher.preferences_text`): the kinds of roles and employers the person is open to (banks, health funds, NOC/SOC). It must not relax the anchors; `personalize` clears it for `auto_from_cv` users.
 
 The prompt and the calibration rubric are in **`references/scoring-prompt.md`** — read it before changing the prompt. The rubric matters more than the wording: without anchors, models cluster everything at 70–85 and the ranking becomes useless.
 

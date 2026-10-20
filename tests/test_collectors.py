@@ -196,6 +196,28 @@ def _boom(*a, **k):
     raise ConnectionError("network down")
 
 
+def test_employer_queries_or_the_names_and_and_the_roles():
+    search = {"employers": {"Banks": ["Bank Leumi", "Isracard", " "], "Empty": []},
+              "employer_roles": ["developer", "data analyst"]}
+    assert jobspy_source.employer_queries(search) == [
+        '("Bank Leumi" OR Isracard) AND (developer OR "data analyst")']
+    assert jobspy_source.employer_queries({"employers": {"x": ["Clalit"]}}) == ["(Clalit)"]
+    assert jobspy_source.employer_queries({}) == []
+
+
+def test_jobspy_runs_one_israel_pass_per_employer_group(monkeypatch):
+    calls = []
+    monkeypatch.setattr(jobspy_source, "_scrape", lambda sites, q, cfg, loc, remote, fd:
+                        calls.append((q, loc, remote)) or [])
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+    cfg = {"sources": {"jobspy": {"sites": ["linkedin"], "remote_query_keywords": ["ai"]}},
+           "search": {"queries": ["Junior AI Engineer"], "location": "Israel",
+                      "employers": {"Banks": ["Bank Leumi"]}, "employer_roles": []}}
+    jobspy_source.collect_jobspy(cfg)
+    assert calls == [("Junior AI Engineer", "Israel", False), ("Junior AI Engineer", "Remote", True),
+                     ('("Bank Leumi")', "Israel", False)]
+
+
 def test_company_failure_is_reported_not_raised(monkeypatch, fixture):
     def fake_get_json(url, **kw):
         if "greenhouse" in url and "good" in url:

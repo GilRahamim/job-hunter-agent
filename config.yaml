@@ -9,6 +9,13 @@ profile:
   cv_dir: cv
   # Language for the match explanations the LLM writes (he / en)
   explanation_language: he
+  # What the candidate is open to, beyond the CV. Shown to the LLM when it scores jobs and to the agent.
+  # Users added from the dashboard (auto_from_cv) do not inherit this text.
+  preferences: >-
+    Prefers roles that ask for no prior professional experience. Established employers
+    (banks, credit card companies, health funds / HMOs, insurance, defense, government and
+    IT services / integration companies) are as welcome as startups. Besides development, data
+    and AI roles, entry-level operations roles fit too: NOC, SOC (Tier 1), SecOps and IT operations.
   # Correct the CV extraction without editing the CV (optional)
   overrides:
     add_skills: []
@@ -74,6 +81,10 @@ filters:
     - cyber
     - security
     - " soc "
+    - " noc "
+    - secops
+    - "security operations"
+    - "network operations"
     - penetration
     - cloud
     - " sre "
@@ -131,8 +142,10 @@ filters:
     - אנליסט
     - דאטה
     - אלגוריתם
-  # Titles containing these are always dropped
+  # Titles containing these are dropped …
   exclude_keywords: [sales, account executive, "customer success", recruiter, "talent acquisition", marketing, legal, counsel, accountant, "hr ", payroll, "office manager", nurse, "delivery driver", "truck driver", "bus driver", courier, "technician", guard, "מכירות", "גיוס"]
+  # … unless the title also has one of these ("NOC Technician" stays, "Field Technician" goes)
+  exclude_exceptions: [" noc ", " soc ", secops]
   # Ignore postings older than this (days). Sources that give no date are kept.
   max_age_days: 21
 
@@ -163,8 +176,30 @@ search:
     - Junior QA Automation Engineer
     - Junior Cloud Engineer
     - Junior IT Support
+    - Junior SOC Analyst
+    - SOC Analyst Tier 1
+    - NOC Engineer
+    - NOC Operator
+    - Junior SecOps Engineer
     - Junior Validation Engineer
     - Test Engineer Student
+  # Established employers (banks, health funds, insurance, defense, IT services). Few of them use the
+  # startup job boards, so they are reached through LinkedIn / Indeed: each group is ONE extra search
+  # that ORs its names and ANDs `employer_roles`, e.g.
+  #   ("Bank Leumi" OR "Bank Hapoalim") AND (developer OR engineer OR ...)
+  # Keep groups short (≤ 7 names) and names unambiguous ("Max" alone would match everything).
+  employers:
+    Banks: [Bank Leumi, Bank Hapoalim, Israel Discount Bank, Mizrahi Tefahot, First International Bank,
+            Bank of Jerusalem, One Zero]
+    Credit cards & insurance: [Isracard, Max IT Finance, Harel, Migdal, Clal Insurance, The Phoenix,
+                               Menora Mivtachim]
+    Health funds: [Clalit, Maccabi Healthcare, Meuhedet, Leumit, Sheba Medical Center]
+    Defense & government: [Elbit Systems, Rafael, Israel Aerospace Industries, Israel Electric,
+                            Bezeq, Israel Railways]
+    IT services: [Matrix IT, Malam Team, One Technologies, Ness Technologies, Bynet, Taldor, HMS]
+  # Role words ANDed into every employer search, so a bank's tellers and a health fund's nurses are not
+  # what fills `results_per_query`. Empty = the names alone.
+  employer_roles: [developer, engineer, programmer, analyst, data, SOC, NOC, SecOps, IT, student]
   location: Israel
   results_per_query: 40
   hours_old: 168          # last 7 days
@@ -211,9 +246,9 @@ sources:
       - בוגר מדעי המחשב
       - אנליסט נתונים ג'וניור
       - Junior Software Engineer
-      - Junior Python Developer
+      - אנליסט SOC ללא ניסיון
       - Junior AI Engineer
-      - Junior Data Analyst
+      - NOC ללא ניסיון
 
 matching:
   # How many jobs (best pre-scores first) get a full LLM evaluation each run
@@ -246,7 +281,9 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
     Web / Mobile: [Frontend Developer, Web Developer, Mobile Developer, Android Developer, iOS Developer]
     Algorithms / Research: [Algorithm Developer, Algorithm Engineer, Computer Vision Engineer]
     Embedded / Hardware: [Embedded Software Engineer, Firmware Engineer, Verification Engineer]
-    Cyber Security: [Cyber Security Analyst, Security Engineer, SOC Analyst, Penetration Tester]
+    Cyber Security: [Cyber Security Analyst, Security Engineer, Penetration Tester]
+    NOC / SOC / SecOps: [SOC Analyst, NOC Engineer, NOC Operator, SecOps Engineer,
+                         Security Operations Analyst, Network Operations]
     Automation / QA / DevOps: [Automation Engineer, QA Automation Engineer, DevOps Engineer,
                                Cloud Engineer, Site Reliability Engineer]
     IT / Systems: [IT Support, System Administrator, Network Engineer, Database Administrator]

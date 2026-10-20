@@ -38,6 +38,24 @@ def frame_to_jobs(df: Any) -> list[Job]:
     return jobs
 
 
+def _quoted(term: str) -> str:
+    return f'"{term}"' if " " in term else term
+
+
+def employer_queries(search: dict[str, Any]) -> list[str]:
+    """One Boolean LinkedIn / Indeed search per `search.employers` group:
+    ("Bank Leumi" OR "Bank Hapoalim") AND (developer OR engineer OR ...)."""
+    roles = " OR ".join(_quoted(r) for r in search.get("employer_roles") or [])
+    queries = []
+    for names in (search.get("employers") or {}).values():
+        names = [n.strip() for n in names or [] if n and n.strip()]
+        if not names:
+            continue
+        query = f"({' OR '.join(_quoted(n) for n in names)})"
+        queries.append(f"{query} AND ({roles})" if roles else query)
+    return queries
+
+
 def _scrape(sites: list[str], query: str, cfg: dict[str, Any], location: str,
             remote: bool, fetch_desc: bool) -> list[Job]:
     from jobspy import scrape_jobs
@@ -89,6 +107,8 @@ def collect_jobspy(config: dict[str, Any], limit: int | None = None) -> Collecto
     remote_words = src.get("remote_query_keywords") or []
     passes = [(q, base_loc, False) for q in queries] + [
         (q, "Remote", True) for q in queries if keyword_hits(q, remote_words)]
+    # banks, health funds, defense, IT services: one search per employer group, Israel only
+    passes += [(q, base_loc, False) for q in employer_queries(config["search"])]
     for query, location, remote in passes:
         if stop.stop_requested():
             log.info("jobspy: stop requested, skipping the remaining queries")

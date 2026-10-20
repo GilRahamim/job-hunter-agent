@@ -100,9 +100,16 @@ def word_match(title: str, keywords: list[str]) -> bool:
     return False
 
 
+def excluded_title(title: str, f: dict[str, Any]) -> bool:
+    """An `exclude_keywords` title ("Sales", "Technician") that no `exclude_exceptions` word rescues
+    ("NOC Technician" is an entry-level operations job, "Field Technician" is not)."""
+    return contains_any(title, f.get("exclude_keywords", [])) and \
+        not contains_any(title, f.get("exclude_exceptions") or [])
+
+
 def role_ok(title: str, cfg: dict[str, Any]) -> bool:
     f = cfg["filters"]
-    return contains_any(title, f["role_keywords"]) and not contains_any(title, f.get("exclude_keywords", []))
+    return contains_any(title, f["role_keywords"]) and not excluded_title(title, f)
 
 
 def role_fit(job: Job, cfg: dict[str, Any]) -> bool:
@@ -110,7 +117,7 @@ def role_fit(job: Job, cfg: dict[str, Any]) -> bool:
     degree or technical background ("Test Driver" at Mobileye asking for a B.Sc.).
     Excluded titles (sales, recruiter...) stay excluded either way."""
     f = cfg["filters"]
-    if contains_any(job.title, f.get("exclude_keywords", [])):
+    if excluded_title(job.title, f):
         return False
     return contains_any(job.title, f["role_keywords"]) or \
         bool(keyword_hits(job.description, f.get("role_description_keywords") or []))
