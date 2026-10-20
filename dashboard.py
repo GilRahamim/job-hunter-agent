@@ -249,8 +249,6 @@ def run_summary_html(run: dict) -> str:
     parts = [f"<bdi>{s.get('kept', 0)}</bdi> חדשות"]
     if failed:
         parts.append("מקור אחד עם תקלה" if failed == 1 else f"<bdi>{failed}</bdi> מקורות עם תקלה")
-    if s.get("llm_failed"):
-        parts.append(f"<bdi>{s['llm_failed']}</bdi> בלי ציון AI")
     return (f'<div class="jh-run-summary">ריצה אחרונה: <bdi>{when:%d/%m %H:%M}</bdi> · {took}<br>'
             f'{" · ".join(parts)}</div>')
 
