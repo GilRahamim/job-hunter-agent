@@ -292,6 +292,8 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
     Testing / Validation / Field: [Test Engineer, Validation Engineer, Test Driver, Integration Engineer,
                                    Field Engineer, Technical Support Engineer, Application Engineer]
   results_per_search: 10   # results shown to the model per search
+  # Memory: the start message lists which queries led to saved jobs in the last N agent runs (0 = off)
+  memory_runs: 5
   # Guardrail: LinkedIn queries without a junior word get this prefix ("AI Engineer" -> "Junior AI Engineer")
   junior_query_prefix: Junior
   # Fetch LinkedIn descriptions for agent searches, so experience requirements can be checked

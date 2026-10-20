@@ -42,7 +42,7 @@ jobhunter/
   handoff.py                   one job -> brief for Claude Code / claude.ai (subscription), md -> docx
   collectors/  base.py  ats.py  jobspy_source.py  remote_boards.py  serpapi.py  techmap.py  getro.py
                details.py (missing descriptions)  __init__.py (registry)
-  agent_loop/  graph.py  tools.py   (tool-using agent, --agent)
+  agent_loop/  graph.py  tools.py  memory.py   (tool-using agent, --agent; memory = past queries)
   tailor/      (empty: CV Tailoring Agent, Phase 8, planned)
 run_agent.py         CLI entry point (search agent)
 dashboard.py         Streamlit app;  ui/  design system (tokens, CSS, components)

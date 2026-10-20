@@ -78,8 +78,11 @@ Tools:
   Other sources match your query against job titles, so short queries work best
   there (e.g. "python", "data", "ai engineer").
   You have {max_searches} searches in total, at most {per_group} per role group.
+  A source other than linkedin costs one search the first time; after that its
+  list is loaded and further searches on it are free.
 - read_posting(job_id): the full posting. Always read before saving.
-- save_match(job_id, score, reason): save a job you read, with a 0-100 score.
+- save_match(job_id, score, reason): save a job you read in an earlier turn,
+  with a 0-100 score.
 
 Role groups to cover (the candidate is open to all of them):
 {role_groups}
@@ -104,10 +107,24 @@ Score the candidate's real skills, not how the CV is worded: a separate agent
 will tailor the CV to each saved job, so a role outside the CV's main focus can
 still score high when the skills are there. Aim for matches from several groups.
 Write each reason in {language}: one or two sentences, why it fits and the main gap.
-Call one tool at a time. Use only job ids that a tool returned.
+Work in batches to save turns: call read_posting for 2-4 promising jobs in one
+turn, then in the next turn call save_match for every one worth saving (and
+search again in that same turn if you need more). Use only job ids that a tool returned.
 """
 
 AGENT_START = "Start the search. Goal: {goal} jobs scoring at least {min_score}."
+
+# Appended to AGENT_START when earlier agent runs stored their per-query results (agent_loop/memory.py).
+AGENT_MEMORY = """
+
+What your searches found in the last {runs} agent run(s). "new" counts jobs not stored before,
+so a query that worked once finds fewer new jobs each time it is repeated.
+Queries that led to saved jobs:
+{worked}
+Queries that led to no saved job:
+{empty}
+Reuse or vary the queries that worked; change the wording or source of the ones that did not.
+You must still cover every role group."""
 
 AGENT_NUDGE = ("You stopped before reaching the goal. Use a tool to continue, or reply "
                "DONE if nothing promising is left.")

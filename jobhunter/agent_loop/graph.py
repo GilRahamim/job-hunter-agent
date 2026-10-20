@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 from jobhunter import db
+from jobhunter.agent_loop.memory import memory_text, query_stats
 from jobhunter.agent_loop.tools import AgentContext, allowed_sources, make_tools
 from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
@@ -25,7 +26,8 @@ log = logging.getLogger(__name__)
 
 MAX_NUDGES = 1
 MAX_TOOL_OUTPUT_LOG = 200
-KEEP_FULL_POSTINGS = 1        # older read_posting outputs are cut to their header (small local contexts)
+KEEP_FULL_POSTINGS = 1        # older read_posting outputs are cut to their header (small local contexts);
+                              # the postings of the latest tool turn are always shown in full
 POSTING_CUT_NOTE = "[full text removed to save context; call read_posting again if needed]"
 
 
@@ -50,11 +52,12 @@ def verdict_for(score: int) -> str:
 
 
 def compact_history(messages: list[BaseMessage], keep: int = KEEP_FULL_POSTINGS) -> list[BaseMessage]:
-    """What the model is shown: all messages, but only the last `keep` postings in full.
-    The graph state keeps everything; only the model's view is trimmed."""
+    """What the model is shown: all messages, but only the last `keep` postings and the ones read in
+    the latest tool turn in full. The graph state keeps everything; only the model's view is trimmed."""
     postings = [i for i, m in enumerate(messages) if isinstance(m, ToolMessage) and m.name == "read_posting"
                 and "\nDescription:\n" in str(m.content)]
-    cut = set(postings[:-keep] if keep else postings)
+    last_turn = max((i for i, m in enumerate(messages) if isinstance(m, AIMessage)), default=-1)
+    cut = set(postings[:-keep] if keep else postings) - {i for i in postings if i > last_turn}
     out = []
     for i, m in enumerate(messages):
         if i in cut:
@@ -86,6 +89,7 @@ def build_graph(llm: Any, ctx: AgentContext):
         return {"messages": [reply], "steps": step}
 
     def tools_node(state: LoopState) -> dict:
+        ctx.turn += 1
         out = []
         for call in state["messages"][-1].tool_calls:
             tool = by_name.get(call["name"])
@@ -152,7 +156,7 @@ def experience_limit(years: float) -> str:
     return "no professional experience" if not years else f"at most {years:g} years of experience"
 
 
-def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
+def initial_messages(ctx: AgentContext, memory: str = "") -> list[BaseMessage]:
     s = ctx.settings
     years = ctx.config["filters"].get("max_required_years") or 0
     system = AGENT_SYSTEM.format(goal=s["goal_matches"], min_score=s["min_match_score"],
@@ -165,7 +169,7 @@ def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
                                  max_years=f"{years:g}", experience_limit=experience_limit(years),
                                  language=explanation_language(ctx.config))
     return [SystemMessage(system),
-            HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]))]
+            HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]) + memory)]
 
 
 def result_rows(ctx: AgentContext, cv_hash: str, model: str) -> list[dict]:
@@ -207,6 +211,7 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     ids, keys = db.existing_ids_and_keys(path)
     choices = choices_text(db.status_examples(int(cfg["matching"].get("feedback_examples") or 0), path))
     ctx = AgentContext(config=cfg, profile=profile, known_ids=ids, known_keys=keys, choices=choices)
+    memory = memory_text(int(ctx.settings.get("memory_runs") or 0), path)
     run_id = None if dry else db.start_run(path)
     log.info("agent: %s | goal %d matches >= %d | max %d steps, %d searches", model,
              ctx.settings["goal_matches"], ctx.settings["min_match_score"], ctx.settings["max_steps"],
@@ -215,7 +220,7 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     stop_reason = "crashed"
     try:
         final = build_graph(llm, ctx).invoke(
-            {"messages": initial_messages(ctx), "steps": 0, "nudges": 0},
+            {"messages": initial_messages(ctx, memory), "steps": 0, "nudges": 0},
             {"recursion_limit": ctx.settings["max_steps"] * 2 + 2 * MAX_NUDGES + 10})
         stop_reason = final.get("stop_reason") or "model_stopped"
         steps = final.get("steps", 0)
@@ -229,11 +234,13 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     rows = result_rows(ctx, cv_hash, model)
     stats = {
         "mode": f"agent:{model}", "stop_reason": stop_reason, "steps": steps,
-        "searches": ctx.searches, "collected": ctx.collected, "kept": len(ctx.candidates),
+        "searches": len(ctx.query_log), "charged_searches": ctx.searches,
+        "collected": ctx.collected, "kept": len(ctx.candidates),
         "filtered_by_reason": dict(ctx.drop_reasons), "read": len(ctx.read),
         "agent_matches": len(ctx.matches), "strong_matches": ctx.strong_matches(),
         "errors": [f"{h['source']}: {h['error']}" for h in ctx.health if h["error"]],
         "duration_s": round(time.monotonic() - started, 1), "dry_run": dry,
+        "queries": query_stats(ctx),                 # read back by the next run (agent_loop/memory.py)
     }
     if not dry:
         db.upsert_jobs(rows, path)

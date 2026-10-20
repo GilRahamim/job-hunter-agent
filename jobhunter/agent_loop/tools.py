@@ -45,15 +45,18 @@ class AgentContext:
     choices: str = ""                                            # jobs the user pursued / dismissed
     candidates: dict[str, Job] = field(default_factory=dict)     # new jobs that passed the filters
     prescores: dict[str, float] = field(default_factory=dict)
-    read: set[str] = field(default_factory=set)
+    read: dict[str, int] = field(default_factory=dict)           # id -> tool turn it was read in
+    turn: int = 0                                                # tool turns so far (set by the graph)
     closed: set[str] = field(default_factory=set)                # LinkedIn: no longer accepting applications
     matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason"}
     cache: dict[str, list[Job]] = field(default_factory=dict)    # fixed-list source -> jobs
     health: list[dict] = field(default_factory=list)
     drop_reasons: Counter = field(default_factory=Counter)
-    searches: int = 0
+    searches: int = 0                                            # searches charged to max_searches
     collected: int = 0
     group_searches: Counter = field(default_factory=Counter)     # role group -> searches
+    query_log: list[dict] = field(default_factory=list)          # one entry per search that ran
+    found_by: dict[str, int] = field(default_factory=dict)       # id -> index in query_log
 
     @property
     def settings(self) -> dict[str, Any]:
@@ -158,6 +161,21 @@ def _new_and_filtered(ctx: AgentContext, jobs: list[Job]) -> tuple[list[Job], Co
     return filter_jobs(fresh, ctx.config)
 
 
+def _add_candidate(ctx: AgentContext, job: Job, score: float) -> None:
+    """Remember a new job; its company|title key hides the same role on other sources later this run."""
+    ctx.candidates[job.id] = job
+    ctx.prescores[job.id] = score
+    ctx.found_by[job.id] = len(ctx.query_log) - 1
+    if job.company.strip():
+        ctx.known_keys.add(job.dedupe_key)
+
+
+def is_free(ctx: AgentContext, source: str) -> bool:
+    """Title-matched sources cost nothing once their list is loaded, so those searches are not
+    charged to max_searches; every linkedin search and each first load are."""
+    return source not in QUERY_SOURCES and source in ctx.cache
+
+
 # ------------------------------------------------------------ tool bodies
 
 def get_profile(ctx: AgentContext) -> str:
@@ -178,8 +196,11 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
         return f"ERROR: unknown source {source!r}. Use one of: {', '.join(sources)}."
     if not query:
         return "ERROR: query is empty."
-    if ctx.searches >= ctx.settings["max_searches"]:
-        return ("Search budget used up. Read and save the best candidates you already found, "
+    free = is_free(ctx, source)
+    if not free and ctx.searches >= ctx.settings["max_searches"]:
+        loaded = ", ".join(s for s in sources if is_free(ctx, s))
+        still_free = f" Searches on {loaded} are still free." if loaded else ""
+        return (f"Search budget used up.{still_free} Read and save the best candidates you already found, "
                 "then stop.")
     groups = ctx.settings.get("role_groups") or {}
     hit = query_groups(query, groups)
@@ -188,20 +209,21 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
         return (f"ERROR: role group {' / '.join(hit)} already has {cap} searches."
                 f"{coverage_note(ctx) or ' Search a different kind of job.'}")
     searched = junior_query(ctx, query) if source in QUERY_SOURCES else query
-    ctx.searches += 1
+    ctx.searches += 0 if free else 1
     ctx.group_searches.update(hit)
     found = _fetch(ctx, source, searched)
     kept, dropped = _new_and_filtered(ctx, found)
     ctx.drop_reasons.update(dropped)
     scores = prescore(ctx.profile, kept)
+    ctx.query_log.append({"query": query, "source": source, "found": len(found), "new": len(kept)})
     for job, score in zip(kept, scores):
-        ctx.candidates[job.id] = job
-        ctx.prescores[job.id] = score
+        _add_candidate(ctx, job, score)
     ranked = sorted(zip(kept, scores), key=lambda p: p[1], reverse=True)
     top = ranked[: ctx.settings["results_per_search"]]
     head = (f"{f'Searched as {searched!r} (junior roles only). ' if searched != query else ''}"
             f"{len(found)} postings matched, {len(kept)} new after filters"
             f"{' (dropped: ' + ', '.join(f'{k} {v}' for k, v in dropped.items()) + ')' if dropped else ''}. "
+            f"{'This search was free (list already loaded). ' if free else ''}"
             f"Searches left: {ctx.settings['max_searches'] - ctx.searches}.{coverage_note(ctx)}")
     if not top:
         hint = " Try a broader or different query." if source not in QUERY_SOURCES else ""
@@ -218,7 +240,7 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
     first_read = job.id not in ctx.read
-    ctx.read.add(job.id)
+    ctx.read.setdefault(job.id, ctx.turn)
     if first_read and linkedin_job_id(job.url):   # the page says whether it still accepts applications
         posting = fetch_posting(job)
         job.description = job.description.strip() or posting.description
@@ -251,6 +273,9 @@ def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
         ctx.drop_reasons[f"save_refused_{not_junior}"] += 1
         return (f"REFUSED: {job.title} @ {job.company} is not a junior role ({not_junior}). "
                 "The candidate wants junior / entry-level jobs only. Do not save it; find another job.")
+    if ctx.read[job.id] == ctx.turn:                         # read and saved in one batch: never seen
+        return ("ERROR: you read this posting in this same turn, so you have not seen its text yet. "
+                "Judge it from the read_posting result, then save it in your next turn.")
     ctx.matches[job.id] = {"score": score, "reason": reason.strip()}
     s = ctx.settings
     return (f"Saved {job.title} @ {job.company} with score {score}. "
@@ -296,6 +321,6 @@ def make_tools(ctx: AgentContext) -> list[StructuredTool]:
         StructuredTool.from_function(
             lambda job_id, score, reason: save_match(ctx, job_id, score, reason), name="save_match",
             args_schema=SaveArgs,
-            description="Save a junior job you have read as a match with your score and reason. "
-                        "Jobs that require experience are refused."),
+            description="Save a junior job you read in an earlier turn as a match with your score and "
+                        "reason. Jobs that require experience are refused."),
     ]

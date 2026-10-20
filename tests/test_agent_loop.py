@@ -388,3 +388,114 @@ def test_agent_cannot_save_a_closed_linkedin_job(env, monkeypatch):
     assert tools.read_posting(ctx, job.id).startswith("CLOSED")
     assert tools.save_match(ctx, job.id, 90, "fits").startswith("REFUSED") and not ctx.matches
     assert job.description == "Junior Python role"           # the search's description is kept
+
+
+def calls(*pairs):
+    """One model turn with several tool calls: calls(("read_posting", {...}), ("read_posting", {...}))."""
+    msgs = [call(name, args) for name, args in pairs]
+    return AIMessage("", tool_calls=[m.tool_calls[0] for m in msgs])
+
+
+def test_same_role_on_two_sources_is_kept_once(env, monkeypatch):
+    cfg, path, _ = env
+    dup = Job("jobspy:linkedin", "Data Analyst", "Delta", "https://li/9", location="Tel Aviv, Israel",
+              description="SQL dashboards")
+    monkeypatch.setattr(tools, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult(only[0], [BOARD] if "ats" in only else [dup])],
+        [{"source": only[0], "fetched": 1, "error": None, "duration_s": 0.1}]))
+    model = ScriptedModel([
+        call("search_jobs", {"query": "Junior Data Analyst", "source": "linkedin"}),
+        call("search_jobs", {"query": "data analyst", "source": "company_pages"}),
+    ])
+    use(monkeypatch, model)
+    result = agent_loop.run(cfg, db_path=path, dry_run=True)
+    assert "1 postings matched, 0 new" in tool_outputs(model)[1]          # same company|title as dup
+    assert [r["id"] for r in result["rows"]] == [dup.id]
+
+
+def test_batched_reads_are_shown_in_full_and_saved_next_turn(env, monkeypatch):
+    cfg, path, _ = env
+    cfg["agent"].update(goal_matches=2)
+    model = ScriptedModel([
+        call("search_jobs", {"query": "developer", "source": "linkedin"}),
+        calls(("read_posting", {"job_id": PY.id}), ("read_posting", {"job_id": AI.id})),
+        calls(("save_match", {"job_id": PY.id, "score": 80, "reason": "a"}),
+              ("save_match", {"job_id": AI.id, "score": 75, "reason": "b"})),
+    ])
+    use(monkeypatch, model)
+    result = agent_loop.run(cfg, db_path=path, dry_run=True)
+    view = " ".join(str(m.content) for m in model.seen[2])                # the turn that saves
+    assert "backend services" in view and "LangChain RAG agents" in view  # both postings in full
+    assert graph.POSTING_CUT_NOTE not in view
+    assert result["stats"]["stop_reason"] == "goal_reached" and result["stats"]["steps"] == 3
+
+
+def test_save_in_the_same_turn_as_the_read_is_refused(env, monkeypatch):
+    cfg, path, _ = env
+    model = ScriptedModel([
+        call("search_jobs", {"query": "developer", "source": "linkedin"}),
+        calls(("read_posting", {"job_id": PY.id}),
+              ("save_match", {"job_id": PY.id, "score": 80, "reason": "blind"})),
+        call("save_match", {"job_id": PY.id, "score": 80, "reason": "seen"}),
+    ])
+    use(monkeypatch, model)
+    result = agent_loop.run(cfg, db_path=path, dry_run=True)
+    assert "same turn" in tool_outputs(model)[2]
+    assert result["matches"][PY.id]["reason"] == "seen" and result["stats"]["stop_reason"] == "goal_reached"
+
+
+def test_searches_on_a_loaded_board_list_are_free(env, monkeypatch):
+    cfg, path, calls_ = env
+    cfg["agent"].update(max_searches=2)
+    model = ScriptedModel([
+        call("search_jobs", {"query": "data", "source": "company_pages"}),     # loads the list: charged
+        call("search_jobs", {"query": "python", "source": "company_pages"}),   # free
+        call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
+        call("search_jobs", {"query": "Junior AI Engineer", "source": "linkedin"}),
+        call("search_jobs", {"query": "analyst", "source": "company_pages"}),  # still free
+    ])
+    use(monkeypatch, model)
+    result = agent_loop.run(cfg, db_path=path, dry_run=True)
+    outs = tool_outputs(model)
+    assert "Searches left: 1" in outs[0] and "was free" in outs[1] and "Searches left: 1" in outs[1]
+    assert "Searches left: 0" in outs[2]
+    assert "budget used up" in outs[3] and "company_pages are still free" in outs[3]
+    assert "was free" in outs[4] and len(calls_) == 2
+    assert result["stats"]["searches"] == 4 and result["stats"]["charged_searches"] == 2
+
+
+def test_next_run_is_told_which_queries_worked(env, monkeypatch):
+    cfg, path, _ = env
+    cfg["agent"].update(memory_runs=5)
+    db.finish_run(db.start_run(path), {"mode": "llm:m", "kept": 3}, [], path)  # a pipeline run: ignored
+    first = ScriptedModel([
+        call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
+        call("read_posting", {"job_id": PY.id}),
+        call("save_match", {"job_id": PY.id, "score": 85, "reason": "fits"}),
+    ])
+    use(monkeypatch, first)
+    result = agent_loop.run(cfg, db_path=path)
+    assert result["stats"]["queries"] == [{"query": "Junior Python Developer", "source": "linkedin",
+                                           "found": 3, "new": 2, "read": 1, "saved": 1, "strong": 1}]
+    assert "What your searches found" not in first.seen[0][1].content    # no history yet
+
+    second = ScriptedModel([call("search_jobs", {"query": "Junior AI Engineer", "source": "remote_boards"})])
+    use(monkeypatch, second)
+    agent_loop.run(cfg, db_path=path)
+    start = second.seen[0][1].content
+    assert "last 1 agent run(s)" in start
+    assert '"Junior Python Developer" on linkedin: searched 1x, 2 new jobs, 1 saved (1 strong)' in start
+
+    third = ScriptedModel([])
+    use(monkeypatch, third)
+    agent_loop.run(cfg, db_path=path, dry_run=True)
+    start = third.seen[0][1].content
+    assert "last 2 agent run(s)" in start
+    assert start.index("Junior Python Developer") < start.index("Queries that led to no saved job")
+    assert '"Junior AI Engineer" on remote_boards: searched 1x' in start.split("no saved job:")[1]
+
+    cfg["agent"].update(memory_runs=0)
+    off = ScriptedModel([])
+    use(monkeypatch, off)
+    agent_loop.run(cfg, db_path=path, dry_run=True)
+    assert "What your searches found" not in off.seen[0][1].content
