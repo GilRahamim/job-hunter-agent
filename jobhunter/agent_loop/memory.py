@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from jobhunter import db
-from jobhunter.agent_loop.tools import AgentContext
+from jobhunter.agent_loop.tools import AgentContext, query_groups
 from jobhunter.prompts import AGENT_MEMORY
 
 RUNS_SCANNED = 50          # recent runs looked at to find the last agent runs (pipeline runs are mixed in)
@@ -27,11 +27,38 @@ def query_stats(ctx: AgentContext) -> list[dict]:
     return out
 
 
+def agent_runs(n_runs: int, path: str | Path | None = None) -> list[dict]:
+    """The last `n_runs` agent runs that stored their per-query results, newest first."""
+    if n_runs <= 0:
+        return []
+    return [r for r in db.last_runs(RUNS_SCANNED, path) if "queries" in r["stats"]][:n_runs]
+
+
+def group_history(n_runs: int, groups: dict[str, list[str]],
+                  path: str | Path | None = None) -> dict[str, dict[str, int]]:
+    """Per role group over the last `n_runs` agent runs: searches, saved and strong jobs.
+    Groups never searched are left out."""
+    out: dict[str, dict[str, int]] = {}
+    for r in agent_runs(n_runs, path):
+        for q in r["stats"]["queries"]:
+            for g in query_groups(q["query"], groups):
+                h = out.setdefault(g, {"searches": 0, "saved": 0, "strong": 0})
+                h["searches"] += 1
+                h["saved"] += q.get("saved", 0)
+                h["strong"] += q.get("strong", 0)
+    return out
+
+
+def dry_groups(history: dict[str, dict[str, int]], min_searches: int) -> set[str]:
+    """Groups searched at least `min_searches` times recently without one strong match (0 = off)."""
+    if min_searches <= 0:
+        return set()
+    return {g for g, h in history.items() if h["searches"] >= min_searches and not h["strong"]}
+
+
 def past_queries(n_runs: int, path: str | Path | None = None) -> tuple[int, list[dict]]:
     """(agent runs found, per query+source totals over the last `n_runs` agent runs), best first."""
-    if n_runs <= 0:
-        return 0, []
-    runs = [r for r in db.last_runs(RUNS_SCANNED, path) if "queries" in r["stats"]][:n_runs]
+    runs = agent_runs(n_runs, path)
     totals: dict[tuple[str, str], dict[str, Any]] = defaultdict(
         lambda: {"runs": 0, "new": 0, "saved": 0, "strong": 0})
     for r in runs:

@@ -113,6 +113,14 @@ turn, then in the next turn call save_match for every one worth saving (and
 search again in that same turn if you need more). Use only job ids that a tool returned.
 """
 
+# Appended to the role groups in AGENT_SYSTEM when earlier agent runs searched them (+ DRY_GROUPS_NOTE
+# when some group is dry).
+GROUP_HISTORY_NOTE = """
+In brackets: what each group gave in the last {runs} agent run(s)."""
+DRY_GROUPS_NOTE = """ Groups marked DRY found no strong match in
+{min_searches}+ recent searches: they get one search this run (a new angle is welcome), so spend
+the rest of the budget on the groups that produced matches."""
+
 AGENT_START = "Start the search. Goal: {goal} jobs scoring at least {min_score}."
 
 # Appended to AGENT_START when earlier agent runs stored their per-query results (agent_loop/memory.py).

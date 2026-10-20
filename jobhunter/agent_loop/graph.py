@@ -12,14 +12,15 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 from jobhunter import db
-from jobhunter.agent_loop.memory import memory_text, query_stats
+from jobhunter.agent_loop.memory import (agent_runs, dry_groups, group_history, memory_text,
+                                         query_stats)
 from jobhunter.agent_loop.tools import COVERAGE_NOTE, AgentContext, allowed_sources, make_tools
 from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.filters import junior_reason
 from jobhunter.llm import get_llm
 from jobhunter.matcher import choices_text, explanation_language, scored_row
-from jobhunter.prompts import AGENT_NUDGE, AGENT_START, AGENT_SYSTEM
+from jobhunter.prompts import AGENT_NUDGE, AGENT_START, AGENT_SYSTEM, DRY_GROUPS_NOTE, GROUP_HISTORY_NOTE
 from jobhunter.stop import stop_requested
 
 log = logging.getLogger(__name__)
@@ -59,6 +60,13 @@ def trim_search(content: str, read_ids: set[str]) -> str:
     kept = [line for line in lines if line.split(" | ", 1)[0].strip() not in read_ids]
     n = len(lines) - len(kept)
     return "\n".join(kept) + (f"\n{READ_ROWS_CUT_NOTE.format(n=n)}" if n else "")
+
+
+def said_done(content: Any) -> bool:
+    """The reply's last line (reasoning removed) is DONE: the model says nothing promising is left.
+    "I'm done with Data, moving on" is not."""
+    lines = THINK.sub("", content if isinstance(content, str) else "").strip().splitlines()
+    return bool(lines) and lines[-1].strip().strip(".!*").upper() == "DONE"
 
 
 def trim_reply(content: str, latest: bool) -> str:
@@ -139,7 +147,7 @@ def build_graph(llm: Any, ctx: AgentContext):
         if ctx.goal_reached():
             return "goal_reached"
         if state.get("nudges", 0) < MAX_NUDGES and state.get("steps", 0) < max_steps \
-                and "DONE" not in str(last.content):
+                and not said_done(last.content):
             return "nudge"
         return "model_stopped"
 
@@ -169,24 +177,41 @@ def build_graph(llm: Any, ctx: AgentContext):
     return g.compile()
 
 
-def role_groups_text(groups: dict[str, list[str]]) -> str:
+def role_groups_text(groups: dict[str, list[str]], history: dict[str, dict[str, int]] | None = None,
+                     dry: set[str] | None = None) -> str:
+    """One line per group; with history, each line says what the group gave in recent runs."""
     if not groups:
         return "- the candidate's target roles (see get_profile)"
-    return "\n".join(f"- {g}: {', '.join(titles)}" for g, titles in groups.items())
+    history, dry = history or {}, dry or set()
+
+    def past(g: str) -> str:
+        h = history.get(g)
+        if not h:
+            return " [not searched recently]" if history else ""
+        mark = "DRY: " if g in dry else ""
+        return f" [{mark}{h['searches']} searches, {h['saved']} saved, {h['strong']} strong]"
+
+    return "\n".join(f"- {g}: {', '.join(titles)}{past(g)}" for g, titles in groups.items())
 
 
 def experience_limit(years: float) -> str:
     return "no professional experience" if not years else f"at most {years:g} years of experience"
 
 
-def initial_messages(ctx: AgentContext, memory: str = "") -> list[BaseMessage]:
+def initial_messages(ctx: AgentContext, memory: str = "", history: dict[str, dict[str, int]] | None = None,
+                     runs: int = 0) -> list[BaseMessage]:
     s = ctx.settings
+    groups = role_groups_text(s.get("role_groups") or {}, history, ctx.dry_groups)
+    if history and s.get("role_groups"):
+        groups += GROUP_HISTORY_NOTE.format(runs=runs)
+        if ctx.dry_groups:
+            groups += DRY_GROUPS_NOTE.format(min_searches=s.get("dry_group_searches"))
     years = ctx.config["filters"].get("max_required_years") or 0
     system = AGENT_SYSTEM.format(goal=s["goal_matches"], min_score=s["min_match_score"],
                                  sources=", ".join(allowed_sources(ctx.config)),
                                  max_searches=s["max_searches"],
                                  per_group=s.get("max_searches_per_group", s["max_searches"]),
-                                 role_groups=role_groups_text(s.get("role_groups") or {}),
+                                 role_groups=groups,
                                  junior_words=", ".join(ctx.config["filters"].get("junior_keywords")
                                                         or ["junior", "entry level", "graduate"]),
                                  max_years=f"{years:g}", experience_limit=experience_limit(years),
@@ -248,7 +273,10 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     choices = choices_text(db.status_examples(int(cfg["matching"].get("feedback_examples") or 0), path))
     ctx = AgentContext(config=cfg, profile=profile, known_ids=ids, known_keys=keys, choices=choices,
                        scorer=scorer)
-    memory = memory_text(int(ctx.settings.get("memory_runs") or 0), path)
+    n_runs = int(ctx.settings.get("memory_runs") or 0)
+    memory = memory_text(n_runs, path)
+    history = group_history(n_runs, ctx.settings.get("role_groups") or {}, path)
+    ctx.dry_groups = dry_groups(history, int(ctx.settings.get("dry_group_searches") or 0))
     run_id = None if dry else db.start_run(path)
     log.info("agent: %s, scorer: %s | goal %d matches >= %d | max %d steps, %d searches", model,
              score_cfg["llm"]["model"],
@@ -258,7 +286,8 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
     stop_reason = "crashed"
     try:
         final = build_graph(llm, ctx).invoke(
-            {"messages": initial_messages(ctx, memory), "steps": 0, "nudges": 0},
+            {"messages": initial_messages(ctx, memory, history, len(agent_runs(n_runs, path))),
+             "steps": 0, "nudges": 0},
             {"recursion_limit": ctx.settings["max_steps"] * 2 + 2 * MAX_NUDGES + 10})
         stop_reason = final.get("stop_reason") or "model_stopped"
         steps = final.get("steps", 0)

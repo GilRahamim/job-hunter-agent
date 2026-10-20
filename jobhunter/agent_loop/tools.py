@@ -59,6 +59,7 @@ class AgentContext:
     searches: int = 0                                            # searches charged to max_searches
     collected: int = 0
     group_searches: Counter = field(default_factory=Counter)     # role group -> searches
+    dry_groups: set[str] = field(default_factory=set)            # no strong match in recent runs: 1 search
     query_log: list[dict] = field(default_factory=list)          # one entry per search that ran
     found_by: dict[str, int] = field(default_factory=dict)       # id -> index in query_log
 
@@ -100,6 +101,12 @@ def coverage_note(ctx: AgentContext) -> str:
     if not todo:
         return ""
     return COVERAGE_NOTE.format(todo=", ".join(todo))
+
+
+def group_cap(ctx: AgentContext, group: str) -> int:
+    """Searches one role group may use this run: one for a dry group, max_searches_per_group otherwise."""
+    return 1 if group in ctx.dry_groups else ctx.settings.get("max_searches_per_group",
+                                                               ctx.settings["max_searches"])
 
 
 def allowed_sources(config: dict[str, Any]) -> list[str]:
@@ -212,10 +219,10 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
                 "then stop.")
     groups = ctx.settings.get("role_groups") or {}
     hit = query_groups(query, groups)
-    cap = ctx.settings.get("max_searches_per_group", ctx.settings["max_searches"])
-    if hit and all(ctx.group_searches[g] >= cap for g in hit):
-        return (f"ERROR: role group {' / '.join(hit)} already has {cap} searches."
-                f"{coverage_note(ctx) or ' Search a different kind of job.'}")
+    if hit and all(ctx.group_searches[g] >= group_cap(ctx, g) for g in hit):
+        dry = " (dry: no strong match in recent runs)" if all(g in ctx.dry_groups for g in hit) else ""
+        return (f"ERROR: role group {' / '.join(hit)} already has {ctx.group_searches[hit[0]]} "
+                f"searches{dry}.{coverage_note(ctx) or ' Search a different kind of job.'}")
     searched = junior_query(ctx, query) if source in QUERY_SOURCES else query
     ctx.searches += 0 if free else 1
     ctx.group_searches.update(hit)

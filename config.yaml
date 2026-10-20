@@ -298,6 +298,9 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
   scorer: main
   # Memory: the start message lists which queries led to saved jobs in the last N agent runs (0 = off)
   memory_runs: 5
+  # A role group searched this many times over those runs without one strong match is "dry":
+  # it still gets one search per run, but not more (0 = off)
+  dry_group_searches: 3
   # Guardrail: LinkedIn queries without a junior word get this prefix ("AI Engineer" -> "Junior AI Engineer")
   junior_query_prefix: Junior
   # Fetch LinkedIn descriptions for agent searches, so experience requirements can be checked

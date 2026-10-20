@@ -613,3 +613,58 @@ def test_history_drops_read_rows_stale_notes_and_reasoning(env, monkeypatch):
     assert reply.startswith("Searching software next.") and "reasoning" not in reply
     old_reply = [m for m in model.seen[4] if isinstance(m, AIMessage) and m.tool_calls][-1].content
     assert len(old_reply) <= graph.MAX_OLD_TEXT + 6 and old_reply.endswith("[...]")
+
+
+@pytest.mark.parametrize("content,done", [
+    ("DONE", True),
+    ("Nothing promising is left.\nDONE", True),
+    ("<think>no more ideas</think>Done.", True),
+    ("I'm done with the Data group, DONE with it, moving on to Software", False),
+    ("Not DONE yet: next I search NOC roles", False),
+    ([{"type": "text", "text": "DONE"}], False),               # provider blocks: nudge rather than guess
+])
+def test_only_a_done_reply_ends_without_a_nudge(content, done):
+    assert graph.said_done(content) is done
+
+
+def seed_agent_runs(path, queries, n=1):
+    for _ in range(n):
+        db.finish_run(db.start_run(path), {"mode": "agent:m", "queries": queries}, [], path)
+
+
+def test_dry_groups_get_one_search_and_the_prompt_shows_group_history(env, monkeypatch):
+    cfg, path, _ = env
+    cfg["agent"].update(role_groups=GROUPS, max_searches=6, max_searches_per_group=3, dry_group_searches=3,
+                        memory_runs=5)
+    seed_agent_runs(path, [
+        {"query": "Junior Data Analyst", "source": "linkedin", "found": 9, "new": 5, "saved": 0, "strong": 0},
+        {"query": "Junior Python Developer", "source": "linkedin", "found": 9, "new": 5, "saved": 1, "strong": 1},
+    ], n=3)
+    model = ScriptedModel([
+        call("search_jobs", {"query": "Junior Data Analyst", "source": "linkedin"}),
+        call("search_jobs", {"query": "Graduate Data Scientist", "source": "linkedin"}),
+        call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
+        call("search_jobs", {"query": "Python Student", "source": "linkedin"}),
+    ])
+    use(monkeypatch, model)
+    agent_loop.run(cfg, db_path=path, dry_run=True)
+    system = model.seen[0][0].content
+    assert "- Data: Data Analyst, Data Scientist [DRY: 3 searches, 0 saved, 0 strong]" in system
+    assert "Software Engineer, Python Developer [3 searches, 3 saved, 3 strong]" in system
+    assert "LLM Engineer [not searched recently]" in system
+    assert "last 3 agent run(s)" in system and "Groups marked DRY" in system
+    outs = tool_outputs(model)
+    assert outs[1].startswith("ERROR: role group Data already has 1 searches (dry")
+    assert not outs[3].startswith("ERROR")                       # productive groups keep the normal cap
+
+
+def test_no_dry_groups_without_history_or_when_off(env, monkeypatch):
+    cfg, path, _ = env
+    cfg["agent"].update(role_groups=GROUPS, dry_group_searches=0, memory_runs=5)
+    seed_agent_runs(path, [{"query": "Junior Data Analyst", "source": "linkedin", "new": 5, "saved": 0,
+                            "strong": 0}], n=3)
+    model = ScriptedModel([])
+    use(monkeypatch, model)
+    agent_loop.run(cfg, db_path=path, dry_run=True)
+    system = model.seen[0][0].content
+    assert "[3 searches, 0 saved, 0 strong]" in system and "DRY" not in system
