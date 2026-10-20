@@ -286,6 +286,29 @@ def test_save_refuses_jobs_that_need_experience(env, monkeypatch):
     assert out.startswith("REFUSED") and "experience" in out and not ctx.matches
 
 
+def test_refused_and_closed_jobs_are_not_stored(env, monkeypatch):
+    cfg, path, _ = env
+    loose = copy.deepcopy(cfg)
+    loose["filters"]["max_required_years"] = None
+    exp = Job("jobspy:linkedin", "Python Developer", "Eps", "https://e/1", location="Tel Aviv, Israel",
+              description="Python. 4+ years of experience required.")
+    gone = Job("jobspy:linkedin", "Junior Python Developer", "Zed", "https://il.linkedin.com/jobs/view/py-at-zed-1234567",
+               location="Tel Aviv, Israel")
+    fine = Job("jobspy:linkedin", "Junior Python Developer", "Ok", "https://o/1", location="Tel Aviv, Israel",
+               description="Python, no experience needed")
+    monkeypatch.setattr(tools, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult("jobspy", [exp, gone, fine])], [{"source": "jobspy", "fetched": 3, "error": None,
+                                                          "duration_s": 0.1}]))
+    monkeypatch.setattr(tools, "fetch_posting", lambda job: Posting("Junior role", closed=True))
+    ctx = tools.AgentContext(config=loose, profile=CandidateProfile(skills=["Python"]),
+                             known_ids=set(), known_keys=set())
+    tools.search_jobs(ctx, "Python Developer", "linkedin")
+    tools.read_posting(ctx, gone.id)
+    ctx.config = cfg                                     # the real, junior-only config
+    rows = graph.result_rows(ctx, "hash", "m")
+    assert [r["id"] for r in rows] == [fine.id]          # 4+ years and closed jobs are not stored
+
+
 def test_agent_fetches_linkedin_descriptions(env, monkeypatch):
     cfg, path, _ = env
     seen = []

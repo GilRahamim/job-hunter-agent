@@ -47,6 +47,9 @@ Rules:
 - matching_skills / missing_skills: short skill names in English, max 8 each,
   most important first. missing_skills = must-haves the candidate lacks.
 - verdict: strong (>=75), good (60-74), stretch (40-59), poor (<40).
+- required_years: the minimum years of professional work experience the job
+  asks for, as a number (0 when it asks for none, or only for a degree or
+  courses); null when the posting has no description.
 - Write reasons, seniority_fit and cv_tip in {language}.
 - cv_tip: one concrete, job-specific suggestion (which project or skill to
   put first, what keyword to add) - not generic advice.

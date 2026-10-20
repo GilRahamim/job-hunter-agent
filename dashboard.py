@@ -257,8 +257,9 @@ def run_summary_html(run: dict) -> str:
 # A reload (the theme switch reloads the page) or a bookmark keeps the filters and the run mode.
 
 def pref_defaults(cfg: dict) -> dict:
-    # Nothing is hidden by default: every stored job shows until the owner narrows the view.
-    return {"q": "", "min_score": 0, "sources": [], "where": "הכול", "days": MAX_DAYS, "junior": False,
+    # Only the experience limit applies by default (jobs over it, by the rules or by the LLM's reading,
+    # stay hidden until the toggle is turned off); everything else shows until the owner narrows the view.
+    return {"q": "", "min_score": 0, "sources": [], "where": "הכול", "days": MAX_DAYS, "junior": True,
             "only_new": False, "agent_mode": False, "agent_goal": default_goal(cfg),
             "stages": list(STATUS_HE.values())}
 
