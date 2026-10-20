@@ -201,7 +201,9 @@ search:
   # what fills `results_per_query`. Empty = the names alone.
   employer_roles: [developer, engineer, programmer, analyst, data, SOC, NOC, SecOps, IT, student]
   location: Israel
-  results_per_query: 40
+  # LinkedIn answers 429 (rate limit) when a run asks too much; a junior search rarely has more than
+  # 25 relevant results. After a 429 the run skips LinkedIn and keeps the other sources.
+  results_per_query: 25
   hours_old: 168          # last 7 days
   auto_queries: 8         # users created from a CV (auto_from_cv): how many of its target roles to search
 

@@ -423,3 +423,97 @@ def test_jobspy_remote_pass_only_for_whole_word_keywords(monkeypatch):
     jobspy_source.collect_jobspy(cfg)
     remote = [q for q, r in passes if r]
     assert remote == ["Junior AI Engineer", "Machine Learning Intern"]     # "ai" inside "Email" is not "AI"
+
+
+@pytest.mark.parametrize("logger_name, message", [
+    ("JobSpy:LinkedIn", "LinkedIn response status code 429"),                  # python-jobspy < 1.4
+    ("jobspy.linkedin", "response status code 429 (blocked: use a proxy)"),     # 1.4+
+])
+def test_jobspy_skips_linkedin_after_a_429(monkeypatch, logger_name, message):
+    import logging
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "jobspy", types.ModuleType("jobspy"))
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+    calls = []
+
+    def scrape(sites, q, *a):
+        calls.append((q, list(sites)))
+        if q == "b":
+            logging.getLogger(logger_name).error(message)
+        return [Job("jobspy:indeed", f"Python Developer {q}", "Acme", f"https://x/{q}")]
+
+    monkeypatch.setattr(jobspy_source, "_scrape", scrape)
+    cfg = {"sources": {"jobspy": {"sites": ["linkedin", "indeed"]}},
+           "search": {"queries": ["a", "b", "c", "d"], "location": "Israel"}}
+    r = jobspy_source.collect_jobspy(cfg)
+    assert calls == [("a", ["linkedin", "indeed"]), ("b", ["linkedin", "indeed"]),
+                     ("c", ["indeed"]), ("d", ["indeed"])]
+    assert r.error is None and len(r.jobs) == 4
+    assert "429" in r.warning and "skipped for 2 of 4" in r.warning
+
+
+def test_jobspy_stops_when_linkedin_was_the_only_site(monkeypatch):
+    import logging
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "jobspy", types.ModuleType("jobspy"))
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+    calls = []
+
+    def scrape(sites, q, *a):
+        calls.append(q)
+        logging.getLogger("jobspy.linkedin").error("response status code 429")
+        return [Job("jobspy:linkedin", "Python Developer", "Acme", "https://x/1")]
+
+    monkeypatch.setattr(jobspy_source, "_scrape", scrape)
+    cfg = {"sources": {"jobspy": {"sites": ["linkedin"]}},
+           "search": {"queries": ["a", "b", "c"], "location": "Israel"}}
+    r = jobspy_source.collect_jobspy(cfg)
+    assert calls == ["a"] and len(r.jobs) == 1 and "skipped for 2 of 3" in r.warning
+
+
+def test_other_linkedin_errors_do_not_skip_it(monkeypatch):
+    import logging
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "jobspy", types.ModuleType("jobspy"))
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+    calls = []
+
+    def scrape(sites, q, *a):
+        calls.append(list(sites))
+        logging.getLogger("jobspy.linkedin").error("unexpected page with no jobs (blocked?)")
+        return [Job("jobspy:linkedin", f"Dev {q}", "Acme", f"https://x/{q}")]
+
+    monkeypatch.setattr(jobspy_source, "_scrape", scrape)
+    cfg = {"sources": {"jobspy": {"sites": ["linkedin"]}}, "search": {"queries": ["a", "b"], "location": "Israel"}}
+    jobspy_source.collect_jobspy(cfg)
+    assert calls == [["linkedin"], ["linkedin"]]
+
+
+def test_fill_descriptions_stops_at_a_429(monkeypatch):
+    from jobhunter.collectors import details
+    calls = []
+    monkeypatch.setattr(details, "fetch_posting",
+                        lambda job: calls.append(job) or details.Posting(rate_limited=True))
+    jobs = [Job("techmap", f"Dev {i}", "A", f"https://il.linkedin.com/jobs/view/dev-{i}12345") for i in range(3)]
+    assert details.fill_descriptions(jobs, limit=5, pause=(0, 0)) == set()
+    assert len(calls) == 1
+
+
+def test_a_429_on_the_last_search_is_still_reported(monkeypatch):
+    import logging
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "jobspy", types.ModuleType("jobspy"))
+    monkeypatch.setattr(jobspy_source.time, "sleep", lambda s: None)
+
+    def scrape(sites, q, *a):
+        if q == "b":
+            logging.getLogger("jobspy.linkedin").error("response status code 429")
+        return [Job("jobspy:linkedin", f"Dev {q}", "Acme", f"https://x/{q}")]
+
+    monkeypatch.setattr(jobspy_source, "_scrape", scrape)
+    cfg = {"sources": {"jobspy": {"sites": ["linkedin"]}}, "search": {"queries": ["a", "b"], "location": "Israel"}}
+    assert "skipped for 0 of 2" in jobspy_source.collect_jobspy(cfg).warning
