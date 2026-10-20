@@ -57,12 +57,16 @@
 /* ---------- Sidebar: "Playful career toolkit" (Figma 7:2424) ---------- */
 @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+/* Open / collapsed state: aria-expanded up to Streamlit 1.65, data-collapsed from 1.66. Keep both. */
 /* Wider sidebar when open, like the Figma layer. */
-[data-testid="stSidebar"][aria-expanded="true"] { width: 360px !important; min-width: 360px !important; }
+[data-testid="stSidebar"][aria-expanded="true"],
+[data-testid="stSidebar"][data-collapsed="false"] { width: 360px !important; min-width: 360px !important; }
 
 /* Collapsed sidebar: Streamlit shrinks it to width 0 but the (RTL, right-hand) content keeps painting as a sliver. Hide it. */
-[data-testid="stSidebar"][aria-expanded="false"] { visibility: hidden !important; overflow: hidden !important; pointer-events: none; }
-[data-testid="stSidebar"][aria-expanded="false"] * { visibility: hidden !important; }
+[data-testid="stSidebar"][aria-expanded="false"],
+[data-testid="stSidebar"][data-collapsed="true"] { visibility: hidden !important; overflow: hidden !important; pointer-events: none; }
+[data-testid="stSidebar"][aria-expanded="false"] *,
+[data-testid="stSidebar"][data-collapsed="true"] * { visibility: hidden !important; }
 
 [data-testid="stSidebar"] { font-family: 'Rubik', 'Heebo', sans-serif; background: var(--jh-sb-bg); }
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding: 4px 4px 24px; }
