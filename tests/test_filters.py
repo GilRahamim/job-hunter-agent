@@ -226,3 +226,29 @@ def test_role_fit_reads_the_requirements_not_only_the_title(cfg):
     assert not role_fit(j("Delivery Driver", "Driving license"), cfg)
     assert not role_fit(j("Sales Engineer", "B.Sc. in computer science"), cfg)   # excluded titles stay out
     assert not role_fit(j("Office Assistant", "Excel and phones"), cfg)
+
+
+@pytest.mark.parametrize("text,years", [
+    ("דרישות: שלוש שנות ניסיון בפיתוח", 3),
+    ("ניסיון של ארבע שנים לפחות", 4),
+    ("3+ YOE with Python", 3),
+    ("Years of experience: 4", 4),
+    ("Required experience - 2 years", 2),
+    ("שנתיים", 2),
+])
+def test_required_years_hebrew_words_and_yoe(text, years):
+    assert required_years(text) == years
+
+
+def test_years_over_limit_follows_the_junior_title_rule(cfg):
+    import copy
+    from jobhunter.filters import years_over_limit
+    assert years_over_limit(j("Data Analyst"), 1, cfg)
+    assert not years_over_limit(j("Data Analyst"), 0, cfg)
+    assert not years_over_limit(j("Data Analyst"), None, cfg)
+    loose = copy.deepcopy(cfg)
+    loose["filters"].update(max_required_years=0, junior_max_required_years=2)
+    assert not years_over_limit(j("Junior Data Analyst"), 2, loose)
+    assert years_over_limit(j("Data Analyst"), 2, loose)
+    loose["filters"]["max_required_years"] = None
+    assert not years_over_limit(j("Data Analyst"), 9, loose)               # no limit

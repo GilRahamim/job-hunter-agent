@@ -10,7 +10,7 @@ from jobhunter.models import Job
 
 # (?<![\d.]): "3.5 years" is not "5 years" and "2012 years" is not "12 years"
 _YEARS = re.compile(r"(?<![\d.])(\d{1,2}(?:\.\d)?)(?:\s*(?:-|–|to)\s*\d{1,2}(?:\.\d)?)?\s*\+?\s*(?:or more\s+)?"
-                    r"(?:years?\b|yrs?\b|שנות|שנים|שנה)"
+                    r"(?:years?\b|yrs?\b|yoe\b|שנות|שנים|שנה)"
                     # not a job requirement: "founded 10 years ago", "18 years old", "4+ years of driving"
                     r"(?!\s*(?:ago|old|(?:of\s+)?driving)\b)", re.I)
 _NUM_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
@@ -18,6 +18,13 @@ _NUM_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "s
 # "four years", "two (2) years", "three or more years" -> digits, so _YEARS can read them
 _NUM_WORD = re.compile(r"\b(" + "|".join(_NUM_WORDS) + r")\b(?:\s*\(\d{1,2}\))?(?=\s*\+?\s*(?:or more\s+)?"
                        r"(?:years?|yrs?)\b)", re.I)
+# "שלוש שנות ניסיון", "ארבע שנים" -> digits (longer forms first: "שלושה" before "שלוש")
+_HE_NUM_WORDS = {"שתי": 2, "שלושה": 3, "שלוש": 3, "ארבעה": 4, "ארבע": 4, "חמישה": 5, "חמש": 5, "שישה": 6,
+                 "שש": 6, "שבעה": 7, "שבע": 7, "שמונה": 8, "תשעה": 9, "תשע": 9, "עשר": 10}
+_HE_NUM_WORD = re.compile(r"(?<![א-ת])(" + "|".join(_HE_NUM_WORDS) + r")(?=\s+(?:שנות|שנים))")
+# the number after the words: "Years of experience: 4"
+_YEARS_LABEL = re.compile(r"years of (?:relevant |professional |work |hands-on )?experience\s*[:\-–]\s*"
+                          r"(\d{1,2}(?:\.\d)?)", re.I)
 MAX_REQUIRED_YEARS = 15     # larger numbers describe the company ("over 20 years in the industry")
 _HE_YEARS = ((re.compile(r"שנתיים"), 2), (re.compile(r"שנת\s+ניסיון"), 1))
 _HEBREW = re.compile(r"[֐-׿]")
@@ -130,9 +137,12 @@ def seniority_ok(title: str, cfg: dict[str, Any]) -> bool:
 
 def required_years(text: str) -> float:
     """Largest 'N years' lower bound mentioned in the text (0 if none).
-    Reads "3+ years", "1 year", "four years", "שנתיים" and "שנת ניסיון"."""
+    Reads "3+ years", "1 year", "four years", "3+ YOE", "Years of experience: 4", "שנתיים",
+    "שנת ניסיון" and "שלוש שנות ניסיון"."""
     text = _NUM_WORD.sub(lambda m: str(_NUM_WORDS[m.group(1).lower()]), text)
-    found = [y for m in _YEARS.finditer(text) if (y := float(m.group(1))) <= MAX_REQUIRED_YEARS]
+    text = _HE_NUM_WORD.sub(lambda m: str(_HE_NUM_WORDS[m.group(1)]), text)
+    found = [y for rx in (_YEARS, _YEARS_LABEL) for m in rx.finditer(text)
+             if (y := float(m.group(1))) <= MAX_REQUIRED_YEARS]
     found += [n for rx, n in _HE_YEARS if rx.search(text)]
     return float(max(found)) if found else 0.0
 
@@ -167,6 +177,24 @@ def experience_ok(job: Job, max_years: float | None, junior_max_years: float | N
     if required_years(f"{job.title}\n{job.description}") > limit:
         return False
     return junior_title or not keyword_hits(job.description, experienced_phrases or [])
+
+
+def years_limit(job: Job, cfg: dict[str, Any]) -> float | None:
+    """The most years of experience this job may ask for (None = no limit); a junior title gets
+    `junior_max_required_years`, like experience_ok."""
+    f = cfg["filters"]
+    max_years, junior_max = f.get("max_required_years"), f.get("junior_max_required_years")
+    if max_years is None:
+        return None
+    if junior_max is not None and keyword_hits(job.title, f.get("junior_keywords") or []):
+        return max(max_years, junior_max)
+    return max_years
+
+
+def years_over_limit(job: Job, years: float | None, cfg: dict[str, Any]) -> bool:
+    """`years` (e.g. what the LLM read in the posting) is more than this job may ask for."""
+    limit = years_limit(job, cfg)
+    return limit is not None and years is not None and years > limit
 
 
 def junior_reason(job: Job, cfg: dict[str, Any]) -> str | None:

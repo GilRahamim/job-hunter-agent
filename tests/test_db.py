@@ -119,3 +119,27 @@ def test_status_examples_are_the_users_latest_choices(path):
     assert got == {"liked": ["QA Tester @ B", "Data Analyst @ A"], "disliked": ["Sales Rep"]}
     assert db.status_examples(1, path)["liked"] == ["QA Tester @ B"]          # newest first
     assert db.status_examples(0, path) == {"liked": [], "disliked": []}       # off
+
+
+def test_experience_report_names_how_each_job_got_in(path):
+    import importlib.util
+    from pathlib import Path as P
+    from jobhunter.config import load_config
+    from jobhunter.models import Job
+    spec = importlib.util.spec_from_file_location(
+        "experience_report", P(__file__).parent.parent / "scripts" / "experience_report.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    db.upsert_jobs([
+        {**Job("greenhouse", "Python Developer", "Rules", "https://r/1",
+               description="3+ years of Python").to_dict(), "scored_by": "heuristic"},
+        {**Job("jobspy:linkedin", "Python Developer", "Llm", "https://l/1",
+               description="Python, a few years in production").to_dict(),
+         "required_years": 4, "scored_by": "llm:x"},
+        {**Job("greenhouse", "Python Developer", "Fine", "https://f/1",
+               description="Python, no experience").to_dict(), "required_years": 0},
+    ], path)
+    rows = {r["company"]: r for r in mod.report(load_config(), path)}
+    assert set(rows) == {"Rules", "Llm"}
+    assert (rows["Rules"]["found_by"], rows["Rules"]["years"]) == ("rules", 3)
+    assert (rows["Llm"]["found_by"], rows["Llm"]["years"], rows["Llm"]["source"]) == ("llm", 4, "jobspy:linkedin")

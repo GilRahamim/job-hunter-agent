@@ -24,6 +24,8 @@ Implement each rule as a small pure function returning `(keep: bool, reason: str
 
 **Seniority** — if `exclude_senior`, drop titles containing `senior_keywords`. Note `"lead"` also matches "Leading"… use word boundaries (`\blead\b`). Titles like "Software Engineer II" are fine; "III"/"IV" lean senior — leave them for the LLM.
 
+**LLM backstop** — the scoring prompt asks for `required_years`; `agent.save_node` does not save a new job whose LLM reading is over `filters.years_over_limit` (reason `experience_llm`), and `db.not_junior_ids` hides stored ones in the dashboard. When the rules miss a phrasing, add it to `required_years` with a test (Hebrew number words and "YOE" were added this way).
+
 **Age** — drop if `date_posted` older than `max_age_days`; keep when unknown.
 
 ## 2. Pre-score — `matcher.prescore(profile, jobs) -> list[float]`

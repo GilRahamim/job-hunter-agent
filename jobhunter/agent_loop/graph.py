@@ -14,6 +14,7 @@ from jobhunter import db
 from jobhunter.agent_loop.tools import AgentContext, allowed_sources, make_tools
 from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
+from jobhunter.filters import junior_reason
 from jobhunter.llm import get_llm
 from jobhunter.matcher import choices_text, explanation_language, scored_row
 from jobhunter.models import JobMatch
@@ -168,9 +169,12 @@ def initial_messages(ctx: AgentContext) -> list[BaseMessage]:
 
 
 def result_rows(ctx: AgentContext, cv_hash: str, model: str) -> list[dict]:
-    """Every candidate the agent saw; the ones it saved carry its score and reason."""
+    """Every candidate the agent saw; the ones it saved carry its score and reason. Jobs that turned
+    out closed or experienced once read (save_match refused them) are left out."""
     rows = []
     for job_id, job in ctx.candidates.items():
+        if job_id in ctx.closed or junior_reason(job, ctx.config):
+            continue
         m = ctx.matches.get(job_id)
         match = JobMatch(score=m["score"], verdict=verdict_for(m["score"]), reasons=m["reason"]) if m else None
         row = scored_row(job, ctx.prescores[job_id], match, cv_hash, model)

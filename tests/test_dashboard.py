@@ -258,6 +258,7 @@ def test_experience_toggle_follows_each_users_cv(tmp_path, monkeypatch):
     user = _two_users(tmp_path, monkeypatch)
     at = AppTest.from_file(str(DASHBOARD), default_timeout=60).run()
     assert at.toggle(key="junior").label == "רק משרות ללא דרישת ניסיון"         # the owner's config
+    assert at.toggle(key="junior").value is True                                # on by default
     profile = {"seniority": "mid", "years_experience": 4.5, "target_roles": ["Marketing Specialist"]}
     db.save_profile("h", "cv.txt", profile, db.db_path(user=user))
     at.selectbox(key="user").set_value(user).run()

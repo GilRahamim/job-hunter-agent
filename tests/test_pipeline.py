@@ -209,6 +209,41 @@ def test_jobs_without_description_are_read_then_checked_for_experience(env, monk
     assert state["stats"]["filtered_by_reason"] == {"experience": 1} and state["stats"]["kept"] == 0
 
 
+def test_new_jobs_the_llm_reads_as_experienced_are_not_saved(env, monkeypatch):
+    cfg, path = env
+    ok = Job("greenhouse", "Python Developer", "Ok", "https://ok/1", location="Tel Aviv, Israel",
+             description="Python SQL Docker backend services")
+    exp = Job("greenhouse", "Python Developer", "Exp", "https://exp/1", location="Tel Aviv, Israel",
+              description="Python SQL Docker. Several years in production systems.")   # the rules read 0
+    monkeypatch.setattr(agent, "collect_all", lambda config, only=None, limit=None: (
+        [CollectorResult("ats", [ok, exp])], [{"source": "ats", "fetched": 2, "error": None, "duration_s": 0}]))
+
+    class YearsLLM(FakeLLM):
+        def with_structured_output(self, cls):
+            class S:
+                def invoke(self, messages):
+                    if cls is CandidateProfile:
+                        return CandidateProfile(skills=["Python"], seniority="junior")
+                    years = 4 if "Company: Exp\n" in messages[1][1] else 0
+                    return JobMatch(score=80, verdict="strong", required_years=years)
+            return S()
+
+    monkeypatch.setattr(agent, "get_llm", lambda cfg: YearsLLM())
+    cfg["matching"]["min_prescore_for_llm"] = 0
+    state = agent.run(cfg, db_path=path)
+    assert [r["company"] for r in db.all_jobs(path=path)] == ["Ok"]
+    assert state["stats"]["filtered_by_reason"].get("experience_llm") == 1
+
+
+def test_not_junior_ids_include_the_stored_years(env):
+    cfg, path = env
+    db.upsert_jobs([{**Job("greenhouse", "Python Developer", "A", "https://a/9").to_dict(), "required_years": 3},
+                    {**Job("greenhouse", "Python Developer", "B", "https://b/9").to_dict(), "required_years": 0}],
+                   path)
+    ids = {r["company"]: r["id"] for r in db.all_jobs(path=path)}
+    assert db.not_junior_ids(cfg, path) == {ids["A"]}
+
+
 def test_closed_linkedin_jobs_are_not_saved(env, monkeypatch):
     cfg, path = env
     cfg["matching"]["fetch_descriptions"] = 5

@@ -16,7 +16,7 @@ from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.db import job_from_row
 from jobhunter.dedupe import dedupe_batch, is_new
-from jobhunter.filters import filter_jobs, junior_reason
+from jobhunter.filters import filter_jobs, junior_reason, years_over_limit
 from jobhunter.llm import get_llm
 from jobhunter.matcher import llm_score as score_with_llm
 from jobhunter.matcher import prescore as prescore_jobs
@@ -168,13 +168,20 @@ def llm_score_node(state: PipelineState) -> dict:
 
 def save_node(state: PipelineState) -> dict:
     matches = state.get("matches", {})
-    rows = [scored_row(j, pre, matches.get(j.id), state["cv_hash"], state["model"])
-            for j, pre in zip(state["to_score"], state["prescores"])]
+    rows, drop_reasons = [], dict(state["drop_reasons"])
+    for j, pre in zip(state["to_score"], state["prescores"]):
+        row = scored_row(j, pre, matches.get(j.id), state["cv_hash"], state["model"])
+        # The LLM read an experience requirement the rules missed: do not add the job. A job already
+        # in the DB (rescored) keeps its row, with the new years, and the dashboard hides it.
+        if j.id not in state["rescored_ids"] and years_over_limit(j, row["required_years"], state["config"]):
+            drop_reasons["experience_llm"] = drop_reasons.get("experience_llm", 0) + 1
+            continue
+        rows.append(row)
     opts = state["options"]
     stats = {
         "mode": f"llm:{state['model']}" if state["llm_enabled"] else "heuristic",
         "collected": len(state["raw_jobs"]), "new": len(state["new_jobs"]),
-        "known": len(state["known_ids"]), "filtered_by_reason": state["drop_reasons"],
+        "known": len(state["known_ids"]), "filtered_by_reason": drop_reasons,
         "kept": len(state["kept_jobs"]), "rescored": len(state["rescored_ids"]),
         "prescored": len(rows), "llm_scored": sum(1 for m in matches.values() if m),
         "llm_failed": sum(1 for m in matches.values() if m is None),

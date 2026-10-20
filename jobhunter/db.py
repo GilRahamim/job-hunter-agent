@@ -269,13 +269,18 @@ def jobs_table(path: str | Path | None = None) -> list[dict]:
 
 def not_junior_ids(cfg: dict[str, Any], path: str | Path | None = None) -> set[str]:
     """Ids of stored jobs that fail the junior check (senior title, required experience,
-    unverifiable) under the current config, including jobs saved before the check existed."""
-    from jobhunter.filters import junior_reason
+    unverifiable) under the current config, including jobs saved before the check existed, and jobs
+    whose stored required_years (the LLM's reading of the posting) is over the limit."""
+    from jobhunter.filters import junior_reason, years_over_limit
 
     with connect(path) as con:
-        rows = con.execute("SELECT id, title, description FROM jobs").fetchall()
-    return {r["id"] for r in rows
-            if junior_reason(Job("", r["title"] or "", "", "", description=r["description"] or ""), cfg)}
+        rows = con.execute("SELECT id, title, description, required_years FROM jobs").fetchall()
+    out = set()
+    for r in rows:
+        job = Job("", r["title"] or "", "", "", description=r["description"] or "")
+        if junior_reason(job, cfg) or years_over_limit(job, r["required_years"], cfg):
+            out.add(r["id"])
+    return out
 
 
 def job_detail(job_id: str, path: str | Path | None = None) -> dict | None:
