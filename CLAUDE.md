@@ -46,7 +46,7 @@ jobhunter/
   tailor/      (empty: CV Tailoring Agent, Phase 8, planned)
 run_agent.py         CLI entry point (search agent)
 dashboard.py         Streamlit app;  ui/  design system (tokens, CSS, components)
-scripts/             check_boards.py, sync_companies.py (add boards from Israeli Tech Map + VC boards), schedule_windows.ps1
+scripts/             check_boards.py, sync_companies.py (add boards from Israeli Tech Map + VC boards)
 tests/               pytest + fixtures/ (recorded API responses)
 docs/                ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, USER_GUIDE.he.md (for people who just use it)
 ```

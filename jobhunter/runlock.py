@@ -1,5 +1,5 @@
 """One run at a time: <run dir>/run.lock holds the PID of the running search (pipeline or agent loop).
-The scheduler, the CLI and the dashboard button all take this lock."""
+The CLI and the dashboard button both take this lock."""
 from __future__ import annotations
 
 import os

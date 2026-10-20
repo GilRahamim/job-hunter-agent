@@ -43,21 +43,6 @@ DARK = {
     "sb_lilac": "#12302e", "sb_peach": "#3a2a1d", "sb_lime": "#25301a",   # teal / amber / olive tints
 }
 
-# Type scale (Heebo) — from Figma text styles
-TYPE = {
-    "title": (48, 800),      # page title "משרות"
-    "job_title": (28, 800),  # detail card heading
-    "kpi_value": (36, 800),  # KPI Card value
-    "body": (15, 400),
-    "label": (14, 400),      # KPI label, table text
-    "chip": (13.5, 500),
-    "button": (14, 600),
-    "caption": (12.5, 400),
-}
-
-# Score → verdict thresholds (shared with job-matching)
-STRONG, GOOD, STRETCH = 75, 60, 40
-
 
 def css_vars(tokens: dict) -> str:
     return ":root{" + "".join(f"--jh-{k.replace('_', '-')}:{v};" for k, v in tokens.items()) + "}"

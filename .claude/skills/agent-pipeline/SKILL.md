@@ -1,6 +1,6 @@
 ---
 name: agent-pipeline
-description: The LangGraph orchestration of the Job Hunter project — graph state, nodes (load_profile, collect, dedupe, filter, prescore, llm_score, save), the conditional LLM edge, run statistics, logging, the run_agent.py CLI flags, and Windows Task Scheduler setup. Use this whenever working on jobhunter/agent.py, run_agent.py, scripts/schedule_windows.ps1, adding a pipeline step, or when a run hangs, crashes, or reports odd stats.
+description: The LangGraph orchestration of the Job Hunter project — graph state, nodes (load_profile, collect, dedupe, filter, prescore, llm_score, save), the conditional LLM edge, run statistics, logging, the run_agent.py CLI flags. Use this whenever working on jobhunter/agent.py, run_agent.py, adding a pipeline step, or when a run hangs, crashes, or reports odd stats.
 ---
 
 # Agent pipeline
@@ -76,18 +76,10 @@ End of run: print a compact summary — per-source counts/errors, filter drops, 
 ## Concurrency
 - Collectors in parallel (`ThreadPoolExecutor`, one task per source; per-company parallelism inside ATS collectors). JobSpy runs as one task internally sequential (rate limits).
 - LLM scoring parallel with `max_workers` from config.
-- Guard against overlapping runs (scheduler + dashboard button): a lock file `data/run.lock` with the PID; if it exists and the PID is alive, exit with a message.
+- Guard against overlapping runs (CLI + dashboard button): a lock file `data/run.lock` with the PID; if it exists and the PID is alive, exit with a message.
 
-## Scheduling on Windows — `scripts/schedule_windows.ps1`
-```powershell
-$proj   = Split-Path -Parent $PSScriptRoot
-$python = (Get-Command python).Source          # or the venv: "$proj\.venv\Scripts\python.exe"
-$action  = New-ScheduledTaskAction -Execute $python -Argument "run_agent.py" -WorkingDirectory $proj
-$trigger = New-ScheduledTaskTrigger -Daily -At 8:30am
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Hours 1)
-Register-ScheduledTask -TaskName "JobHunterAgent" -Action $action -Trigger $trigger -Settings $settings -Description "Daily job search" -Force
-```
-`-StartWhenAvailable` makes a missed run (PC off at 8:30) happen at next boot. Prefer the venv python path so the task doesn't depend on PATH.
+## Scheduling
+There is none, on purpose: the owner removed the daily Task Scheduler task because it opened a terminal at every boot. Runs are manual (CLI or dashboard button). Do not add one back unless asked.
 
 ## Optional: notify on strong matches
 After `save`, if there are new jobs with `score >= 80`, send a summary. Simplest on Windows: `win11toast`/`plyer` desktop notification; or email via SMTP with an app password from `.env`. Keep it a separate `notify` node behind a config flag.

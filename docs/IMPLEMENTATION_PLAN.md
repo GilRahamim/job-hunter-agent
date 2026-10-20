@@ -96,9 +96,9 @@ Acceptance: `streamlit run dashboard.py` shows real data; changing a job's statu
 ## Phase 7 — Scheduling and polish
 **Skills:** `agent-pipeline`
 
-Tasks: `scripts/schedule_windows.ps1` (daily task), README in Hebrew, optional desktop notification / email digest of new strong matches.
+Tasks: README in Hebrew, optional desktop notification / email digest of new strong matches.
 
-Acceptance: the scheduled task appears in Task Scheduler and a manual trigger produces a new run row.
+Acceptance: a manual run produces a new run row. (A daily Task Scheduler task was built here and later removed: runs are manual.)
 
 ---
 

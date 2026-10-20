@@ -124,8 +124,8 @@ Tables: `jobs`, `runs`, `source_health`, `profile`. Full schema in the `job-stor
 ## 7. Dashboard
 Streamlit, Hebrew UI with RTL CSS. Pages/tabs: Jobs (filterable table + detail panel with reasons, skills, status, notes, apply link), Pipeline (counts by status), Insights (score distribution, jobs per source, **top missing skills across good matches** — the learning roadmap), Sources (health of last run), Profile (extracted CV profile). Sidebar button triggers a run in a subprocess.
 
-## 8. Scheduling
-Windows Task Scheduler runs `python run_agent.py` daily (script in `scripts/schedule_windows.ps1`). The dashboard is opened on demand.
+## 8. Running
+Runs are started by hand: `python run_agent.py` or the dashboard's run button. There is no scheduled task (it was removed because it opened a terminal at every boot).
 
 ## 9. Key decisions and tradeoffs
 

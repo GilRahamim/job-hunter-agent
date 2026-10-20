@@ -36,7 +36,7 @@ IL = ZoneInfo("Asia/Jerusalem")
 _scheme = getattr(getattr(st.context, "theme", None), "type", None) or "light"
 _T = DARK if _scheme == "dark" else LIGHT
 # charts: accent = good, gap color = missing skills (same tokens as the Figma design)
-INK, SEA, CORAL, MIST = _T["ink"], _T["accent"], _T["gap_text"], _T["mist"]
+SEA, CORAL, MIST = _T["accent"], _T["gap_text"], _T["mist"]
 
 STATUS_HE = {"new": "חדש", "interested": "מעניין", "applied": "הוגשה מועמדות", "interview": "ראיון",
              "offer": "הצעה", "rejected": "נדחה", "not_relevant": "לא רלוונטי"}

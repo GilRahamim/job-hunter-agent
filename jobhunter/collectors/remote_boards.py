@@ -5,8 +5,7 @@ import logging
 import xml.etree.ElementTree as ET
 from typing import Any, Callable
 
-from jobhunter.collectors.base import (CollectorResult, clean, get_json, get_session, get_text,
-                                       html_to_text, to_iso)
+from jobhunter.collectors.base import (CollectorResult, clean, get_json, get_session, html_to_text, to_iso)
 from jobhunter.models import Job
 
 log = logging.getLogger(__name__)

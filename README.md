@@ -90,20 +90,9 @@ Claude saves `cv_tailored.md` (plus a `.docx` copy), `cover_letter.md`, `intervi
 
 ### Several people on one PC
 
-Profile tab → **"הוספת אדם נוסף"**: a name, a CV and, optionally, job titles. This creates `users/<id>/` (gitignored) with that person's CV, their own `jobs.db` and run files, and a `config.yaml` that holds only what differs from the main one. That file turns on `auto_from_cv`: the search titles, the role filter and the experience limit come from their CV (`jobhunter/personalize.py`), because the main `config.yaml` is tuned for the owner's junior CS search. Without an LLM, the titles typed in the form are used. Pick who is searching at the top of the sidebar. Schedule a daily run for them with `scripts\schedule_windows.ps1 -User <id>`. The tool-using agent loop stays the owner's.
+Profile tab → **"הוספת אדם נוסף"**: a name, a CV and, optionally, job titles. This creates `users/<id>/` (gitignored) with that person's CV, their own `jobs.db` and run files, and a `config.yaml` that holds only what differs from the main one. That file turns on `auto_from_cv`: the search titles, the role filter and the experience limit come from their CV (`jobhunter/personalize.py`), because the main `config.yaml` is tuned for the owner's junior CS search. Without an LLM, the titles typed in the form are used. Pick who is searching at the top of the sidebar. The tool-using agent loop stays the owner's.
 
 A full run takes a few minutes. Most of that time is JobSpy, which waits between queries so LinkedIn does not rate-limit it.
-
-### Daily run on Windows
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1            # every day at 08:30
-powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -At 7:15am
-powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -RunNow
-powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1 -Remove
-```
-
-This registers a Task Scheduler task named `JobHunterAgent`. If the PC was off at the scheduled time, the run starts when it turns on. Logs go to `data/logs/`.
 
 ## Configuration
 
@@ -145,7 +134,7 @@ jobhunter/
   personalize.py    search settings derived from a CV (auto_from_cv)
   runlock.py stop.py  one run at a time, graceful stop
 ui/                 dashboard design system (tokens, CSS, components)
-scripts/            board checks, company sync, Windows scheduling
+scripts/            board checks, company sync
 tests/              pytest suite with recorded API responses and a fake LLM
 docs/               architecture, implementation plan, Hebrew user guide
 ```

@@ -1,11 +1,9 @@
 import os
-import time
 
 import pytest
 
 from jobhunter import cv
 from jobhunter.llm import get_llm
-from jobhunter.models import CandidateProfile
 from jobhunter.skills import extract_skills
 
 CV_TEXT = """Dana Levi

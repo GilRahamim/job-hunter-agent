@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from jobhunter.collectors import SOURCE_NAMES, ats, base, collect_all, jobspy_source, remote_boards, serpapi
+from jobhunter.collectors import SOURCE_NAMES, ats, collect_all, jobspy_source, remote_boards, serpapi
 from jobhunter.collectors.base import CollectorResult, html_to_text, to_iso
 from jobhunter.models import Job
 
