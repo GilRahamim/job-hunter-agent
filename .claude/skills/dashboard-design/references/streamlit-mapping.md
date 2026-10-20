@@ -56,6 +56,7 @@ Verified test ids: `stApp`, `stAppViewContainer`, `stSidebar`, `stMain`, `stHead
 ## 5. Pitfalls
 
 - **Sidebar side.** `direction: rtl` on `.stApp` already puts the sidebar on the right. Adding `flex-direction: row-reverse` flips it back to the left.
+- **Sidebar open/collapsed attribute changed in 1.66.** Up to 1.65 `stSidebar` carries `aria-expanded="true|false"`; from 1.66 it is `data-collapsed="false|true"` (and an inline `width: 281.25px`). A rule on only one of them silently stops matching after a `pip install` upgrade: the sidebar falls back to ~281px and its text is clipped. `ui/theme.css` selects both.
 - **Table rows can't be styled with CSS.** The grid is a canvas: row/cell colors come only from the theme (`backgroundColor`, `dataframeHeader*`, `dataframeBorderColor`). Hence `backgroundColor = surface` and the page color via CSS.
 - **RTL in the grid.** The canvas stays left-to-right. Get the Figma order (score on the right) by listing `column_order` in reverse. Don't set `direction: rtl` on the grid.
 - **Empty last row.** A fixed `height` leaves a blank row; `height="content"` fits exactly.
