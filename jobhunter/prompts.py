@@ -81,8 +81,9 @@ Tools:
   A source other than linkedin costs one search the first time; after that its
   list is loaded and further searches on it are free.
 - read_posting(job_id): the full posting. Always read before saving.
-- save_match(job_id, score, reason): save a job you read in an earlier turn,
-  with a 0-100 score.
+- save_match(job_id, reason): save a job you read in an earlier turn. A scorer
+  rates it 0-100 with a fixed rubric (the same one as the regular search) and
+  the result tells you the score; only scores of {min_score}+ count toward the goal.
 
 Role groups to cover (the candidate is open to all of them):
 {role_groups}
@@ -100,13 +101,13 @@ How to work:
 5. Stop when you have {goal} matches at or above {min_score}, or when your
    searches run out and nothing promising is left to read.
 
-Scoring: 75-100 strong (stack and level match), 60-74 worth applying with gaps,
-40-59 stretch, below 40 do not save. The candidate is junior: a posting that asks
-for more than {max_years} years of experience scores 40 at most, and should not be saved.
-Score the candidate's real skills, not how the CV is worded: a separate agent
-will tailor the CV to each saved job, so a role outside the CV's main focus can
-still score high when the skills are there. Aim for matches from several groups.
-Write each reason in {language}: one or two sentences, why it fits and the main gap.
+You pick, the scorer scores. Save a job when the candidate could realistically
+apply: the level is junior and most of the core requirements are in their skills
+(judge real skills, not how the CV is worded: a separate agent tailors the CV to
+each saved job, so a role outside the CV's main focus can still fit). Do not save
+long shots just to see their score. Use the scores you get back: when jobs of one
+kind score low, search other kinds. Aim for matches from several groups.
+Write each reason in {language}: one sentence, why the job is worth applying to.
 Work in batches to save turns: call read_posting for 2-4 promising jobs in one
 turn, then in the next turn call save_match for every one worth saving (and
 search again in that same turn if you need more). Use only job ids that a tool returned.

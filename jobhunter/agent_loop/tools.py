@@ -15,9 +15,10 @@ from pydantic import BaseModel, Field
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.details import fetch_posting, linkedin_job_id
 from jobhunter.dedupe import dedupe_batch, is_new
-from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
-from jobhunter.matcher import prescore, preferences_text
-from jobhunter.models import CandidateProfile, Job
+from jobhunter.filters import (filter_jobs, junior_reason, junior_signals, keyword_hits, required_years,
+                               years_over_limit)
+from jobhunter.matcher import llm_score, prescore, preferences_text
+from jobhunter.models import CandidateProfile, Job, JobMatch
 
 log = logging.getLogger(__name__)
 
@@ -43,12 +44,15 @@ class AgentContext:
     known_ids: set[str]
     known_keys: set[str]
     choices: str = ""                                            # jobs the user pursued / dismissed
+    scorer: Any = None                                           # chat model behind the pipeline's scoring prompt
     candidates: dict[str, Job] = field(default_factory=dict)     # new jobs that passed the filters
     prescores: dict[str, float] = field(default_factory=dict)
     read: dict[str, int] = field(default_factory=dict)           # id -> tool turn it was read in
     turn: int = 0                                                # tool turns so far (set by the graph)
     closed: set[str] = field(default_factory=set)                # LinkedIn: no longer accepting applications
-    matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason"}
+    over_years: set[str] = field(default_factory=set)            # the scorer read too many required years
+    matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason", "match"}
+    score_errors: list[str] = field(default_factory=list)
     cache: dict[str, list[Job]] = field(default_factory=dict)    # fixed-list source -> jobs
     health: list[dict] = field(default_factory=list)
     drop_reasons: Counter = field(default_factory=Counter)
@@ -63,7 +67,8 @@ class AgentContext:
         return self.config["agent"]
 
     def strong_matches(self) -> int:
-        return sum(1 for m in self.matches.values() if m["score"] >= self.settings["min_match_score"])
+        return sum(1 for m in self.matches.values()
+                   if m["score"] is not None and m["score"] >= self.settings["min_match_score"])
 
     def goal_reached(self) -> bool:
         return self.strong_matches() >= self.settings["goal_matches"]
@@ -86,12 +91,15 @@ def query_groups(query: str, groups: dict[str, list[str]]) -> list[str]:
             if any((t := _words(title)) and (t <= q or q <= t) for title in titles)]
 
 
+COVERAGE_NOTE = " Role groups not searched yet: {todo}. Cover them before repeating a group."
+
+
 def coverage_note(ctx: AgentContext) -> str:
     groups = ctx.settings.get("role_groups") or {}
     todo = [g for g in groups if not ctx.group_searches[g]]
     if not todo:
         return ""
-    return f" Role groups not searched yet: {', '.join(todo)}. Cover them before repeating a group."
+    return COVERAGE_NOTE.format(todo=", ".join(todo))
 
 
 def allowed_sources(config: dict[str, Any]) -> list[str]:
@@ -260,12 +268,22 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
             f"Description:\n{text}")
 
 
-def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
+def score_job(ctx: AgentContext, job: Job) -> JobMatch | None:
+    """The pipeline's scoring prompt and rubric (matcher.llm_score), so agent picks and pipeline jobs
+    are scored the same way. None when there is no scorer or every retry failed."""
+    if ctx.scorer is None:
+        return None
+    return llm_score(ctx.scorer, ctx.profile, [job], ctx.config, ctx.score_errors, ctx.choices)[0]
+
+
+def save_match(ctx: AgentContext, job_id: str, reason: str) -> str:
     job = ctx.candidates.get(job_id.strip())
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
     if job.id not in ctx.read:
         return "ERROR: call read_posting on this job before saving it."
+    if job.id in ctx.over_years:
+        return f"REFUSED: {job.title} @ {job.company} asks for too much experience. Find another job."
     if job.id in ctx.closed:                                 # guardrail: open jobs only
         return f"REFUSED: {job.title} @ {job.company} is no longer accepting applications. Do not save it."
     not_junior = junior_reason(job, ctx.config)              # guardrail: junior roles only
@@ -276,10 +294,20 @@ def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
     if ctx.read[job.id] == ctx.turn:                         # read and saved in one batch: never seen
         return ("ERROR: you read this posting in this same turn, so you have not seen its text yet. "
                 "Judge it from the read_posting result, then save it in your next turn.")
-    ctx.matches[job.id] = {"score": score, "reason": reason.strip()}
+    match = score_job(ctx, job)
+    if match and years_over_limit(job, match.required_years, ctx.config):   # same backstop as the pipeline
+        ctx.drop_reasons["save_refused_experience_llm"] += 1
+        ctx.over_years.add(job.id)
+        return (f"REFUSED: the scorer read {match.required_years:g} required years of experience in "
+                f"{job.title} @ {job.company}; the candidate is junior. Find another job.")
+    ctx.matches[job.id] = {"score": match.score if match else None, "reason": reason.strip(), "match": match}
     s = ctx.settings
-    return (f"Saved {job.title} @ {job.company} with score {score}. "
-            f"Matches at or above {s['min_match_score']}: {ctx.strong_matches()}/{s['goal_matches']}.")
+    progress = f"Matches at or above {s['min_match_score']}: {ctx.strong_matches()}/{s['goal_matches']}."
+    if match is None:
+        return (f"Saved {job.title} @ {job.company}, but the scorer failed, so it does not count "
+                f"toward the goal. {progress}")
+    gaps = f" Missing: {', '.join(match.missing_skills[:4])}." if match.missing_skills else ""
+    return (f"Saved {job.title} @ {job.company}. Scorer: {match.score} ({match.verdict}).{gaps} {progress}")
 
 
 # ------------------------------------------------------------ tool schemas
@@ -295,8 +323,7 @@ class ReadArgs(BaseModel):
 
 class SaveArgs(BaseModel):
     job_id: str = Field(description="An id from search_jobs results that you have read")
-    score: int = Field(ge=0, le=100, description="Fit for this candidate, 0-100")
-    reason: str = Field(description="One or two sentences: why it fits and the main gap", max_length=600)
+    reason: str = Field(description="One sentence: why this job is worth applying to", max_length=600)
 
 
 class NoArgs(BaseModel):
@@ -319,8 +346,8 @@ def make_tools(ctx: AgentContext) -> list[StructuredTool]:
             lambda job_id: read_posting(ctx, job_id), name="read_posting", args_schema=ReadArgs,
             description="Read a posting's full text, its stated years of experience and junior signals."),
         StructuredTool.from_function(
-            lambda job_id, score, reason: save_match(ctx, job_id, score, reason), name="save_match",
+            lambda job_id, reason: save_match(ctx, job_id, reason), name="save_match",
             args_schema=SaveArgs,
-            description="Save a junior job you read in an earlier turn as a match with your score and "
-                        "reason. Jobs that require experience are refused."),
+            description="Save a junior job you read in an earlier turn. A scorer rates it 0-100 with a "
+                        "fixed rubric and returns the score. Jobs that require experience are refused."),
     ]

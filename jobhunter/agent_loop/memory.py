@@ -23,7 +23,7 @@ def query_stats(ctx: AgentContext) -> list[dict]:
         m = ctx.matches.get(job_id)
         if m:
             out[i]["saved"] += 1
-            out[i]["strong"] += m["score"] >= ctx.settings["min_match_score"]
+            out[i]["strong"] += (m["score"] or 0) >= ctx.settings["min_match_score"]
     return out
 
 

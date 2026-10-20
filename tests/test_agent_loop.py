@@ -1,4 +1,5 @@
 import copy
+import re
 
 import pytest
 from langchain_core.messages import AIMessage, ToolMessage
@@ -8,7 +9,7 @@ from jobhunter.agent_loop import graph, tools
 from jobhunter.collectors.base import CollectorResult
 from jobhunter.collectors.details import Posting
 from jobhunter.config import load_config
-from jobhunter.models import CandidateProfile, Job
+from jobhunter.models import CandidateProfile, Job, JobMatch
 
 CV = "Dana Levi\nJunior Software Engineer\nSkills: Python, SQL, LangChain, RAG, Docker\n"
 
@@ -27,19 +28,31 @@ def call(name, args=None, i=[0]):
 
 
 class ScriptedModel:
-    """Replays a fixed list of replies; records the messages it was shown."""
+    """Replays a fixed list of replies; records the messages it was shown. As the scorer it gives each
+    job `scores[title]` (an int or a JobMatch; default 80) and records the titles it scored."""
 
-    def __init__(self, script):
+    def __init__(self, script, scores=None):
         self.script = list(script)
         self.seen = []
+        self.scores = scores or {}
+        self.scored = []
 
     def bind_tools(self, tools):
         return self
 
     def with_structured_output(self, cls):
+        model = self
+
         class S:
             def invoke(self, messages):
-                return CandidateProfile(skills=["Python", "SQL", "RAG"], seniority="junior")
+                if cls is not JobMatch:
+                    return CandidateProfile(skills=["Python", "SQL", "RAG"], seniority="junior")
+                title = re.search(r"Title: (.*)", messages[-1][1]).group(1)
+                model.scored.append(title)
+                s = model.scores.get(title, 80)
+                return s if isinstance(s, JobMatch) else JobMatch(
+                    score=s, verdict="strong" if s >= 75 else "good", reasons=f"scorer: {title}",
+                    missing_skills=["Kubernetes"])
         return S()
 
     def invoke(self, messages):
@@ -82,8 +95,8 @@ def test_goal_reached_saves_agent_scores(env, monkeypatch):
         call("get_profile"),
         call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
         call("read_posting", {"job_id": PY.id}),
-        call("save_match", {"job_id": PY.id, "score": 85, "reason": "Python and SQL fit"}),
-    ])
+        call("save_match", {"job_id": PY.id, "reason": "Python and SQL fit"}),
+    ], scores={"Junior Python Developer": 85})
     use(monkeypatch, model)
     result = agent_loop.run(cfg, db_path=path)
     stats = result["stats"]
@@ -93,7 +106,9 @@ def test_goal_reached_saves_agent_scores(env, monkeypatch):
     saved = {j["id"]: j for j in db.all_jobs(path=path)}
     assert set(saved) == {PY.id, AI.id}                                   # senior job never stored
     assert saved[PY.id]["score"] == 85 and saved[PY.id]["scored_by"].startswith("agent:")
-    assert saved[PY.id]["verdict"] == "strong" and saved[PY.id]["reasons"] == "Python and SQL fit"
+    assert saved[PY.id]["verdict"] == "strong" and saved[PY.id]["reasons"] == "scorer: Junior Python Developer"
+    assert saved[PY.id]["missing_skills"] == ["Kubernetes"]                 # the scorer's full result
+    assert model.scored == ["Junior Python Developer"] and stats["scorer"]
     assert saved[AI.id]["scored_by"] == "heuristic"
     run = db.last_runs(1, path)[0]
     assert run["finished"] and run["stats"]["mode"].startswith("agent:")
@@ -104,8 +119,8 @@ def test_filtered_unknown_and_unread_jobs_are_rejected(env, monkeypatch):
     model = ScriptedModel([
         call("search_jobs", {"query": "developer", "source": "linkedin"}),
         call("read_posting", {"job_id": SENIOR.id}),                       # filtered out -> unknown
-        call("save_match", {"job_id": AI.id, "score": 90, "reason": "x"}),  # not read yet
-        call("save_match", {"job_id": AI.id, "score": 150, "reason": "x"}),  # invalid score
+        call("save_match", {"job_id": AI.id, "reason": "x"}),               # not read yet
+        call("save_match", {"job_id": AI.id}),                              # no reason
         call("search_jobs", {"query": "x", "source": "facebook"}),
         call("no_such_tool"),
     ])
@@ -249,7 +264,8 @@ def test_search_reports_uncovered_groups_and_caps_a_group(env, monkeypatch):
     ])
     use(monkeypatch, model)
     agent_loop.run(config=cfg, db_path=path, dry_run=True)
-    first, second = tool_outputs(model)[:2]
+    first = [m.content for m in model.seen[1] if isinstance(m, ToolMessage)][0]   # before it is trimmed
+    second = tool_outputs(model)[1]
     assert "Role groups not searched yet: Data, Software" in first
     assert second.startswith("ERROR: role group AI / ML already has 1 searches")
     system = model.seen[0][0].content
@@ -282,7 +298,7 @@ def test_save_refuses_jobs_that_need_experience(env, monkeypatch):
     assert exp.id in ctx.candidates
     tools.read_posting(ctx, exp.id)
     ctx.config = cfg                                     # the real, junior-only config
-    out = tools.save_match(ctx, exp.id, 90, "fits")
+    out = tools.save_match(ctx, exp.id, "fits")
     assert out.startswith("REFUSED") and "experience" in out and not ctx.matches
 
 
@@ -386,7 +402,7 @@ def test_agent_cannot_save_a_closed_linkedin_job(env, monkeypatch):
                              known_ids=set(), known_keys=set())
     tools.search_jobs(ctx, "Junior Python Developer", "linkedin")
     assert tools.read_posting(ctx, job.id).startswith("CLOSED")
-    assert tools.save_match(ctx, job.id, 90, "fits").startswith("REFUSED") and not ctx.matches
+    assert tools.save_match(ctx, job.id, "fits").startswith("REFUSED") and not ctx.matches
     assert job.description == "Junior Python role"           # the search's description is kept
 
 
@@ -419,8 +435,8 @@ def test_batched_reads_are_shown_in_full_and_saved_next_turn(env, monkeypatch):
     model = ScriptedModel([
         call("search_jobs", {"query": "developer", "source": "linkedin"}),
         calls(("read_posting", {"job_id": PY.id}), ("read_posting", {"job_id": AI.id})),
-        calls(("save_match", {"job_id": PY.id, "score": 80, "reason": "a"}),
-              ("save_match", {"job_id": AI.id, "score": 75, "reason": "b"})),
+        calls(("save_match", {"job_id": PY.id, "reason": "a"}),
+              ("save_match", {"job_id": AI.id, "reason": "b"})),
     ])
     use(monkeypatch, model)
     result = agent_loop.run(cfg, db_path=path, dry_run=True)
@@ -435,8 +451,8 @@ def test_save_in_the_same_turn_as_the_read_is_refused(env, monkeypatch):
     model = ScriptedModel([
         call("search_jobs", {"query": "developer", "source": "linkedin"}),
         calls(("read_posting", {"job_id": PY.id}),
-              ("save_match", {"job_id": PY.id, "score": 80, "reason": "blind"})),
-        call("save_match", {"job_id": PY.id, "score": 80, "reason": "seen"}),
+              ("save_match", {"job_id": PY.id, "reason": "blind"})),
+        call("save_match", {"job_id": PY.id, "reason": "seen"}),
     ])
     use(monkeypatch, model)
     result = agent_loop.run(cfg, db_path=path, dry_run=True)
@@ -471,7 +487,7 @@ def test_next_run_is_told_which_queries_worked(env, monkeypatch):
     first = ScriptedModel([
         call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
         call("read_posting", {"job_id": PY.id}),
-        call("save_match", {"job_id": PY.id, "score": 85, "reason": "fits"}),
+        call("save_match", {"job_id": PY.id, "reason": "fits"}),
     ])
     use(monkeypatch, first)
     result = agent_loop.run(cfg, db_path=path)
@@ -499,3 +515,101 @@ def test_next_run_is_told_which_queries_worked(env, monkeypatch):
     use(monkeypatch, off)
     agent_loop.run(cfg, db_path=path, dry_run=True)
     assert "What your searches found" not in off.seen[0][1].content
+
+
+def read_ctx(cfg, job, scorer=None):
+    """A context where `job` was found and read in an earlier tool turn."""
+    ctx = tools.AgentContext(config=cfg, profile=CandidateProfile(skills=["Python"]), known_ids=set(),
+                             known_keys=set(), scorer=scorer)
+    ctx.candidates[job.id], ctx.prescores[job.id] = job, 40.0
+    ctx.read[job.id] = 0
+    ctx.turn = 1
+    return ctx
+
+
+def test_saved_jobs_are_scored_by_the_pipeline_scorer(env):
+    cfg, _, _ = env
+    scorer = ScriptedModel([], scores={PY.title: 72})
+    ctx = read_ctx(cfg, PY, scorer)
+    out = tools.save_match(ctx, PY.id, "fits")
+    assert out == ("Saved Junior Python Developer @ Acme. Scorer: 72 (good). Missing: Kubernetes. "
+                   "Matches at or above 70: 1/1.")
+    assert scorer.scored == [PY.title] and ctx.goal_reached()
+    row = graph.result_rows(ctx, "h", "qwen")[0]
+    assert row["score"] == 72 and row["scored_by"] == "agent:qwen" and row["reasons"] == f"scorer: {PY.title}"
+
+
+def test_scorer_reading_too_many_years_refuses_the_save(env):
+    cfg, _, _ = env
+    years = JobMatch(score=85, verdict="strong", required_years=5)
+    ctx = read_ctx(cfg, PY, ScriptedModel([], scores={PY.title: years}))
+    out = tools.save_match(ctx, PY.id, "fits")
+    assert out.startswith("REFUSED: the scorer read 5 required years") and not ctx.matches
+    assert ctx.drop_reasons["save_refused_experience_llm"] == 1
+    assert tools.save_match(ctx, PY.id, "again").startswith("REFUSED") and ctx.scorer.scored == [PY.title]
+    assert graph.result_rows(ctx, "h", "qwen") == []                     # not stored, like the pipeline
+
+
+def test_failed_scoring_keeps_the_job_but_not_toward_the_goal(env, monkeypatch):
+    from jobhunter import matcher
+    cfg, _, _ = env
+    monkeypatch.setattr(matcher, "BACKOFF_SECONDS", 0)
+
+    class Broken(ScriptedModel):
+        def with_structured_output(self, cls):
+            class S:
+                def invoke(self, messages):
+                    raise RuntimeError("bad json")
+            return S()
+
+    ctx = read_ctx(cfg, PY, Broken([]))
+    out = tools.save_match(ctx, PY.id, "Python fits")
+    assert "scorer failed" in out and not ctx.goal_reached()
+    row = graph.result_rows(ctx, "h", "qwen")[0]
+    assert row["scored_by"] == "agent:qwen" and row["score"] == 40.0 and row["reasons"] == "Python fits"
+    assert ctx.score_errors == ["RuntimeError: bad json"]
+
+
+@pytest.mark.parametrize("setting,main_available,expected", [
+    ("main", True, "main"), ("agent", True, "agent"), ("main", False, "agent")])
+def test_scorer_setting_picks_the_model(env, monkeypatch, setting, main_available, expected):
+    cfg, path, _ = env
+    cfg["agent"].update(scorer=setting, llm={"provider": "ollama", "model": "qwen"})
+    agent_model = ScriptedModel([
+        call("search_jobs", {"query": "Junior Python Developer", "source": "linkedin"}),
+        call("read_posting", {"job_id": PY.id}),
+        call("save_match", {"job_id": PY.id, "reason": "fits"}),
+    ])
+    main_model = ScriptedModel([])
+    monkeypatch.setattr(graph, "get_llm", lambda c: agent_model if c["llm"]["provider"] == "ollama"
+                        else main_model if main_available else None)
+    result = agent_loop.run(cfg, db_path=path, dry_run=True)
+    used, unused = (main_model, agent_model) if expected == "main" else (agent_model, main_model)
+    assert used.scored == [PY.title] and unused.scored == []
+    assert result["stats"]["scorer"] == ("qwen" if expected == "agent" else cfg["llm"]["model"])
+
+
+def test_history_drops_read_rows_stale_notes_and_reasoning(env, monkeypatch):
+    cfg, path, _ = env
+    cfg["agent"].update(role_groups=GROUPS, goal_matches=5)
+    think = AIMessage("<think>" + "long reasoning " * 50 + "</think>Searching software next. " + "x" * 400,
+                      tool_calls=[{"name": "search_jobs", "args": {"query": "Junior Python Developer",
+                                                                   "source": "linkedin"}, "id": "t1"}])
+    model = ScriptedModel([
+        call("search_jobs", {"query": "Junior AI Engineer", "source": "linkedin"}),
+        call("read_posting", {"job_id": PY.id}),
+        think,
+        AIMessage("<think>plan</think>Done for now."),
+    ])
+    use(monkeypatch, model)
+    agent_loop.run(cfg, db_path=path, dry_run=True)
+    view = model.seen[3]                                          # after the second search
+    old_search, new_search = [m.content for m in view if isinstance(m, ToolMessage) and m.name == "search_jobs"]
+    assert PY.id not in old_search and AI.id in old_search       # PY was read; AI is still a choice
+    assert graph.READ_ROWS_CUT_NOTE.format(n=1) in old_search
+    assert "Role groups not searched yet" not in old_search      # stale: only the latest one counts
+    assert "Role groups not searched yet" in new_search
+    reply = [m for m in view if isinstance(m, AIMessage)][-1].content
+    assert reply.startswith("Searching software next.") and "reasoning" not in reply
+    old_reply = [m for m in model.seen[4] if isinstance(m, AIMessage) and m.tool_calls][-1].content
+    assert len(old_reply) <= graph.MAX_OLD_TEXT + 6 and old_reply.endswith("[...]")
