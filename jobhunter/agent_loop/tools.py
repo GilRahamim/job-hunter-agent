@@ -16,7 +16,7 @@ from jobhunter.collectors import collect_all
 from jobhunter.collectors.details import fetch_posting, linkedin_job_id
 from jobhunter.dedupe import dedupe_batch, is_new
 from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
-from jobhunter.matcher import prescore
+from jobhunter.matcher import prescore, preferences_text
 from jobhunter.models import CandidateProfile, Job
 
 log = logging.getLogger(__name__)
@@ -168,7 +168,7 @@ def get_profile(ctx: AgentContext) -> str:
         f"Skills: {', '.join(p.skills[:40]) or '-'}",
         f"Target roles: {', '.join(p.target_roles) or '-'}",
         f"Projects: {'; '.join(p.projects[:6]) or '-'}",
-    ]) + ctx.choices
+    ]) + preferences_text(ctx.config) + ctx.choices
 
 
 def search_jobs(ctx: AgentContext, query: str, source: str) -> str:

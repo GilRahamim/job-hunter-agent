@@ -97,6 +97,7 @@ def test_personalize_derives_search_from_the_cv():
     assert "manager" not in f["senior_keywords"] and "senior" in f["senior_keywords"]
     assert f["exclude_senior"] is False and f["max_required_years"] == 7      # ceil(4.5) + 2
     assert f["experienced_phrases"] == [] and f["role_description_keywords"] == []
+    assert out["search"]["employers"] == {} and out["profile"]["preferences"] == ""   # owner-only
     assert cfg["search"]["queries"] == []                                     # input not mutated
 
     jobs = [Job("greenhouse", "Performance Marketing Manager", "Acme", "https://a/1", location="Tel Aviv",

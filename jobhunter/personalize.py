@@ -8,6 +8,8 @@ filter and another experience limit. This derives them from their CandidateProfi
   filters.role_keywords  the meaningful words of those titles
   exclude / senior words the owner's lists minus anything that appears in those titles
   experience limit       up to (CV years + 2), no limit for senior candidates
+  employer searches,     cleared: the owner's banks / health funds searches and "open to NOC / SOC"
+  preferences            text are written for the owner's field
 """
 from __future__ import annotations
 
@@ -69,11 +71,14 @@ def personalize(cfg: dict[str, Any], profile: CandidateProfile) -> dict[str, Any
 
     out = copy.deepcopy(cfg)
     out["search"]["queries"] = titles
+    out["search"]["employers"] = {}
+    out.setdefault("profile", {})["preferences"] = ""
     f = out["filters"]
     junior = profile.seniority in ("student", "junior")
     f["role_keywords"] = role_words(titles)
     f["role_description_keywords"] = []          # the owner's "CS degree" escape hatch
     f["exclude_keywords"] = _not_in(f.get("exclude_keywords") or [], titles)
+    f["exclude_exceptions"] = []
     f["senior_keywords"] = _not_in(f.get("senior_keywords") or [], titles)
     f["exclude_senior"] = junior
     f["max_required_years"] = f["junior_max_required_years"] = experience_limit(profile)

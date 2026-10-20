@@ -57,6 +57,13 @@ def test_location_cases(ok, location, region, is_remote, expected):
     ("Software Engineer, Recruiter Tools", False),
     ("Marketing Manager", False),
     ("Office Cleaner", False),
+    ("NOC Operator", True),
+    ("SOC Analyst Tier 1", True),
+    ("SecOps Engineer", True),
+    ("Security Operations Center Analyst", True),
+    ("NOC Technician", True),                  # exclude_exceptions rescues a NOC title
+    ("Field Technician", False),
+    ("Network Sales Engineer", False),
 ])
 def test_role(cfg, title, expected):
     assert role_ok(title, cfg) is expected

@@ -207,8 +207,6 @@ def run_status() -> None:
                 and not st.session_state.get("force_offered")):
             st.session_state["force_offered"] = True       # the controls (outside) show the hard stop
             st.rerun(scope="app")
-    else:
-        st.info("הסוכן רץ עכשיו…" if is_running() else "הסוכן מתחיל…")
     if LOG_PATH.exists():
         st.code("\n".join(LOG_PATH.read_text(encoding="utf-8", errors="replace").splitlines()[-12:]),
                 language=None)
@@ -251,25 +249,8 @@ def run_summary_html(run: dict) -> str:
     parts = [f"<bdi>{s.get('kept', 0)}</bdi> חדשות"]
     if failed:
         parts.append("מקור אחד עם תקלה" if failed == 1 else f"<bdi>{failed}</bdi> מקורות עם תקלה")
-    if s.get("llm_failed"):
-        parts.append(f"<bdi>{s['llm_failed']}</bdi> בלי ציון AI")
     return (f'<div class="jh-run-summary">ריצה אחרונה: <bdi>{when:%d/%m %H:%M}</bdi> · {took}<br>'
             f'{" · ".join(parts)}</div>')
-
-
-def llm_failure_notice(stats: dict) -> None:
-    """Scoring failures are silent otherwise: jobs still show, only with the keyword score."""
-    failed, err = stats.get("llm_failed", 0), stats.get("llm_error") or ""
-    if not failed:
-        return
-    if "credit balance" in err.lower():
-        why = "נגמר הקרדיט בחשבון ה-API. אפשר להטעין ב-console.anthropic.com (Plans & Billing)."
-    elif "api key" in err.lower() or "authentication" in err.lower():
-        why = "מפתח ה-API לא תקין. כדאי לבדוק את הקובץ .env."
-    else:
-        why = "הפירוט נמצא ביומן הריצה."
-    st.warning(f"ציון ה-AI נכשל ב-{failed} משרות, ולכן הן קיבלו רק ציון לפי מילות מפתח. {why}",
-               icon=":material/warning:")
 
 
 # ------------------------------------------------------------ sidebar settings, kept in the URL
@@ -350,7 +331,6 @@ def sidebar(df: pd.DataFrame) -> pd.DataFrame:
             runs = db.last_runs(1, DB)
             if runs:
                 st.html(run_summary_html(runs[0]))
-                llm_failure_notice(runs[0]["stats"])
         if df.empty:
             with st.container(key="sb-prefs"):
                 theme_toggle()

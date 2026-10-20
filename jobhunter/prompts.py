@@ -60,7 +60,9 @@ ENTRY-LEVEL ROLES IN ANY COMPUTER-SCIENCE FIELD. The candidate is a new CS
 graduate. Look for jobs that ask for {experience_limit}:
 junior, entry-level, graduate, student and intern roles, in every field a CS
 graduate can work in (software, web, mobile, data, AI, algorithms, embedded,
-cyber security, QA, DevOps, cloud, IT, testing and validation). Judge a job by its
+cyber security, NOC / SOC / SecOps operations, QA, DevOps, cloud, IT, testing and
+validation), at startups and established employers alike (banks, health funds,
+insurance, defense, IT services). Judge a job by its
 requirements, not only its title: a "Test Driver" or "Validation" role that asks for a
 B.Sc. / technical background and no work experience is a fit. Never save a job that asks for more than
 {max_years} years or is senior, lead, manager or mid-level; save_match refuses them anyway.
@@ -123,6 +125,15 @@ Location: {location} {remote_note}
 Description:
 {description}
 </job>
+"""
+
+# Appended to SCORE_USER (and to the agent's get_profile) when config profile.preferences is set.
+PREFERENCES_BLOCK = """
+<candidate_preferences>
+{preferences}
+Use these to judge whether the kind of role and employer suits the candidate. They do not lower
+the bar on experience: the score anchors and the seniority rule still apply.
+</candidate_preferences>
 """
 
 # Appended to SCORE_USER (and to the agent's get_profile) once the user has marked some jobs.

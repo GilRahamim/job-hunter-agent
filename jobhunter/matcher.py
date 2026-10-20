@@ -9,7 +9,7 @@ from typing import Any
 from jobhunter.db import now_utc
 from jobhunter.filters import required_years
 from jobhunter.models import CandidateProfile, Job, JobMatch
-from jobhunter.prompts import CHOICES_BLOCK, SCORE_SYSTEM, SCORE_USER
+from jobhunter.prompts import CHOICES_BLOCK, PREFERENCES_BLOCK, SCORE_SYSTEM, SCORE_USER
 from jobhunter.skills import extract_skills
 
 log = logging.getLogger(__name__)
@@ -63,6 +63,12 @@ def explanation_language(cfg: dict[str, Any]) -> str:
     return "Hebrew" if cfg.get("profile", {}).get("explanation_language", "he") == "he" else "English"
 
 
+def preferences_text(cfg: dict[str, Any]) -> str:
+    """PREFERENCES_BLOCK for config profile.preferences, or "" when it is not set."""
+    text = str(cfg.get("profile", {}).get("preferences") or "").strip()
+    return PREFERENCES_BLOCK.format(preferences=text) if text else ""
+
+
 def choices_text(examples: dict[str, list[str]]) -> str:
     """CHOICES_BLOCK for the user's marked jobs, or "" while they have marked none."""
     liked, disliked = examples.get("liked") or [], examples.get("disliked") or []
@@ -79,7 +85,7 @@ def build_messages(profile: CandidateProfile, job: Job, cfg: dict[str, Any],
         years_experience=profile.years_experience, skills=", ".join(profile.skills),
         projects="; ".join(profile.projects), education="; ".join(profile.education),
         title=job.title, company=job.company, location=job.location, remote_note=remote_note,
-        description=job.description[:MAX_DESCRIPTION_CHARS]) + choices
+        description=job.description[:MAX_DESCRIPTION_CHARS]) + preferences_text(cfg) + choices
     return [("system", SCORE_SYSTEM.format(language=explanation_language(cfg))), ("user", user)]
 
 

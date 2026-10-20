@@ -137,6 +137,14 @@ def test_failure_returns_none_and_falls_back_to_prescore(profile, cfg):
     assert row["matching_skills"] == ["Python"]
 
 
+def test_preferences_reach_the_prompt_only_when_set(profile, cfg):
+    cfg = {**cfg, "profile": {**cfg["profile"], "preferences": "Open to banks and NOC roles."}}
+    _, user = matcher.build_messages(profile, GOOD, cfg)
+    assert "<candidate_preferences>\nOpen to banks and NOC roles." in user[1]
+    cfg["profile"]["preferences"] = "  "
+    assert "<candidate_preferences>" not in matcher.build_messages(profile, GOOD, cfg)[1][1]
+
+
 def test_choices_reach_the_prompt_only_when_the_user_marked_jobs(profile, cfg):
     assert matcher.choices_text({"liked": [], "disliked": []}) == ""
     choices = matcher.choices_text({"liked": ["Data Analyst @ Acme"], "disliked": []})

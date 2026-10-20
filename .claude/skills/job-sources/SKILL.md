@@ -75,6 +75,7 @@ df = scrape_jobs(
 - Prefer `job_url_direct` as the URL when present (it is the company's own page and dedupes better); fall back to `job_url`.
 - Indeed Israel returns Hebrew city names (`רחובות, M, Israel`) — that is fine; `filters.py` handles Hebrew.
 - `source` = `f"jobspy:{site}"` so the dashboard can show LinkedIn vs Indeed separately.
+- Established employers (banks, health funds, insurance, defense, IT services) come in through `search.employers`: `employer_queries()` turns each group into one Israel-only Boolean search, `("Bank Leumi" OR Isracard) AND (developer OR "data analyst")` (multi-word terms quoted, roles from `search.employer_roles`). They run after the regular and remote passes. Keep groups short and names unambiguous; a bare "Max" or "Cal" matches every posting.
 - Wrap each site separately if one fails: a Glassdoor error should not lose the LinkedIn results (call `scrape_jobs` per site when the combined call raises).
 
 ## Adding companies in bulk
