@@ -329,6 +329,8 @@ tailoring:                 # CV Tailoring Agent (second agent)
   pdf: false
   auto_min_score: null     # e.g. 80 = tailor new strong matches automatically after each run
   auto_max_per_run: 3
+  auto_timeout_s: 900       # per job, for the headless Claude run (Phase 9)
+  auto_mode: headless       # headless = claude -p on the Claude subscription; api = Phase 8 graph
   max_verify_retries: 2
 
 llm:

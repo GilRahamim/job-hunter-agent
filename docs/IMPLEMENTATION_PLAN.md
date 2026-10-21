@@ -110,7 +110,7 @@ Meanwhile the **Claude handoff** (built; `jobhunter/handoff.py`, ARCHITECTURE §
 Tasks
 1. Master CV: generate a draft `cv/cv_master.yaml` from the CV (MASTER_DRAFT prompt). **Stop here — the owner reviews and enriches it** (more bullets per project, real skill levels).
 2. `jobhunter/tailor/`: models (`JobRequirements`, `TailoredCV`, `BulletCheck`), nodes, graph with the verify → rewrite loop, `tailored_cvs` table.
-3. `cv/template.docx` with docxtpl tags + `render.py`; `tailor_cv.py` CLI.
+3. `cv/template.docx` with docxtpl tags + `render.py`; `tailor_cv.py` CLI. For the owner, rendering is an in-place edit of his original .docx instead (`cv-tailoring/references/owner-cv-rules.md`); the template is for other users.
 4. Fabrication test: fake LLM injects an invented skill → output must not contain it.
 5. Dashboard: "התאם קו"ח למשרה" button in the job panel, download buttons, coverage before/after, `changes.md`.
 6. Optional: `tailoring.auto_min_score` hook after the search pipeline.
@@ -118,6 +118,25 @@ Tasks
 Acceptance: `python tailor_cv.py --job <id>` on 3 real top jobs produces DOCX files that open in Word; every bullet traces to master `source_ids`; the fabrication test passes; the owner reads the 3 CVs and confirms nothing is untrue.
 
 > Prompt: *Use the cv-tailoring skill and do Phase 8, step 1 only. Then wait for me to edit cv_master.yaml.*
+
+---
+
+## Phase 9 — Auto-tailor on the subscription (not started)
+**Skills:** `auto-tailor`, `apply`, `cv-tailoring` (+ `references/owner-cv-rules.md`), `offline-testing`, `agent-pipeline`, `job-dashboard`
+
+After a run, the strongest new matches get their application kit from headless Claude Code (`claude -p "/apply <id>"`) on the owner's Claude subscription — no API billing. Does not need Phase 8. Design, rules and test list: the `auto-tailor` skill.
+
+Tasks
+1. Owner rules into the brief: for the owner, `handoff.build_brief` adds `cv/notes/master_cv.md`, `cv/notes/experience_bank.md` (when present) and the rules in `cv-tailoring/references/owner-cv-rules.md` (structure lock: edit the original .docx in `cv/` in place, 1 page, ATS bolding, the bank's NOT list). Prompt text stays in `prompts.py`. Other users: unchanged.
+2. `handoff.run_headless(job_id, user=None, db_file=None, timeout=...)` + `python -m jobhunter.handoff <id> --headless`: `subscription_env()` (keeps `CLAUDE_CODE_OAUTH_TOKEN`), never `--bare`, `--permission-mode acceptEdits`, `--permission-prompts none`, `--allowedTools` only for the docx command, `--output-format json`; writes `auto_tailor.json` in the job folder; never raises.
+3. `auto_tailor_node` after `notify`: new jobs only, `score >= tailoring.auto_min_score`, no kit yet, highest first, max `auto_max_per_run`, sequential; stop the queue on a usage limit; owner only unless a user's overlay sets the threshold; no-op on `--dry-run`, null threshold or no `claude` on PATH. Run stats: `tailored`, `tailor_failed`, `tailor_skipped_limit`.
+4. Config keys `tailoring.auto_timeout_s`, `tailoring.auto_mode` (already in `config.yaml`).
+5. Dashboard: "קו"ח מוכן" chip when a job has kit files; `auto_tailor.json` summary in the job panel. Never write `status`.
+6. Tests from the `auto-tailor` skill (fake `subprocess.run`; no real `claude`); ARCHITECTURE §15 updated.
+
+Acceptance: with `auto_min_score: 80` and an `ANTHROPIC_API_KEY` in `.env`, `python run_agent.py --sources ats --limit 30` tailors at most 3 new strong jobs; each folder has the kit + `auto_tailor.json`; the owner's tailored CV has the original's sections, order and page count; Claude Console shows no new API usage; `pytest -q` passes.
+
+> Prompt: *Use the auto-tailor skill and do Phase 9, tasks 1–2 only, with their tests. Then show me one real headless run on a job I pick.*
 
 ---
 
@@ -131,7 +150,7 @@ Acceptance: `python tailor_cv.py --job <id>` on 3 real top jobs produces DOCX fi
 ## Later ideas (ranked: value for the effort)
 1. **Multilingual embedding pre-score** behind the same `prescore()` interface. TF-IDF with English stop words is weak on Hebrew postings and on CVs outside tech, which matters now that other people use the tool. A small multilingual sentence-transformers model runs locally on CPU.
 2. **Agent loop for every user**: move the CS-junior paragraph of `AGENT_SYSTEM` behind a config switch (one focus text for the owner, one built from the profile), then drop the `auto_from_cv` refusal in `agent_loop.run`.
-3. **Unattended tailoring for top matches**: after a run, write briefs for new jobs above `tailoring.auto_min_score` (the handoff already does the writing part); either Phase 8 through the API, or `claude -p` on the subscription, within its usage limits.
+3. **Unattended tailoring for top matches** (now planned as Phase 9, headless on the subscription): after a run, write briefs for new jobs above `tailoring.auto_min_score` (the handoff already does the writing part); either Phase 8 through the API, or `claude -p` on the subscription, within its usage limits.
 4. **Split `dashboard.py`** (now ~830 lines) into tab modules (`ui/tabs/jobs.py`, `profile.py`, …), keeping `dashboard.py` as the entry point; update the two tests that read its source.
 5. **Follow-up reminders**: the pipeline tab already flags applications older than 10 days; add them to the Windows notification and a weekly digest.
 6. **Weekly gap report**: most requested skills you lack, with the trend over time (the data is already in `missing_skills`).

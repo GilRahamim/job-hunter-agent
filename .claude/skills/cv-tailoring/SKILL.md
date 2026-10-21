@@ -14,6 +14,9 @@ The tailored CV may **select, reorder, emphasize and rephrase** content from the
 
 Allowed: using the job's wording for something the candidate genuinely did ("built a RAG pipeline" → "built a retrieval-augmented generation (RAG) system with hybrid search"), if the master CV supports every part of it.
 
+## The owner's own rules
+For the owner, `references/owner-cv-rules.md` overrides the generic parts below: edit his original .docx in place (structure lock, 1 page), ATS bolding, his experience bank and its "NOT" list. Read it before tailoring anything for him.
+
 ## Input: the master CV — `cv/cv_master.yaml`
 The one-page CV is too thin to tailor from. The master CV holds *everything*, so the agent has something to choose between. Schema and an example in `references/master-cv-schema.yaml`. Key ideas:
 - Each experience/project has **many bullets** (6–10), each with `tags` (skills it proves) — the agent picks the 2–4 most relevant per job.
