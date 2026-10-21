@@ -244,3 +244,51 @@ If you are a chat without file access (claude.ai), reply with each document in i
 HANDOFF_DOCX_NOTE = """\
 In Claude Code, then make a Word copy of the CV with:
     {command}"""
+
+HANDOFF_OWNER_BLOCK = """
+## The owner's CV rules (these override items 1 and the Word note above)
+Full rules: {rules_file}. Read it before you start. In short:
+- **Truth.** Use facts from the CV, the master CV and the experience bank below only. The bank's
+  NOT lines are hard stops: never claim them, not even as "familiar". No numbers the bank does
+  not give. A must-have none of them supports is a gap for changes.md.
+- **Structure lock.** The deliverable is a copy of the original Word file with text changed
+  inside its existing paragraphs: same sections, order, headings, entries, dates, bullet count,
+  skills lines and labels, and **one page**. Never rebuild it from Markdown. Keep each edited
+  paragraph about as long as the original (a longer one wraps and can push it to two pages).
+- Allowed: the title line under the name (only if true), the summary reworded in place, bullets
+  reworded with the posting's terms for the same real work and reordered inside one entry, items
+  reordered or swapped (for a true bank item) inside a skills line. Anything else (adding or
+  removing a bullet, entry or project, swapping a project) goes into changes.md as a suggestion.
+- **ATS.** The posting's exact keyword spelling; key acronyms once in both forms. Bold posting
+  keywords with **double asterisks**: about 1-2 per bullet, 15-25 in total, never whole sentences.
+
+### How to edit the Word file
+Original: {original}
+Its paragraphs, by index (locked ones are marked; leave them out):
+```text
+{paragraphs}
+```
+Write `cv_edits.json` into the job folder:
+```json
+{{"out": "Gil_Rahamim_CV_<Company>_<Role>.docx",
+  "edits": {{"4": "New summary with **bolded keywords** ...", "8": "Reworded bullet ..."}}}}
+```
+Give the full new text of each paragraph you change, by its index. For a skills line keep the
+label, bolded, with its colon (`**Deep Learning:** PyTorch, ...`). Then run:
+    {command}
+It copies the original, applies the edits with the original formatting, and prints a warning
+for any paragraph that grew enough to wrap. Fix warnings by shortening, then run it again.
+Still write `cv_tailored.md` (a readable copy of the result), and skip the `--docx` command.
+Write changes.md in Hebrew: keyword match before -> after, keywords added or emphasized, gaps,
+structural changes worth considering, and a one-line fit verdict (strong / reasonable / stretch).
+
+## Master CV notes
+```markdown
+{master_cv}
+```
+
+## Experience bank (true facts not in the CV, and what the candidate does NOT have)
+```markdown
+{experience_bank}
+```
+"""

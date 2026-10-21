@@ -25,7 +25,9 @@ Arguments: `$ARGUMENTS`
 
 **For the owner**, also follow `.claude/skills/cv-tailoring/references/owner-cv-rules.md` and use `cv/notes/master_cv.md` + `cv/notes/experience_bank.md` (only facts from these; the bank's NOT lines are never claimed).
 
-**Unattended** (run by `claude -p "/apply <id>"` from the auto-tailor step; see the `auto-tailor` skill): nobody can answer, so ask nothing. Write every gap and every "needs his OK" suggestion into `changes.md`, finish the files, and stop.
+**For the owner the brief already carries these rules**, the notes and the paragraph map of the original `.docx`: write `cv_edits.json` and run the `--apply-edits` command it gives, never a script of your own.
+
+**Unattended** (`--unattended` in the arguments; `claude -p "/apply <id> --unattended"` from `handoff.run_headless`, see the `auto-tailor` skill): nobody can answer, so ask nothing. The only shell command allowed is `python -m jobhunter.handoff ...` (write the brief exactly as in step 2, with the project's Python); every other command is denied, so do not try alternatives. Write every gap and every "needs his OK" suggestion into `changes.md`, finish the files, and stop.
 
 Do not edit code, `config.yaml`, `cv/cv_master.yaml` or the database while doing this. The job's
 status (applied, interview…) is the person's to set in the dashboard.
