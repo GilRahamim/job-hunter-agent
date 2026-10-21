@@ -143,3 +143,40 @@ def test_experience_report_names_how_each_job_got_in(path):
     assert set(rows) == {"Rules", "Llm"}
     assert (rows["Rules"]["found_by"], rows["Rules"]["years"]) == ("rules", 3)
     assert (rows["Llm"]["found_by"], rows["Llm"]["years"], rows["Llm"]["source"]) == ("llm", 4, "jobspy:linkedin")
+
+
+def test_agent_report_compares_picks_with_what_the_user_did(path):
+    import importlib.util
+    from pathlib import Path as P
+    from jobhunter.config import load_config
+    spec = importlib.util.spec_from_file_location(
+        "agent_report", P(__file__).parent.parent / "scripts" / "agent_report.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    cfg = load_config()
+    cfg["agent"].update(min_match_score=70, role_groups={"Data": ["Data Analyst"], "Software": ["Python Developer"]})
+    jobs = [  # (title, scored_by, score, status)
+        ("Junior Data Analyst", "agent:q", 80, "applied"),
+        ("Data Analyst", "agent:q", 75, "not_relevant"),
+        ("Junior Python Developer", "agent:q", 72, "rejected"),        # applied; the company said no
+        ("Python Developer", "agent:q", 50, "new"),
+        ("Python Developer", "llm:h", 85, "not_relevant"),
+        ("Product Manager", "heuristic", 30, "new"),
+    ]
+    db.upsert_jobs([{**Job("x", t, f"Co{i}", f"https://j/{i}").to_dict(), "scored_by": by, "score": s}
+                    for i, (t, by, s, _) in enumerate(jobs)], path)
+    for i, (*_, status) in enumerate(jobs):
+        if status != "new":
+            db.update_status(Job("x", "", "", f"https://j/{i}").id, status, None, path)
+    sections = mod.report(cfg, path)
+    picker = dict(sections["picker"])
+    assert list(picker) == ["agent", "regular", "heuristic"]
+    assert picker["agent"] == {"jobs": 4, "pursued": 2, "dismissed": 1, "open": 1, "judged": 3,
+                               "precision": 2 / 3}
+    assert picker["regular"]["precision"] == 0 and picker["heuristic"]["precision"] is None
+    band = dict(sections["band"])
+    assert band["agent >= 70"]["jobs"] == 3 and band["agent < 70"]["open"] == 1
+    group = dict(sections["group"])
+    assert group["Software"]["precision"] == 1 and group["Data"]["precision"] == 0.5
+    assert [k for k, _ in sections["group"]] == ["Software", "Data"]
+    assert mod.report(cfg, path, since="2999-01-01")["picker"] == []

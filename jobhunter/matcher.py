@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -19,6 +20,15 @@ SKILL_DENOM_CAP = 15
 MAX_DESCRIPTION_CHARS = 6000
 LLM_ATTEMPTS = 3
 BACKOFF_SECONDS = 1.0                 # doubled on each retry; tests set it to 0
+# errors no retry can fix: out of credits / quota, missing or bad API key, no permission
+# (only HTTP errors count: a validation error can echo job text that mentions "authentication")
+_FATAL_LLM = re.compile(r"Error code: (40[13]\b|4\d\d\b.*(credit balance|insufficient_quota))",
+                        re.IGNORECASE | re.DOTALL)
+
+
+def fatal_llm_error(error: str) -> bool:
+    """True when retrying (or scoring the next job) cannot help: billing or auth, not a rate limit."""
+    return bool(_FATAL_LLM.search(error))
 
 
 def prescore(profile: CandidateProfile, jobs: list[Job]) -> list[float]:
@@ -97,6 +107,9 @@ def _score_one(structured: Any, messages: list[tuple[str, str]], title: str,
             return result if isinstance(result, JobMatch) else JobMatch(**result)
         except Exception as e:  # noqa: BLE001 - rate limits and validation errors are retried
             log.warning("LLM scoring %r failed (attempt %d/%d): %s", title, attempt + 1, LLM_ATTEMPTS, e)
+            if fatal_llm_error(str(e)):
+                errors.append(f"{type(e).__name__}: {e}")
+                break
             if attempt < LLM_ATTEMPTS - 1:
                 time.sleep(BACKOFF_SECONDS * 2 ** attempt)
             else:

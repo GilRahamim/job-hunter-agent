@@ -15,9 +15,10 @@ from pydantic import BaseModel, Field
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.details import fetch_posting, linkedin_job_id
 from jobhunter.dedupe import dedupe_batch, is_new
-from jobhunter.filters import filter_jobs, junior_reason, junior_signals, keyword_hits, required_years
-from jobhunter.matcher import prescore, preferences_text
-from jobhunter.models import CandidateProfile, Job
+from jobhunter.filters import (filter_jobs, junior_reason, junior_signals, keyword_hits, required_years,
+                               years_over_limit)
+from jobhunter.matcher import fatal_llm_error, llm_score, prescore, preferences_text
+from jobhunter.models import CandidateProfile, Job, JobMatch
 
 log = logging.getLogger(__name__)
 
@@ -43,24 +44,34 @@ class AgentContext:
     known_ids: set[str]
     known_keys: set[str]
     choices: str = ""                                            # jobs the user pursued / dismissed
+    scorer: Any = None                                           # chat model behind the pipeline's scoring prompt
     candidates: dict[str, Job] = field(default_factory=dict)     # new jobs that passed the filters
     prescores: dict[str, float] = field(default_factory=dict)
-    read: set[str] = field(default_factory=set)
+    read: dict[str, int] = field(default_factory=dict)           # id -> tool turn it was read in
+    turn: int = 0                                                # tool turns so far (set by the graph)
     closed: set[str] = field(default_factory=set)                # LinkedIn: no longer accepting applications
-    matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason"}
+    over_years: set[str] = field(default_factory=set)            # the scorer read too many required years
+    matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason", "match"}
+    score_errors: list[str] = field(default_factory=list)
+    scorer_down: bool = False                                    # billing / auth error: no more scoring this run
+    linkedin_blocked: bool = False                               # LinkedIn answered 429: Indeed only from now on
     cache: dict[str, list[Job]] = field(default_factory=dict)    # fixed-list source -> jobs
     health: list[dict] = field(default_factory=list)
     drop_reasons: Counter = field(default_factory=Counter)
-    searches: int = 0
+    searches: int = 0                                            # searches charged to max_searches
     collected: int = 0
     group_searches: Counter = field(default_factory=Counter)     # role group -> searches
+    dry_groups: set[str] = field(default_factory=set)            # no strong match in recent runs: 1 search
+    query_log: list[dict] = field(default_factory=list)          # one entry per search that ran
+    found_by: dict[str, int] = field(default_factory=dict)       # id -> index in query_log
 
     @property
     def settings(self) -> dict[str, Any]:
         return self.config["agent"]
 
     def strong_matches(self) -> int:
-        return sum(1 for m in self.matches.values() if m["score"] >= self.settings["min_match_score"])
+        return sum(1 for m in self.matches.values()
+                   if m["score"] is not None and m["score"] >= self.settings["min_match_score"])
 
     def goal_reached(self) -> bool:
         return self.strong_matches() >= self.settings["goal_matches"]
@@ -83,12 +94,21 @@ def query_groups(query: str, groups: dict[str, list[str]]) -> list[str]:
             if any((t := _words(title)) and (t <= q or q <= t) for title in titles)]
 
 
+COVERAGE_NOTE = " Role groups not searched yet: {todo}. Cover them before repeating a group."
+
+
 def coverage_note(ctx: AgentContext) -> str:
     groups = ctx.settings.get("role_groups") or {}
     todo = [g for g in groups if not ctx.group_searches[g]]
     if not todo:
         return ""
-    return f" Role groups not searched yet: {', '.join(todo)}. Cover them before repeating a group."
+    return COVERAGE_NOTE.format(todo=", ".join(todo))
+
+
+def group_cap(ctx: AgentContext, group: str) -> int:
+    """Searches one role group may use this run: one for a dry group, max_searches_per_group otherwise."""
+    return 1 if group in ctx.dry_groups else ctx.settings.get("max_searches_per_group",
+                                                               ctx.settings["max_searches"])
 
 
 def allowed_sources(config: dict[str, Any]) -> list[str]:
@@ -125,8 +145,12 @@ def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
         if "fetch_linkedin_descriptions" in ctx.settings:      # needed to check experience requirements
             cfg["sources"]["jobspy"]["fetch_linkedin_descriptions"] = bool(
                 ctx.settings["fetch_linkedin_descriptions"])
+        if ctx.linkedin_blocked:                               # asking again only extends the block
+            cfg["sources"]["jobspy"]["sites"] = jobspy_sites(ctx)
         results, health = collect_all(cfg, AGENT_SOURCES[source])
         ctx.health.extend(health)
+        if any("rate-limited (429)" in f"{h.get('error')} {h.get('warning')}" for h in health):
+            ctx.linkedin_blocked = True
         jobs = [j for r in results for j in r.jobs]
         ctx.collected += len(jobs)
         return jobs
@@ -145,6 +169,12 @@ def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
     return [j for j in ctx.cache[source] if title_matches(j.title, words)]
 
 
+def jobspy_sites(ctx: AgentContext) -> list[str]:
+    """The JobSpy sites a "linkedin" search still asks: LinkedIn drops out once it answered 429."""
+    sites = ctx.config["sources"]["jobspy"].get("sites", ["linkedin", "indeed"])
+    return [s for s in sites if s != "linkedin"] if ctx.linkedin_blocked else list(sites)
+
+
 def title_matches(title: str, words: list[str]) -> bool:
     """Every query word starts a word of the title: "engineer" hits "Engineering",
     but "ai" does not hit "Retail" or "Maintenance"."""
@@ -156,6 +186,21 @@ def _new_and_filtered(ctx: AgentContext, jobs: list[Job]) -> tuple[list[Job], Co
     fresh = [j for j in dedupe_batch(jobs)
              if j.id not in ctx.candidates and is_new(j, ctx.known_ids, ctx.known_keys)]
     return filter_jobs(fresh, ctx.config)
+
+
+def _add_candidate(ctx: AgentContext, job: Job, score: float) -> None:
+    """Remember a new job; its company|title key hides the same role on other sources later this run."""
+    ctx.candidates[job.id] = job
+    ctx.prescores[job.id] = score
+    ctx.found_by[job.id] = len(ctx.query_log) - 1
+    if job.company.strip():
+        ctx.known_keys.add(job.dedupe_key)
+
+
+def is_free(ctx: AgentContext, source: str) -> bool:
+    """Title-matched sources cost nothing once their list is loaded, so those searches are not
+    charged to max_searches; every linkedin search and each first load are."""
+    return source not in QUERY_SOURCES and source in ctx.cache
 
 
 # ------------------------------------------------------------ tool bodies
@@ -178,30 +223,40 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
         return f"ERROR: unknown source {source!r}. Use one of: {', '.join(sources)}."
     if not query:
         return "ERROR: query is empty."
-    if ctx.searches >= ctx.settings["max_searches"]:
-        return ("Search budget used up. Read and save the best candidates you already found, "
+    if source in QUERY_SOURCES and not jobspy_sites(ctx):
+        others = ", ".join(s for s in sources if s not in QUERY_SOURCES) or "none"
+        return f"ERROR: LinkedIn is rate-limited for the rest of this run. Use another source: {others}."
+    free = is_free(ctx, source)
+    if not free and ctx.searches >= ctx.settings["max_searches"]:
+        loaded = ", ".join(s for s in sources if is_free(ctx, s))
+        still_free = f" Searches on {loaded} are still free." if loaded else ""
+        return (f"Search budget used up.{still_free} Read and save the best candidates you already found, "
                 "then stop.")
     groups = ctx.settings.get("role_groups") or {}
     hit = query_groups(query, groups)
-    cap = ctx.settings.get("max_searches_per_group", ctx.settings["max_searches"])
-    if hit and all(ctx.group_searches[g] >= cap for g in hit):
-        return (f"ERROR: role group {' / '.join(hit)} already has {cap} searches."
-                f"{coverage_note(ctx) or ' Search a different kind of job.'}")
+    if hit and all(ctx.group_searches[g] >= group_cap(ctx, g) for g in hit):
+        dry = " (dry: no strong match in recent runs)" if all(g in ctx.dry_groups for g in hit) else ""
+        return (f"ERROR: role group {' / '.join(hit)} already has {ctx.group_searches[hit[0]]} "
+                f"searches{dry}.{coverage_note(ctx) or ' Search a different kind of job.'}")
     searched = junior_query(ctx, query) if source in QUERY_SOURCES else query
-    ctx.searches += 1
+    ctx.searches += 0 if free else 1
     ctx.group_searches.update(hit)
     found = _fetch(ctx, source, searched)
     kept, dropped = _new_and_filtered(ctx, found)
     ctx.drop_reasons.update(dropped)
     scores = prescore(ctx.profile, kept)
+    ctx.query_log.append({"query": query, "source": source, "found": len(found), "new": len(kept)})
     for job, score in zip(kept, scores):
-        ctx.candidates[job.id] = job
-        ctx.prescores[job.id] = score
+        _add_candidate(ctx, job, score)
     ranked = sorted(zip(kept, scores), key=lambda p: p[1], reverse=True)
     top = ranked[: ctx.settings["results_per_search"]]
-    head = (f"{f'Searched as {searched!r} (junior roles only). ' if searched != query else ''}"
+    blocked = ("LinkedIn is rate-limited for the rest of this run, so 'linkedin' searches now cover "
+               f"{', '.join(jobspy_sites(ctx)) or 'nothing'} only. "
+               if source in QUERY_SOURCES and ctx.linkedin_blocked else "")
+    head = (f"{blocked}{f'Searched as {searched!r} (junior roles only). ' if searched != query else ''}"
             f"{len(found)} postings matched, {len(kept)} new after filters"
             f"{' (dropped: ' + ', '.join(f'{k} {v}' for k, v in dropped.items()) + ')' if dropped else ''}. "
+            f"{'This search was free (list already loaded). ' if free else ''}"
             f"Searches left: {ctx.settings['max_searches'] - ctx.searches}.{coverage_note(ctx)}")
     if not top:
         hint = " Try a broader or different query." if source not in QUERY_SOURCES else ""
@@ -218,7 +273,7 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
     first_read = job.id not in ctx.read
-    ctx.read.add(job.id)
+    ctx.read.setdefault(job.id, ctx.turn)
     if first_read and linkedin_job_id(job.url):   # the page says whether it still accepts applications
         posting = fetch_posting(job)
         job.description = job.description.strip() or posting.description
@@ -238,12 +293,31 @@ def read_posting(ctx: AgentContext, job_id: str) -> str:
             f"Description:\n{text}")
 
 
-def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
+def score_job(ctx: AgentContext, job: Job) -> JobMatch | None:
+    """The pipeline's scoring prompt and rubric (matcher.llm_score), so agent picks and pipeline jobs
+    are scored the same way. None when there is no scorer or every retry failed."""
+    if ctx.scorer is None or ctx.scorer_down:
+        return None
+    match = llm_score(ctx.scorer, ctx.profile, [job], ctx.config, ctx.score_errors, ctx.choices)[0]
+    if match is None and ctx.score_errors and fatal_llm_error(ctx.score_errors[-1]):
+        ctx.scorer_down = True
+        log.warning("agent: scorer unavailable for the rest of this run: %s", ctx.score_errors[-1][:200])
+    return match
+
+
+def save_match(ctx: AgentContext, job_id: str, reason: str) -> str:
     job = ctx.candidates.get(job_id.strip())
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
+    if job.id in ctx.matches:                                # saving again changes nothing: no re-scoring
+        score = ctx.matches[job.id]["score"]
+        return (f"Already saved {job.title} @ {job.company} "
+                f"({'scorer: ' + str(score) if score is not None else 'not scored'}). "
+                "Saving it again changes nothing; pick a different job.")
     if job.id not in ctx.read:
         return "ERROR: call read_posting on this job before saving it."
+    if job.id in ctx.over_years:
+        return f"REFUSED: {job.title} @ {job.company} asks for too much experience. Find another job."
     if job.id in ctx.closed:                                 # guardrail: open jobs only
         return f"REFUSED: {job.title} @ {job.company} is no longer accepting applications. Do not save it."
     not_junior = junior_reason(job, ctx.config)              # guardrail: junior roles only
@@ -251,10 +325,27 @@ def save_match(ctx: AgentContext, job_id: str, score: int, reason: str) -> str:
         ctx.drop_reasons[f"save_refused_{not_junior}"] += 1
         return (f"REFUSED: {job.title} @ {job.company} is not a junior role ({not_junior}). "
                 "The candidate wants junior / entry-level jobs only. Do not save it; find another job.")
-    ctx.matches[job.id] = {"score": score, "reason": reason.strip()}
+    if ctx.read[job.id] == ctx.turn:                         # read and saved in one batch: never seen
+        return ("ERROR: you read this posting in this same turn, so you have not seen its text yet. "
+                "Judge it from the read_posting result, then save it in your next turn.")
+    match = score_job(ctx, job)
+    if match and years_over_limit(job, match.required_years, ctx.config):   # same backstop as the pipeline
+        ctx.drop_reasons["save_refused_experience_llm"] += 1
+        ctx.over_years.add(job.id)
+        return (f"REFUSED: the scorer read {match.required_years:g} required years of experience in "
+                f"{job.title} @ {job.company}; the candidate is junior. Find another job.")
+    ctx.matches[job.id] = {"score": match.score if match else None, "reason": reason.strip(), "match": match}
     s = ctx.settings
-    return (f"Saved {job.title} @ {job.company} with score {score}. "
-            f"Matches at or above {s['min_match_score']}: {ctx.strong_matches()}/{s['goal_matches']}.")
+    progress = f"Matches at or above {s['min_match_score']}: {ctx.strong_matches()}/{s['goal_matches']}."
+    if match is None and ctx.scorer_down:
+        return (f"Saved {job.title} @ {job.company}, unscored: the scorer is unavailable for the rest of "
+                "this run (billing or API-key error), so no save can count toward the goal. Save only the "
+                "few remaining jobs you are most sure of, then reply DONE.")
+    if match is None:
+        return (f"Saved {job.title} @ {job.company}, but the scorer failed, so it does not count "
+                f"toward the goal. {progress}")
+    gaps = f" Missing: {', '.join(match.missing_skills[:4])}." if match.missing_skills else ""
+    return (f"Saved {job.title} @ {job.company}. Scorer: {match.score} ({match.verdict}).{gaps} {progress}")
 
 
 # ------------------------------------------------------------ tool schemas
@@ -270,8 +361,7 @@ class ReadArgs(BaseModel):
 
 class SaveArgs(BaseModel):
     job_id: str = Field(description="An id from search_jobs results that you have read")
-    score: int = Field(ge=0, le=100, description="Fit for this candidate, 0-100")
-    reason: str = Field(description="One or two sentences: why it fits and the main gap", max_length=600)
+    reason: str = Field(description="One sentence: why this job is worth applying to", max_length=600)
 
 
 class NoArgs(BaseModel):
@@ -294,8 +384,8 @@ def make_tools(ctx: AgentContext) -> list[StructuredTool]:
             lambda job_id: read_posting(ctx, job_id), name="read_posting", args_schema=ReadArgs,
             description="Read a posting's full text, its stated years of experience and junior signals."),
         StructuredTool.from_function(
-            lambda job_id, score, reason: save_match(ctx, job_id, score, reason), name="save_match",
+            lambda job_id, reason: save_match(ctx, job_id, reason), name="save_match",
             args_schema=SaveArgs,
-            description="Save a junior job you have read as a match with your score and reason. "
-                        "Jobs that require experience are refused."),
+            description="Save a junior job you read in an earlier turn. A scorer rates it 0-100 with a "
+                        "fixed rubric and returns the score. Jobs that require experience are refused."),
     ]
