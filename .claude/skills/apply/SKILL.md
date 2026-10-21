@@ -23,5 +23,9 @@ Arguments: `$ARGUMENTS`
 4. Save the documents into the brief's folder, run the `--docx` command it gives, and finish with
    the short summary it asks for.
 
+**For the owner**, also follow `.claude/skills/cv-tailoring/references/owner-cv-rules.md` and use `cv/notes/master_cv.md` + `cv/notes/experience_bank.md` (only facts from these; the bank's NOT lines are never claimed).
+
+**Unattended** (run by `claude -p "/apply <id>"` from the auto-tailor step; see the `auto-tailor` skill): nobody can answer, so ask nothing. Write every gap and every "needs his OK" suggestion into `changes.md`, finish the files, and stop.
+
 Do not edit code, `config.yaml`, `cv/cv_master.yaml` or the database while doing this. The job's
 status (applied, interview…) is the person's to set in the dashboard.

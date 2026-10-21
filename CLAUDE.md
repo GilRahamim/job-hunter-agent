@@ -23,6 +23,7 @@ Load the matching skill before working on that area — each holds verified API 
 | Tests, fixtures, fake LLM, offline runs | `offline-testing` |
 | Tailoring the CV / cover letter for a specific job (2nd agent, planned) | `cv-tailoring` |
 | Preparing one application with Claude on the subscription (`/apply <job-id>`) | `apply` |
+| Tailoring top matches automatically after a run, headless on the subscription (`claude -p`) | `auto-tailor` |
 
 ## Stack
 Python 3.11+, LangGraph, LangChain (`init_chat_model` for provider-agnostic LLM), Pydantic v2, SQLite (stdlib `sqlite3`), scikit-learn (TF-IDF), python-jobspy, requests, Streamlit, pypdf, python-docx, PyYAML, python-dotenv, pytest.
@@ -79,6 +80,7 @@ pytest -q                           # also runs in CI on every push: .github/wor
 - Before claiming a phase is done, run its acceptance check from the implementation plan and show the output.
 
 - The tailoring agent never adds facts that are not in `cv/cv_master.yaml` — see `cv-tailoring`. The Claude handoff brief carries the same rule.
+- The owner's personal CV rules and confirmed facts: `cv-tailoring/references/owner-cv-rules.md` (rules, committed) and `cv/notes/` (facts, gitignored — never copy them into committed files).
 
 ## Users
 - The owner is user `""`: repo `cv/`, `data/`, `config.yaml`. Others live in `users/<id>/`; their `config.yaml` is merged over the main one.
