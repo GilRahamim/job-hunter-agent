@@ -570,6 +570,63 @@ def test_failed_scoring_keeps_the_job_but_not_toward_the_goal(env, monkeypatch):
     assert ctx.score_errors == ["RuntimeError: bad json"]
 
 
+def test_saving_a_job_again_does_not_rescore_it(env):
+    cfg, _, _ = env
+    scorer = ScriptedModel([], scores={PY.title: 72})
+    ctx = read_ctx(cfg, PY, scorer)
+    tools.save_match(ctx, PY.id, "fits")
+    again = tools.save_match(ctx, PY.id, "fits, really")
+    assert again.startswith("Already saved Junior Python Developer @ Acme (scorer: 72)")
+    assert scorer.scored == [PY.title] and ctx.matches[PY.id]["reason"] == "fits"
+
+
+def test_billing_error_stops_scoring_for_the_run(env, monkeypatch):
+    from jobhunter import matcher
+    cfg, _, _ = env
+    monkeypatch.setattr(matcher, "BACKOFF_SECONDS", 0)
+    tries = []
+
+    class NoCredit(ScriptedModel):
+        def with_structured_output(self, cls):
+            class S:
+                def invoke(self, messages):
+                    tries.append(1)
+                    raise RuntimeError("Error code: 400 - {'message': 'Your credit balance is too low'}")
+            return S()
+
+    ctx = read_ctx(cfg, PY, NoCredit([]))
+    ctx.candidates[AI.id], ctx.prescores[AI.id], ctx.read[AI.id] = AI, 30.0, 0
+    first = tools.save_match(ctx, PY.id, "fits")
+    second = tools.save_match(ctx, AI.id, "fits")
+    assert len(tries) == 1 and ctx.scorer_down                 # no retries, and no call for the 2nd job
+    assert "scorer is unavailable for the rest of this run" in first and second.endswith("reply DONE.")
+    assert set(ctx.matches) == {PY.id, AI.id}                   # both kept for the user, unscored
+
+
+def test_linkedin_429_drops_linkedin_for_the_rest_of_the_run(env, monkeypatch):
+    cfg, _, _ = env
+    sites_asked = []
+
+    def fake_collect(config, only=None, limit=None):
+        sites_asked.append(list(config["sources"]["jobspy"]["sites"]))
+        return ([CollectorResult("jobspy", [PY])],
+                [{"source": "jobspy", "fetched": 1, "error": None,
+                  "warning": "LinkedIn rate-limited (429): skipped for 0 of 1 searches"}])
+
+    monkeypatch.setattr(tools, "collect_all", fake_collect)
+    cfg["agent"]["max_searches"] = 5
+    cfg["sources"]["jobspy"]["sites"] = ["linkedin", "indeed"]
+    ctx = tools.AgentContext(config=cfg, profile=CandidateProfile(skills=["Python"]), known_ids=set(),
+                             known_keys=set())
+    tools.search_jobs(ctx, "Python Developer", "linkedin")
+    second = tools.search_jobs(ctx, "Data Analyst", "linkedin")
+    assert sites_asked == [["linkedin", "indeed"], ["indeed"]] and ctx.linkedin_blocked
+    assert second.startswith("LinkedIn is rate-limited for the rest of this run")
+    cfg["sources"]["jobspy"]["sites"] = ["linkedin"]                # nothing left to ask
+    assert tools.search_jobs(ctx, "QA Engineer", "linkedin").startswith("ERROR: LinkedIn is rate-limited")
+    assert len(sites_asked) == 2 and ctx.searches == 2              # the refused search costs nothing
+
+
 @pytest.mark.parametrize("setting,main_available,expected", [
     ("main", True, "main"), ("agent", True, "agent"), ("main", False, "agent")])
 def test_scorer_setting_picks_the_model(env, monkeypatch, setting, main_available, expected):

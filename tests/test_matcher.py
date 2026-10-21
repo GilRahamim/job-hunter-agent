@@ -119,6 +119,18 @@ def test_retry_then_success(profile, cfg):
     assert res[0].score == 85 and state["n"] == 2
 
 
+@pytest.mark.parametrize("error, fatal", [
+    ("Error code: 400 - {'message': 'Your credit balance is too low to access the Anthropic API.'}", True),
+    ("Error code: 401 - {'type': 'authentication_error'}", True),
+    ("Error code: 429 - {'error': {'code': 'insufficient_quota'}}", True),
+    ("Error code: 429 - rate_limit_error", False),
+    ("Error code: 529 - overloaded_error", False),
+    ("1 validation error for JobMatch: input_value='OAuth authentication and API key rotation'", False),
+])
+def test_fatal_llm_errors_are_billing_and_auth_only(error, fatal):
+    assert matcher.fatal_llm_error(error) is fatal
+
+
 def test_failure_returns_none_and_falls_back_to_prescore(profile, cfg):
     def boom(text):
         raise RuntimeError("down")
