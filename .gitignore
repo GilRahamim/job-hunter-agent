@@ -15,3 +15,6 @@ skills-lock.json
 
 # people added in the dashboard: their CVs and job data
 users/
+
+# graphify knowledge graph (generated, machine-specific)
+graphify-out/
