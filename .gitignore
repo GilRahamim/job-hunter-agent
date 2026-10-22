@@ -18,3 +18,5 @@ users/
 
 # graphify AST cache (regenerated locally)
 graphify-out/cache/
+# graphify JSON (graph, manifest, cost, labels): rebuilt by /graphify, kept local
+graphify-out/**/*.json
