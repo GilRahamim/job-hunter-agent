@@ -8,16 +8,17 @@
 #
 # Sized for a 16 GB card: Qwen3-14B in 4-bit AWQ (~10 GB of weights) leaves ~3-4 GB for the KV cache.
 # Per token of context that cache takes 2 (K, V) x 40 layers x 8 KV heads x 128 dims = 81,920 values:
-# 160 KB in fp16, 80 KB in fp8, so fp8 fits ~40K tokens: ~10 scoring prompts of ~4K tokens at once
-# (vLLM queues the rest of the 16 parallel requests).
+# 160 KB in fp16 (measured on an RTX 5080: 20,896 tokens, ~5 scoring prompts of ~4K at once; vLLM
+# queues the rest of the 16 parallel requests). fp8 would halve it, but on the RTX 5080 (sm120) the
+# fp8 cache crashed FlashInfer's warmup with "CUDA error: unknown error", so fp16 is the default.
 # Out of memory at start: MAX_LEN=8192, or MODEL=Qwen/Qwen3-8B-AWQ (more room, weaker answers).
-# fp8 KV cache refused by your GPU / vLLM: KV_DTYPE=auto.
+# Twice the parallel scoring on a GPU where it works: KV_DTYPE=fp8.
 set -euo pipefail
 
 MODEL="${MODEL:-Qwen/Qwen3-14B-AWQ}"
 NAME="${NAME:-qwen3-local}"              # = llm.model in config.vllm.yaml, whatever MODEL is
 MAX_LEN="${MAX_LEN:-16384}"              # one scoring prompt (~4K) with room to spare; the agent is not here
-KV_DTYPE="${KV_DTYPE:-fp8}"
+KV_DTYPE="${KV_DTYPE:-auto}"            # auto = the model's dtype (fp16); see fp8 above
 GPU_UTIL="${GPU_UTIL:-0.90}"             # share of VRAM vLLM takes; lower it if Windows needs more
 MAX_SEQS="${MAX_SEQS:-16}"               # = llm.max_workers in config.vllm.yaml
 

@@ -52,8 +52,10 @@ Qwen3-14B in 4-bit AWQ is about 10 GB of weights. With `--gpu-memory-utilization
 $$2\ (K,V) \times 40\ \text{layers} \times 8\ \text{KV heads} \times 128\ \text{dims} = 81{,}920\ \text{values}
 \;\Rightarrow\; 160\ \text{KB in fp16},\ 80\ \text{KB in fp8}$$
 
-With an fp8 cache that is about 40K tokens: about 10 scoring prompts of ~4K tokens at the same time.
-vLLM queues the rest of the 16 requests, so nothing fails, they just wait.
+The default fp16 cache holds about 20K tokens (measured on the RTX 5080: 3.19 GiB, 20,896 tokens):
+about 5 scoring prompts of ~4K tokens at the same time. vLLM queues the rest of the 16 requests, so
+nothing fails, they just wait (measured: 88 jobs scored in under a minute). An fp8 cache would double
+that, but on the RTX 5080 it crashed vLLM 0.31's FlashInfer warmup, so it is opt-in (`KV_DTYPE=fp8`).
 
 ### Setup on Windows (WSL2), once
 
@@ -105,14 +107,14 @@ high or low, adjust `agent.min_match_score` and `notify.min_score` in `config.vl
 
 ### Tuning (environment variables of `scripts/vllm_serve.sh`)
 
-In WSL2 put them before the command (`KV_DTYPE=auto bash scripts/vllm_serve.sh`). With Docker set them
-in the shell that runs compose, which passes them in: PowerShell `$env:KV_DTYPE="auto"`, then
-`docker compose ... up vllm` (`Remove-Item Env:KV_DTYPE` to go back to the default).
+In WSL2 put them before the command (`MAX_LEN=8192 bash scripts/vllm_serve.sh`). With Docker set them
+in the shell that runs compose, which passes them in: PowerShell `$env:MAX_LEN="8192"`, then
+`docker compose ... up vllm` (`Remove-Item Env:MAX_LEN` to go back to the default).
 
 | Problem | Try |
 |---|---|
 | out of memory at start | `MAX_LEN=8192 bash scripts/vllm_serve.sh`, or `GPU_UTIL=0.85` |
-| fp8 KV cache refused (older GPU / vLLM), or `CUDA error: unknown error` right after "Warming up FlashInfer attention" | `KV_DTYPE=auto` (fp16 cache: about half the tokens, ~4 scoring prompts at once) |
+| want more scoring prompts at once | `KV_DTYPE=fp8` (twice the cache); if it ends in `CUDA error: unknown error` right after "Warming up FlashInfer attention", go back to the default |
 | Docker: the container does not start, `nvidia-container-runtime-hook` crashes in `dlopen` (often after a GPU crash) | `wsl --shutdown` in PowerShell, then start Docker Desktop again |
 | still too big, or want more parallel scoring | `MODEL=Qwen/Qwen3-8B-AWQ` (more room, weaker answers); the config keeps working, the served name stays `qwen3-local` |
 | more / fewer requests at once | `MAX_SEQS=24` and `llm.max_workers: 24` in `config.vllm.yaml` (keep them equal) |
