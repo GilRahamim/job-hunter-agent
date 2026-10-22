@@ -252,3 +252,16 @@ def test_years_over_limit_follows_the_junior_title_rule(cfg):
     assert years_over_limit(j("Data Analyst"), 2, loose)
     loose["filters"]["max_required_years"] = None
     assert not years_over_limit(j("Data Analyst"), 9, loose)               # no limit
+
+
+@pytest.mark.parametrize("score,years,limit", [(75, 2, 0), (95, 3, 0), (80, 1, 0), (90, 5, 2), (70, 9, 0)])
+def test_over_limit_score_is_never_a_strong_match(score, years, limit):
+    from jobhunter.filters import over_limit_score
+    capped = over_limit_score(score, years, limit)
+    assert 0 <= capped < 70 and capped <= score                            # under agent.min_match_score
+
+
+def test_over_limit_score_keeps_low_scores_and_the_order(cfg):
+    from jobhunter.filters import over_limit_score
+    assert over_limit_score(30, 3, 0) <= 30                                # never raises a score
+    assert over_limit_score(90, 2, 0) >= over_limit_score(60, 2, 0)        # a better fit stays above

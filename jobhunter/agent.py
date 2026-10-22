@@ -16,7 +16,7 @@ from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.db import job_from_row
 from jobhunter.dedupe import dedupe_batch, is_new
-from jobhunter.filters import filter_jobs, junior_reason, years_over_limit
+from jobhunter.filters import filter_jobs, junior_reason, over_limit_score, years_limit, years_over_limit
 from jobhunter.llm import get_llm
 from jobhunter.matcher import llm_score as score_with_llm
 from jobhunter.matcher import prescore as prescore_jobs
@@ -172,10 +172,14 @@ def save_node(state: PipelineState) -> dict:
     for j, pre in zip(state["to_score"], state["prescores"]):
         row = scored_row(j, pre, matches.get(j.id), state["cv_hash"], state["model"])
         # The LLM read an experience requirement the rules missed: do not add the job. A job already
-        # in the DB (rescored) keeps its row, with the new years, and the dashboard hides it.
-        if j.id not in state["rescored_ids"] and years_over_limit(j, row["required_years"], state["config"]):
-            drop_reasons["experience_llm"] = drop_reasons.get("experience_llm", 0) + 1
-            continue
+        # in the DB (rescored) keeps its row, with the new years and a capped score (the rubric's
+        # seniority rule allows ~2 years over, so it can still score 75), and the dashboard hides it.
+        if years_over_limit(j, row["required_years"], state["config"]):
+            if j.id not in state["rescored_ids"]:
+                drop_reasons["experience_llm"] = drop_reasons.get("experience_llm", 0) + 1
+                continue
+            row["score"] = over_limit_score(row["score"], row["required_years"],
+                                            years_limit(j, state["config"]))
         rows.append(row)
     opts = state["options"]
     stats = {

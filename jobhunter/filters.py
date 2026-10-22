@@ -197,6 +197,16 @@ def years_over_limit(job: Job, years: float | None, cfg: dict[str, Any]) -> bool
     return limit is not None and years is not None and years > limit
 
 
+def over_limit_score(score: float, years: float, limit: float) -> float:
+    """Score of a stored job whose posting asks for `years` of experience, more than the `limit` this
+    user allows (called only when years > limit). Keeps it below agent.min_match_score (70) and
+    notify.min_score, so it never counts as a strong match or triggers a notification."""
+    # Scale instead of a flat cap, so a better fit still ranks above a weaker one (100 -> 60 at most),
+    # then 5 points less for every year over the first one past the limit.
+    extra_years = max(0.0, years - limit - 1)
+    return round(max(0.0, 0.6 * score - 5 * extra_years), 1)
+
+
 def junior_reason(job: Job, cfg: dict[str, Any]) -> str | None:
     """Why a job is not a junior job ("senior" / "experience" / "unverified"), or None when it is.
     Shared by the filter stage, the rescore step, the agent's save guard and the dashboard."""
