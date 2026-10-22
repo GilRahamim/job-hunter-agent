@@ -54,6 +54,7 @@ class AgentContext:
     matches: dict[str, dict] = field(default_factory=dict)       # id -> {"score", "reason", "match"}
     score_errors: list[str] = field(default_factory=list)
     scorer_down: bool = False                                    # billing / auth error: no more scoring this run
+    score_retried: set[str] = field(default_factory=set)         # unscored saves saved again to retry the scorer
     linkedin_blocked: bool = False                               # LinkedIn answered 429: Indeed only from now on
     cache: dict[str, list[Job]] = field(default_factory=dict)    # fixed-list source -> jobs
     health: list[dict] = field(default_factory=list)
@@ -309,8 +310,10 @@ def save_match(ctx: AgentContext, job_id: str, reason: str) -> str:
     job = ctx.candidates.get(job_id.strip())
     if job is None:
         return "ERROR: unknown job_id. Use an id from search_jobs results."
-    if job.id in ctx.matches:                                # saving again changes nothing: no re-scoring
-        score = ctx.matches[job.id]["score"]
+    saved = ctx.matches.get(job.id)
+    # saving again changes nothing, except one retry of a scorer that failed for a passing reason
+    if saved and (saved["match"] or ctx.scorer_down or job.id in ctx.score_retried):
+        score = saved["score"]
         return (f"Already saved {job.title} @ {job.company} "
                 f"({'scorer: ' + str(score) if score is not None else 'not scored'}). "
                 "Saving it again changes nothing; pick a different job.")
@@ -328,10 +331,13 @@ def save_match(ctx: AgentContext, job_id: str, reason: str) -> str:
     if ctx.read[job.id] == ctx.turn:                         # read and saved in one batch: never seen
         return ("ERROR: you read this posting in this same turn, so you have not seen its text yet. "
                 "Judge it from the read_posting result, then save it in your next turn.")
+    if saved:
+        ctx.score_retried.add(job.id)
     match = score_job(ctx, job)
     if match and years_over_limit(job, match.required_years, ctx.config):   # same backstop as the pipeline
         ctx.drop_reasons["save_refused_experience_llm"] += 1
         ctx.over_years.add(job.id)
+        ctx.matches.pop(job.id, None)                        # a retried save: drop its unscored entry
         return (f"REFUSED: the scorer read {match.required_years:g} required years of experience in "
                 f"{job.title} @ {job.company}; the candidate is junior. Find another job.")
     ctx.matches[job.id] = {"score": match.score if match else None, "reason": reason.strip(), "match": match}
@@ -342,8 +348,9 @@ def save_match(ctx: AgentContext, job_id: str, reason: str) -> str:
                 "this run (billing or API-key error), so no save can count toward the goal. Save only the "
                 "few remaining jobs you are most sure of, then reply DONE.")
     if match is None:
+        retry = "" if job.id in ctx.score_retried else " You may save it once more later to retry the scorer."
         return (f"Saved {job.title} @ {job.company}, but the scorer failed, so it does not count "
-                f"toward the goal. {progress}")
+                f"toward the goal.{retry} {progress}")
     gaps = f" Missing: {', '.join(match.missing_skills[:4])}." if match.missing_skills else ""
     return (f"Saved {job.title} @ {job.company}. Scorer: {match.score} ({match.verdict}).{gaps} {progress}")
 

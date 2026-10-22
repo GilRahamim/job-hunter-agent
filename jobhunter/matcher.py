@@ -20,15 +20,21 @@ SKILL_DENOM_CAP = 15
 MAX_DESCRIPTION_CHARS = 6000
 LLM_ATTEMPTS = 3
 BACKOFF_SECONDS = 1.0                 # doubled on each retry; tests set it to 0
-# errors no retry can fix: out of credits / quota, missing or bad API key, no permission
-# (only HTTP errors count: a validation error can echo job text that mentions "authentication")
-_FATAL_LLM = re.compile(r"Error code: (40[13]\b|4\d\d\b.*(credit balance|insufficient_quota))",
-                        re.IGNORECASE | re.DOTALL)
+# errors no retry can fix: out of credits / quota, missing or bad API key, no permission.
+# Checked on "<ExceptionClass>: <message>" (as in the errors list); a 429 is a rate limit, not fatal.
+_FATAL_LLM = re.compile(
+    r"Error code: (40[13]\b|4\d\d\b.*(credit balance|insufficient_quota))"  # OpenAI / Anthropic SDKs, Groq
+    r"|^(AuthenticationError|PermissionDeniedError|PermissionDenied|Unauthenticated)\b"  # by exception class
+    r"|\b40[13] (Unauthorized|Forbidden|UNAUTHENTICATED|PERMISSION_DENIED)\b"  # Google genai, plain HTTP clients
+    r"|API_KEY_INVALID|API key not valid",                                     # Gemini: a bad key is a 400
+    re.IGNORECASE | re.DOTALL)
+# a parsing / validation error can echo job text that mentions "401 Unauthorized" or "API key not valid"
+_PARSE_ERROR = re.compile(r"^(\w+: )?(\d+ validation errors? for|ValidationError|OutputParserException)")
 
 
 def fatal_llm_error(error: str) -> bool:
     """True when retrying (or scoring the next job) cannot help: billing or auth, not a rate limit."""
-    return bool(_FATAL_LLM.search(error))
+    return not _PARSE_ERROR.match(error) and bool(_FATAL_LLM.search(error))
 
 
 def prescore(profile: CandidateProfile, jobs: list[Job]) -> list[float]:
@@ -107,13 +113,14 @@ def _score_one(structured: Any, messages: list[tuple[str, str]], title: str,
             return result if isinstance(result, JobMatch) else JobMatch(**result)
         except Exception as e:  # noqa: BLE001 - rate limits and validation errors are retried
             log.warning("LLM scoring %r failed (attempt %d/%d): %s", title, attempt + 1, LLM_ATTEMPTS, e)
-            if fatal_llm_error(str(e)):
-                errors.append(f"{type(e).__name__}: {e}")
+            error = f"{type(e).__name__}: {e}"
+            if fatal_llm_error(error):
+                errors.append(error)
                 break
             if attempt < LLM_ATTEMPTS - 1:
                 time.sleep(BACKOFF_SECONDS * 2 ** attempt)
             else:
-                errors.append(f"{type(e).__name__}: {e}")
+                errors.append(error)
     return None
 
 

@@ -77,6 +77,16 @@ def test_rescore_selection_skips_hidden_and_current(path):
     assert ids == {rows[0]["id"], rows[2]["id"]}
 
 
+def test_rescore_with_an_llm_includes_unscored_agent_picks(path):
+    rows = [Job("greenhouse", f"Dev {i}", "A", f"https://x.com/{i}").to_dict() for i in range(4)]
+    for r, by in zip(rows, ["heuristic", db.AGENT_UNSCORED, "agent:haiku", "llm:haiku"]):
+        r.update(cv_hash="new", prescore=10, scored_by=by)
+    db.upsert_jobs(rows, path)
+    assert db.jobs_needing_rescore("new", 10, path) == []
+    ids = {j["id"] for j in db.jobs_needing_rescore("new", 10, path, include_heuristic=True)}
+    assert ids == {rows[0]["id"], rows[1]["id"]}
+
+
 def test_run_and_health(path):
     run_id = db.start_run(path)
     db.finish_run(run_id, {"collected": 5}, [{"source": "ats", "fetched": 5, "duration_s": 1.2},
@@ -162,6 +172,7 @@ def test_agent_report_compares_picks_with_what_the_user_did(path):
         ("Python Developer", "agent:q", 50, "new"),
         ("Python Developer", "llm:h", 85, "not_relevant"),
         ("Product Manager", "heuristic", 30, "new"),
+        ("Python Developer", db.AGENT_UNSCORED, 90, "new"),            # scorer failed: a pre-score
     ]
     db.upsert_jobs([{**Job("x", t, f"Co{i}", f"https://j/{i}").to_dict(), "scored_by": by, "score": s}
                     for i, (t, by, s, _) in enumerate(jobs)], path)
@@ -171,7 +182,7 @@ def test_agent_report_compares_picks_with_what_the_user_did(path):
     sections = mod.report(cfg, path)
     picker = dict(sections["picker"])
     assert list(picker) == ["agent", "regular", "heuristic"]
-    assert picker["agent"] == {"jobs": 4, "pursued": 2, "dismissed": 1, "open": 1, "judged": 3,
+    assert picker["agent"] == {"jobs": 5, "pursued": 2, "dismissed": 1, "open": 2, "judged": 3,
                                "precision": 2 / 3}
     assert picker["regular"]["precision"] == 0 and picker["heuristic"]["precision"] is None
     band = dict(sections["band"])

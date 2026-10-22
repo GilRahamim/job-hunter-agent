@@ -18,6 +18,10 @@ _HIDDEN_STATUSES = ("rejected", "not_relevant")
 # "rejected" (the company said no) says nothing about what the user wants.
 LIKED_STATUSES = ("interested", "applied", "interview", "offer")
 DISLIKED_STATUSES = ("not_relevant",)
+# scored_by of a job the smart agent saved but its scorer failed on: the score is the pre-score
+AGENT_UNSCORED = "agent:heuristic"
+# scores no LLM gave: scored again once an LLM is available (jobs_needing_rescore(include_heuristic))
+HEURISTIC_SCORED_BY = ("heuristic", AGENT_UNSCORED)
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
@@ -141,9 +145,10 @@ def jobs_needing_rescore(cv_hash: str, limit: int | None, path: str | Path | Non
     also jobs that only have a heuristic score (use when an LLM is available now).
     `limit=None`: no cap (the caller filters the rows first, then caps)."""
     marks = ",".join("?" * len(_HIDDEN_STATUSES))
-    heuristic = " OR scored_by = 'heuristic'" if include_heuristic else ""
+    by = HEURISTIC_SCORED_BY if include_heuristic else ()
+    heuristic = f" OR scored_by IN ({','.join('?' * len(by))})" if by else ""
     stale = "1" if force else f"(cv_hash IS NULL OR cv_hash != ?{heuristic})"
-    params: list[Any] = [] if force else [cv_hash]
+    params: list[Any] = [] if force else [cv_hash, *by]
     with connect(path) as con:
         rows = con.execute(
             f"SELECT * FROM jobs WHERE {stale} AND status NOT IN ({marks}) "

@@ -57,10 +57,19 @@ def trim_search(content: str, read_ids: set[str]) -> str:
     return "\n".join(kept) + (f"\n{READ_ROWS_CUT_NOTE.format(n=n)}" if n else "")
 
 
+def reply_text(content: Any) -> str:
+    """A reply's text: the string itself, or the text blocks of provider content blocks (thinking and
+    tool-use blocks left out)."""
+    if isinstance(content, str):
+        return content
+    return "\n".join(b if isinstance(b, str) else b.get("text", "") for b in content or []
+                     if isinstance(b, str) or (isinstance(b, dict) and b.get("type") == "text"))
+
+
 def said_done(content: Any) -> bool:
     """The reply's last line (reasoning removed) is DONE: the model says nothing promising is left.
     "I'm done with Data, moving on" is not."""
-    lines = THINK.sub("", content if isinstance(content, str) else "").strip().splitlines()
+    lines = THINK.sub("", reply_text(content)).strip().splitlines()
     return bool(lines) and lines[-1].strip().strip(".!*").upper() == "DONE"
 
 
@@ -215,18 +224,19 @@ def initial_messages(ctx: AgentContext, memory: str = "", history: dict[str, dic
             HumanMessage(AGENT_START.format(goal=s["goal_matches"], min_score=s["min_match_score"]) + memory)]
 
 
-def result_rows(ctx: AgentContext, cv_hash: str, model: str) -> list[dict]:
-    """Every candidate the agent saw; the ones it saved carry the scorer's result (or, when scoring
-    failed, the pre-score and the agent's reason). Jobs that turned out closed or experienced once read
+def result_rows(ctx: AgentContext, cv_hash: str, scorer_model: str) -> list[dict]:
+    """Every candidate the agent saw; the ones it saved carry the scorer's result, scored_by
+    "agent:<scorer model>" (or, when scoring failed, the pre-score and the agent's reason, scored_by
+    db.AGENT_UNSCORED so an LLM scores it later). Jobs that turned out closed or experienced once read
     (save_match refused them) are left out."""
     rows = []
     for job_id, job in ctx.candidates.items():
         if job_id in ctx.closed or job_id in ctx.over_years or junior_reason(job, ctx.config):
             continue
         m = ctx.matches.get(job_id)
-        row = scored_row(job, ctx.prescores[job_id], m["match"] if m else None, cv_hash, model)
+        row = scored_row(job, ctx.prescores[job_id], m["match"] if m else None, cv_hash, scorer_model)
         if m:
-            row["scored_by"] = f"agent:{model}"
+            row["scored_by"] = f"agent:{scorer_model}" if m["match"] else db.AGENT_UNSCORED
             if m["match"] is None:
                 row["reasons"] = m["reason"]
         rows.append(row)
@@ -293,7 +303,7 @@ def run(config: dict[str, Any] | None = None, **options: Any) -> dict[str, Any]:
                           ctx.health, path)
         raise RuntimeError(f"agent crashed: {e}") from e
 
-    rows = result_rows(ctx, cv_hash, model)
+    rows = result_rows(ctx, cv_hash, score_cfg["llm"]["model"])
     stats = {
         "mode": f"agent:{model}", "stop_reason": stop_reason, "steps": steps,
         "searches": len(ctx.query_log), "charged_searches": ctx.searches,

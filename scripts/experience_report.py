@@ -6,7 +6,7 @@ saved before the current rules); "llm" = only the language model read them.
 
   scored_by  llm:<model>    the regular search, scored by the LLM
              heuristic      the regular search without an LLM, or a job the smart agent saw but did not save
-             agent:<model>  saved by the smart agent
+             agent:<model>  saved by the smart agent, scored by that model (agent:heuristic = scoring failed)
 
 Usage:  python scripts/experience_report.py               # the owner's DB
         python scripts/experience_report.py --user dana   # someone added in the dashboard
