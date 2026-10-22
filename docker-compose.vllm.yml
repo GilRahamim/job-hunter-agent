@@ -1,4 +1,5 @@
-# Adds a vLLM server (NVIDIA GPU) for the scorer and the smart agent, and points the app at it.
+# Adds a vLLM server (NVIDIA GPU) for the scorer and points the app at it; the smart agent stays on
+# LM Studio on the host. One GPU: stop this service before an agent run (docs/LOCAL_LLM_AND_DOCKER.md).
 #   docker compose -f docker-compose.yml -f docker-compose.vllm.yml up --build
 #   docker compose -f docker-compose.yml -f docker-compose.vllm.yml up vllm   # only the server, for the app on Windows
 # The first start downloads the model (~10 GB) into the hf-cache volume. Needs Docker Desktop with the

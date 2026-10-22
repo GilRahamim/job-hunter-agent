@@ -1,8 +1,12 @@
-# Local vLLM server for the scorer and the smart agent: one model on one GPU, free per call, so it can
-# score more jobs per run and more of them at once. Merged over config.yaml (only what differs is here).
+# Local vLLM server for the scorer: free per call, so it can score more jobs per run and more of them at
+# once. The smart agent stays on LM Studio's 27B model (config.yaml): a 14B model that fits vLLM on a
+# 16 GB GPU plans too weakly. Merged over config.yaml (only what differs is here).
 #
 # Turn on:   add  JOBHUNTER_CONFIG=config.vllm.yaml  to .env   (remove the line to go back)
 # Server:    bash scripts/vllm_serve.sh  in WSL2  (or Docker, see docs/LOCAL_LLM_AND_DOCKER.md)
+# One GPU:   vLLM and LM Studio cannot both hold a 16 GB card. Regular runs: vLLM up, LM Studio model
+#            unloaded. Agent runs (--agent): vLLM stopped, LM Studio model loaded; the agent scores its
+#            own picks, so nothing calls vLLM.
 #
 # Scores from a local model are not on Claude Haiku's scale: check them with
 # python scripts/agent_report.py before trusting agent.min_match_score / notify.min_score.
@@ -21,11 +25,7 @@ matching:
   min_prescore_for_llm: 10              # was 15
 
 agent:
-  scorer: main                          # the same server scores the agent's picks
-  llm:                                  # replaces the LM Studio block in config.yaml
-    provider: openai
-    base_url: http://127.0.0.1:8000/v1
-    model: qwen3-local
-    max_tokens: 8000
-    extra_body:
-      chat_template_kwargs: {enable_thinking: true}   # the agent plans its searches
+  scorer: agent                         # the agent's LM Studio model scores its picks: vLLM is down then
+  llm:                                  # config.yaml's LM Studio block, plus:
+    extra_body: {}                      # keep the scorer's "thinking off" out of the agent (llm.agent_llm_config
+                                        # copies every `llm` key the agent block does not set)

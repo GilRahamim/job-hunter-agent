@@ -31,7 +31,7 @@ Python 3.11+, LangGraph, LangChain (`init_chat_model` for provider-agnostic LLM)
 ## Layout
 ```
 config.yaml          user-editable settings (queries, filters, LLM)
-config.vllm.yaml     opt-in overlay: local vLLM scorer + agent (JOBHUNTER_CONFIG in .env); config.docker.yaml = its compose address
+config.vllm.yaml     opt-in overlay: local vLLM scorer, agent stays on LM Studio (JOBHUNTER_CONFIG in .env); config.docker.yaml = compose addresses
 Dockerfile, docker-compose.yml, docker-compose.vllm.yml   demo / portfolio container (+ optional vLLM service)
 companies.yaml       company career boards (Greenhouse/Lever/Ashby/SmartRecruiters slugs)
 .env                 API keys (never commit)
