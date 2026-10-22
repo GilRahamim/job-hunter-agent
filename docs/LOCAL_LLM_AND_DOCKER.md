@@ -2,8 +2,8 @@
 
 Two independent, optional setups:
 
-- **vLLM**: score jobs and run the smart agent on a local model, free per call, so more jobs get an
-  LLM score per run and more of them are scored at once.
+- **vLLM**: score jobs on a local model, free per call, so more jobs get an LLM score per run and more
+  of them are scored at once. The smart agent stays on LM Studio.
 - **Docker**: the dashboard and the search in a container, for a demo or a portfolio. Daily use on the
   owner's Windows PC stays `streamlit run dashboard.py`.
 
@@ -11,7 +11,7 @@ Nothing changes until you turn one on. The default stays Claude Haiku for scorin
 
 ---
 
-## 1. vLLM: one local server for the scorer and the agent
+## 1. vLLM for the scorer, LM Studio for the agent
 
 ### What changes when it is on
 
@@ -21,10 +21,28 @@ Nothing changes until you turn one on. The default stays Claude Haiku for scorin
 | requests at once (`llm.max_workers`) | 6 | 16 (vLLM batches them on the GPU) |
 | jobs scored per run (`matching.llm_top_n`) | 60 | 200 |
 | lowest pre-score sent to the LLM (`min_prescore_for_llm`) | 15 | 10 |
-| smart agent (`agent.llm`) | LM Studio, Qwen 27B | the same vLLM model, thinking on |
+| smart agent (`agent.llm`) | LM Studio, Qwen3.8 27B | unchanged |
+| who scores the agent's picks (`agent.scorer`) | `main` (Claude Haiku) | `agent` (the 27B itself) |
 
-One model serves both because a 16 GB GPU cannot hold LM Studio's 27B model and a vLLM model at once.
-The agent drops from 27B to 14B: it plans a little less well, which the precision report will show.
+Why the split: scoring is many short, parallel requests with a fixed rubric, where vLLM's batching pays
+off and a 14B model is enough. The agent is one long conversation that plans searches, where model
+size matters. vLLM keeps every weight on the GPU, so the largest model it fits on 16 GB is about 14B
+(the 27B is ~18.7 GB as AWQ); LM Studio (llama.cpp) fits the 27B with ~3-bit GGUF quants and a
+quantized KV cache.
+
+### One GPU, one model at a time
+
+A 16 GB card cannot hold both servers, so switch between them:
+
+| Run | vLLM | LM Studio |
+|---|---|---|
+| regular search (`python run_agent.py`, dashboard button) | running | model unloaded (`lms unload --all`) |
+| smart agent (`--agent`, dashboard toggle) | stopped (Ctrl+C, or `docker compose ... stop vllm`) | 27B loaded |
+
+During an agent run the 27B scores the jobs it saves (`agent.scorer: agent`), so nothing calls vLLM.
+Those jobs get `scored_by = agent:qwen/qwen3.8-27b`, regular ones `llm:qwen3-local`: two models, two
+scales; compare them with `scripts/agent_report.py`. If vLLM is down during a regular run, scoring
+fails per job (logged) and those jobs keep their heuristic score until the next run with it up.
 
 ### Why the 14B model fits 16 GB
 
@@ -34,8 +52,8 @@ Qwen3-14B in 4-bit AWQ is about 10 GB of weights. With `--gpu-memory-utilization
 $$2\ (K,V) \times 40\ \text{layers} \times 8\ \text{KV heads} \times 128\ \text{dims} = 81{,}920\ \text{values}
 \;\Rightarrow\; 160\ \text{KB in fp16},\ 80\ \text{KB in fp8}$$
 
-With an fp8 cache that is about 40K tokens: one 32K agent context, or about 10 scoring prompts of ~4K
-tokens at the same time. vLLM queues the rest of the 16 requests, so nothing fails, they just wait.
+With an fp8 cache that is about 40K tokens: about 10 scoring prompts of ~4K tokens at the same time.
+vLLM queues the rest of the 16 requests, so nothing fails, they just wait.
 
 ### Setup on Windows (WSL2), once
 
@@ -61,7 +79,7 @@ Docker instead of WSL2 pip (needs Docker Desktop with the WSL2 backend):
 ### Turn it on and off
 
 - On: add `JOBHUNTER_CONFIG=config.vllm.yaml` to `.env`.
-- Off (back to Claude Haiku + LM Studio): delete that line.
+- Off (back to Claude Haiku as the scorer, also for the agent's picks): delete that line.
 
 `JOBHUNTER_CONFIG` names files merged over `config.yaml` (comma-separated, in order); only what differs
 is in them. It applies to the CLI and the dashboard (restart the dashboard after changing `.env`).
@@ -71,30 +89,29 @@ is in them. It applies to the CLI and the dashboard (restart the dashboard after
 ```bash
 curl http://127.0.0.1:8000/v1/models                    # lists "qwen3-local"
 python run_agent.py --sources remotive --limit 20       # log: "llm: scoring N of M jobs", no errors
-python run_agent.py --agent --goal 3 --dry-run          # log: "agent: qwen3-local, scorer: qwen3-local"
+# stop vLLM, load the 27B in LM Studio, then:
+python run_agent.py --agent --goal 3 --dry-run          # log: "agent: qwen/qwen3.8-27b, scorer: qwen/qwen3.8-27b"
 ```
 
-The dashboard's smart-agent toggle checks the same server and warns when it does not answer.
+The dashboard's smart-agent toggle checks LM Studio (the agent's server), not vLLM, and warns when it
+does not answer.
 
 ### Scores on a new scale
 
-A 14B local model does not score like Claude Haiku. `scored_by` records the model (`llm:qwen3-local`),
-so after a few runs and some statuses in the dashboard compare them:
-`python scripts/agent_report.py --since <first vLLM day>`. If local scores run high or low, adjust
-`agent.min_match_score` and `notify.min_score` in `config.vllm.yaml`.
+Neither local model scores like Claude Haiku. `scored_by` records the model (`llm:qwen3-local` for
+regular runs, `agent:qwen/qwen3.8-27b` for agent picks), so after a few runs and some statuses in the
+dashboard compare them: `python scripts/agent_report.py --since <first vLLM day>`. If local scores run
+high or low, adjust `agent.min_match_score` and `notify.min_score` in `config.vllm.yaml`.
 
 ### Tuning (environment variables of `scripts/vllm_serve.sh`)
 
 | Problem | Try |
 |---|---|
-| out of memory at start | `MAX_LEN=16384 bash scripts/vllm_serve.sh`, or `GPU_UTIL=0.85` |
-| fp8 KV cache refused (older GPU / vLLM) | `KV_DTYPE=auto MAX_LEN=16384` |
+| out of memory at start | `MAX_LEN=8192 bash scripts/vllm_serve.sh`, or `GPU_UTIL=0.85` |
+| fp8 KV cache refused (older GPU / vLLM) | `KV_DTYPE=auto` |
 | still too big, or want more parallel scoring | `MODEL=Qwen/Qwen3-8B-AWQ` (more room, weaker answers); the config keeps working, the served name stays `qwen3-local` |
 | more / fewer requests at once | `MAX_SEQS=24` and `llm.max_workers: 24` in `config.vllm.yaml` (keep them equal) |
 | Windows cannot reach `127.0.0.1:8000` | in WSL2 run `hostname -I` and use `http://<that ip>:8000/v1` in `config.vllm.yaml`, or enable mirrored networking in `.wslconfig` |
-
-If the server is down during a run, scoring fails per job (logged, retried) and those jobs keep their
-heuristic score; the next run with the server up scores them.
 
 ---
 
@@ -116,7 +133,9 @@ With a local vLLM server in the same compose project (NVIDIA GPU):
 docker compose -f docker-compose.yml -f docker-compose.vllm.yml up --build
 ```
 
-The app then uses `config.vllm.yaml` with `config.docker.yaml` on top (the server is `http://vllm:8000`).
+The app then uses `config.vllm.yaml` with `config.docker.yaml` on top: the scorer is the `vllm` service
+(`http://vllm:8000`), the smart agent is LM Studio on the Windows host (`http://host.docker.internal:1234`).
+The same one-GPU rule applies: stop the `vllm` service before an agent run.
 
 Not available inside the container: opening Claude Code from the dashboard ("prepare with Claude" still
 writes the brief to download), and Windows desktop notifications.
