@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Start the local vLLM server that config.vllm.yaml points at (scorer + smart agent, one model).
 #
-#   WSL2 (Ubuntu) with an NVIDIA GPU:  python3 -m venv ~/vllm && ~/vllm/bin/pip install vllm   (once)
+#   WSL2 (Ubuntu) with an NVIDIA GPU:  python3 -m venv ~/vllm && ~/vllm/bin/pip install vllm==0.31.0   (once)
+#   (0.31.0 is built for CUDA 13: Windows NVIDIA driver 580 or newer; same version as docker-compose.vllm.yml)
 #                                      source ~/vllm/bin/activate && bash scripts/vllm_serve.sh
 #   Docker:                            docker compose -f docker-compose.vllm.yml up vllm   (runs this file)
 #

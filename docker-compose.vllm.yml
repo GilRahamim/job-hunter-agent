@@ -5,7 +5,7 @@
 # WSL2 backend and an NVIDIA driver on Windows, or the NVIDIA Container Toolkit on Linux.
 services:
   vllm:
-    image: vllm/vllm-openai:v0.11.0
+    image: vllm/vllm-openai:v0.31.0                        # = the version in scripts/vllm_serve.sh
     entrypoint: ["bash", "/scripts/vllm_serve.sh"]          # the same settings as a WSL2 run
     environment:
       - HF_TOKEN=${HF_TOKEN:-}                              # only for gated models; Qwen3 is public
