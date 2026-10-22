@@ -39,12 +39,13 @@ tokens at the same time. vLLM queues the rest of the 16 requests, so nothing fai
 
 ### Setup on Windows (WSL2), once
 
-1. NVIDIA driver on Windows (the normal Game Ready / Studio driver; WSL2 uses it, no CUDA install in Linux).
+1. NVIDIA driver on Windows, version 580 or newer (the normal Game Ready / Studio driver; WSL2 uses it,
+   no CUDA install in Linux). vLLM 0.31.0 is built for CUDA 13, which needs it. Check with `nvidia-smi`.
 2. PowerShell as admin: `wsl --install -d Ubuntu`, then reboot and open "Ubuntu".
 3. In Ubuntu:
    ```bash
    sudo apt update && sudo apt install -y python3-venv
-   python3 -m venv ~/vllm && ~/vllm/bin/pip install vllm
+   python3 -m venv ~/vllm && ~/vllm/bin/pip install vllm==0.31.0     # pinned: the flags in scripts/vllm_serve.sh are checked against it
    ```
 4. Start the server (the first start downloads the model, ~10 GB):
    ```bash
