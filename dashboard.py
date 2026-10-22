@@ -22,7 +22,7 @@ import streamlit as st
 
 from jobhunter import db, handoff, stop
 from jobhunter.config import ROOT, load_config, run_dir
-from jobhunter.llm import llm_available
+from jobhunter.llm import agent_llm_config, llm_available
 from jobhunter.models import CandidateProfile
 from jobhunter.personalize import personalize
 from jobhunter.runlock import lock_path, running_pid
@@ -158,7 +158,7 @@ def _health_url(base: str) -> str:
 
 @st.cache_data(ttl=15, show_spinner=False)
 def local_llm_down(base: str | None) -> bool:
-    """True when the agent's local model server (agent.llm.base_url) does not answer."""
+    """True when the agent's local model server (LM Studio / vLLM base_url) does not answer."""
     if not base:
         return False                                   # cloud provider: nothing local to check
     try:
@@ -231,9 +231,9 @@ def run_controls(cfg: dict) -> None:
         goal = st.slider("כמה משרות מתאימות למצוא", *GOAL_RANGE, key="agent_goal",
                          help=f"הסוכן עוצר אחרי שמצא משרות בציון {cfg['agent']['min_match_score']} ומעלה, "
                               "או כשנגמרים החיפושים.")
-        down = local_llm_down((cfg["agent"].get("llm") or {}).get("base_url"))
+        down = local_llm_down(agent_llm_config(cfg)["llm"].get("base_url"))
         if down:
-            st.warning("המודל המקומי לא זמין. יש להפעיל את LM Studio ולטעון את המודל.",
+            st.warning("המודל המקומי לא זמין. יש להפעיל את שרת המודל (LM Studio או vLLM) ולטעון את המודל.",
                        icon=":material/warning:")
     st.button("בואו נמצא את המשרה הבאה", type="primary", width="stretch", disabled=down,
               on_click=start_run, args=(goal,))

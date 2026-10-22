@@ -20,6 +20,11 @@ _OWN_KEYS = {"provider", "model", "temperature", "max_workers", "anthropic_works
 LOCAL_API_KEY = "local"                # placeholder for OpenAI-compatible local servers (LM Studio)
 
 
+def agent_llm_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    """config with `llm` replaced by llm + agent.llm overrides (e.g. a local LM Studio / vLLM model)."""
+    return {**cfg, "llm": {**cfg["llm"], **(cfg["agent"].get("llm") or {})}}
+
+
 def _has_key(provider: str) -> bool:
     if provider not in _KEY_ENV:
         return False

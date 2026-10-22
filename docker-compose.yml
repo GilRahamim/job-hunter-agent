@@ -1,0 +1,26 @@
+# Portfolio / demo setup: the dashboard and the search in a container.
+#   docker compose up --build            ->  http://localhost:8501
+# Put your CV in ./cv (or upload it in the Profile tab). Jobs live in the "data" volume, keys come from .env
+# (optional: without one, every job gets the free heuristic score). `docker compose down -v` wipes the jobs.
+# With a local vLLM server on an NVIDIA GPU, add docker-compose.vllm.yml (see that file).
+services:
+  app:
+    build: .
+    image: job-hunter-agent
+    ports:
+      - "127.0.0.1:8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - JOBHUNTER_CONFIG=        # a .env setting for Windows (e.g. config.vllm.yaml) does not fit here
+    volumes:
+      - ./cv:/app/cv
+      - data:/app/data                         # named volumes: writable by the container's non-root user
+      - users:/app/users                       # (a missing bind-mount folder would be created root-owned)
+      - ./config.yaml:/app/config.yaml:ro      # edit settings without rebuilding
+    restart: unless-stopped
+
+volumes:
+  data:
+  users:

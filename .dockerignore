@@ -1,0 +1,15 @@
+# Personal data and secrets never go into the image: cv/, data/ and users/ are mounted, keys come from .env
+.env
+cv/
+data/
+users/
+.git/
+.github/
+.claude/
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+tests/
+docs/images/
+diagrams/

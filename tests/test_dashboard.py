@@ -85,6 +85,22 @@ def test_agent_mode_blocks_run_when_local_model_server_is_down(tmp_path, monkeyp
     assert _launch(at).disabled
 
 
+def test_agent_mode_checks_the_vllm_server_when_it_serves_the_agent(tmp_path, monkeypatch):
+    import requests
+    asked = []
+
+    def down(url, *a, **kw):
+        asked.append(url)
+        raise requests.ConnectionError("refused")
+
+    monkeypatch.setenv("JOBHUNTER_CONFIG", "config.vllm.yaml")
+    monkeypatch.setattr("requests.get", down)
+    at = _app(tmp_path, monkeypatch)
+    next(t for t in at.toggle if t.key == "agent_mode").set_value(True).run()
+    assert "http://127.0.0.1:8000/v1/models" in asked and any("vLLM" in w.value for w in at.warning)
+    assert _launch(at).disabled
+
+
 JOBS = [Job("greenhouse", "Junior Python Developer", "Acme", "https://a/1", location="Tel Aviv, Israel",
             date_posted="2099-01-01")]
 

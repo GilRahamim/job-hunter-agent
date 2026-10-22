@@ -36,3 +36,23 @@ jobs:
         run: pip install -r requirements-dev.txt
       - name: Test
         run: pytest -q
+
+  docker:
+    name: docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.yml config -q
+          docker compose -f docker-compose.yml -f docker-compose.vllm.yml config -q
+      - name: Build
+        run: docker build -t job-hunter-agent .
+      - name: Smoke test (dashboard answers, CLI and config load)
+        run: |
+          docker run -d --name jh -p 127.0.0.1:8501:8501 job-hunter-agent
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8501/_stcore/health && break; sleep 2; done
+          curl -fs http://127.0.0.1:8501/_stcore/health
+          docker exec jh python run_agent.py --help
+          docker exec -e JOBHUNTER_CONFIG=config.vllm.yaml,config.docker.yaml jh python -c "from jobhunter.config import load_config; assert load_config()['llm']['base_url'] == 'http://vllm:8000/v1'"

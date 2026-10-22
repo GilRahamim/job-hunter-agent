@@ -31,6 +31,8 @@ Python 3.11+, LangGraph, LangChain (`init_chat_model` for provider-agnostic LLM)
 ## Layout
 ```
 config.yaml          user-editable settings (queries, filters, LLM)
+config.vllm.yaml     opt-in overlay: local vLLM scorer + agent (JOBHUNTER_CONFIG in .env); config.docker.yaml = its compose address
+Dockerfile, docker-compose.yml, docker-compose.vllm.yml   demo / portfolio container (+ optional vLLM service)
 companies.yaml       company career boards (Greenhouse/Lever/Ashby/SmartRecruiters slugs)
 .env                 API keys (never commit)
 cv/                  the owner's CV (newest file wins)
@@ -47,11 +49,12 @@ jobhunter/
   tailor/      (empty: CV Tailoring Agent, Phase 8, planned)
 run_agent.py         CLI entry point (search agent)
 dashboard.py         Streamlit app;  ui/  design system (tokens, CSS, components)
-scripts/             check_boards.py, sync_companies.py (add boards from Israeli Tech Map + VC boards),
+scripts/             vllm_serve.sh (local vLLM server, WSL2 or Docker), check_boards.py, sync_companies.py (add boards from Israeli Tech Map + VC boards),
                      experience_report.py (stored jobs over the experience limit, and how they got in),
                      agent_report.py (agent picks vs what the owner pursued / dismissed: precision)
 tests/               pytest + fixtures/ (recorded API responses)
 docs/                ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, USER_GUIDE.he.md (for people who just use it),
+                     LOCAL_LLM_AND_DOCKER.md (vLLM setup, Docker),
                      SMART_AGENT_GUIDE.md (agent changes, commands with flags, where to start reading the code)
 ```
 
@@ -66,13 +69,14 @@ python run_agent.py --agent --goal 5 --dry-run          # tool-using agent loop 
 python run_agent.py --user dana                         # run for a person added in the dashboard
 python -m jobhunter.handoff --list | <job_id> [--launch] # brief for Claude (subscription)
 streamlit run dashboard.py
+docker compose up --build           # the same app in a container (demo); + -f docker-compose.vllm.yml for vLLM
 pytest -q                           # also runs in CI on every push: .github/workflows/tests.yml
 ```
 
 ## Conventions
 - Every collector returns `list[Job]` and never raises: catch errors, log them, and report them in the source-health record. One broken site must not stop a run.
 - Network code goes through one `requests.Session` with a User-Agent, timeouts (15s), and retry with backoff on 429/5xx.
-- Config values come from `config.yaml`; do not hard-code queries, keywords, thresholds, or model names in code.
+- Config values come from `config.yaml` (plus the `JOBHUNTER_CONFIG` overlays, e.g. `config.vllm.yaml`); do not hard-code queries, keywords, thresholds, or model names in code.
 - The LLM is optional. With `provider: none` or no API key, everything still works using heuristic scores.
 - Never overwrite user-owned fields (`status`, `notes`) when re-collecting or re-scoring.
 - Keep all LLM prompts in `jobhunter/prompts.py` so they can be tuned in one place.
