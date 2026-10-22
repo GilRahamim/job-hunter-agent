@@ -5,6 +5,9 @@ A named user (JOBHUNTER_USER=dana, or `run_agent.py --user dana`) lives in users
     cv/            their CV
     data/          their jobs.db, run lock, logs and tailored files
     config.yaml    optional: only the settings that differ from the main config.yaml
+
+JOBHUNTER_CONFIG (environment or .env) names extra files merged over config.yaml for everyone, in order,
+comma-separated, relative to the repo: e.g. config.vllm.yaml to score with a local vLLM server.
 """
 from __future__ import annotations
 
@@ -81,10 +84,22 @@ def load_config(user: str | None = None) -> dict[str, Any]:
     return _load_config(_user(user))
 
 
+def overlay_paths() -> list[Path]:
+    """The files JOBHUNTER_CONFIG names, in merge order (read after load_env, so .env can set it)."""
+    names = [n.strip() for n in os.environ.get("JOBHUNTER_CONFIG", "").split(",") if n.strip()]
+    paths = [ROOT / n for n in names]                    # an absolute name stays absolute
+    for path in paths:
+        if not path.exists():
+            raise FileNotFoundError(f"JOBHUNTER_CONFIG names {path}, which does not exist")
+    return paths
+
+
 @lru_cache(maxsize=16)
 def _load_config(user: str) -> dict[str, Any]:
     load_env()
     cfg = _read_yaml(ROOT / "config.yaml")
+    for path in overlay_paths():
+        cfg = deep_merge(cfg, _read_yaml(path))
     if user:
         overlay = user_root(user) / "config.yaml"
         if overlay.exists():

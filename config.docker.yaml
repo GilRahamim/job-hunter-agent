@@ -1,0 +1,9 @@
+# Inside docker compose the vLLM server is the "vllm" service, not 127.0.0.1.
+# Used only with config.vllm.yaml:  JOBHUNTER_CONFIG=config.vllm.yaml,config.docker.yaml  (docker-compose.vllm.yml)
+
+llm:
+  base_url: http://vllm:8000/v1
+
+agent:
+  llm:
+    base_url: http://vllm:8000/v1

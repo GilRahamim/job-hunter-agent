@@ -21,6 +21,7 @@ def _own_run_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("JOBHUNTER_RUN_DIR", str(tmp_path / "run"))
     monkeypatch.setenv("JOBHUNTER_USERS_DIR", str(tmp_path / "users"))
     monkeypatch.delenv("JOBHUNTER_USER", raising=False)
+    monkeypatch.setenv("JOBHUNTER_CONFIG", "")   # empty, not unset: a JOBHUNTER_CONFIG in .env must not apply
     load_config.cache_clear()          # user configs are cached by user id, not by folder
     yield
     load_config.cache_clear()

@@ -18,7 +18,7 @@ from jobhunter.agent_loop.tools import COVERAGE_NOTE, AgentContext, allowed_sour
 from jobhunter.config import load_config
 from jobhunter.cv import load_profile as load_cv_profile
 from jobhunter.filters import junior_reason
-from jobhunter.llm import get_llm
+from jobhunter.llm import agent_llm_config, get_llm
 from jobhunter.matcher import choices_text, explanation_language, scored_row
 from jobhunter.prompts import AGENT_NUDGE, AGENT_START, AGENT_SYSTEM, DRY_GROUPS_NOTE, GROUP_HISTORY_NOTE
 from jobhunter.stop import stop_requested
@@ -46,11 +46,6 @@ class LoopState(TypedDict, total=False):
 
 class AgentUnavailable(RuntimeError):
     pass
-
-
-def agent_llm_config(cfg: dict[str, Any]) -> dict[str, Any]:
-    """config with `llm` replaced by llm + agent.llm overrides (e.g. a local Ollama model)."""
-    return {**cfg, "llm": {**cfg["llm"], **(cfg["agent"].get("llm") or {})}}
 
 
 def trim_search(content: str, read_ids: set[str]) -> str:

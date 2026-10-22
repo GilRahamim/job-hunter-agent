@@ -1,0 +1,31 @@
+# Local vLLM server for the scorer and the smart agent: one model on one GPU, free per call, so it can
+# score more jobs per run and more of them at once. Merged over config.yaml (only what differs is here).
+#
+# Turn on:   add  JOBHUNTER_CONFIG=config.vllm.yaml  to .env   (remove the line to go back)
+# Server:    bash scripts/vllm_serve.sh  in WSL2  (or Docker, see docs/LOCAL_LLM_AND_DOCKER.md)
+#
+# Scores from a local model are not on Claude Haiku's scale: check them with
+# python scripts/agent_report.py before trusting agent.min_match_score / notify.min_score.
+
+llm:
+  provider: openai                      # vLLM serves the OpenAI API
+  base_url: http://127.0.0.1:8000/v1    # not "localhost": on Windows it tries IPv6 first (+2 s per call)
+  model: qwen3-local                    # --served-model-name in scripts/vllm_serve.sh
+  max_tokens: 2048
+  max_workers: 16                       # requests at once; vLLM batches them on the GPU (= --max-num-seqs)
+  extra_body:
+    chat_template_kwargs: {enable_thinking: false}    # scoring: the JSON answer, no reasoning first
+
+matching:
+  llm_top_n: 200                        # was 60: free locally, so more jobs get an LLM score per run
+  min_prescore_for_llm: 10              # was 15
+
+agent:
+  scorer: main                          # the same server scores the agent's picks
+  llm:                                  # replaces the LM Studio block in config.yaml
+    provider: openai
+    base_url: http://127.0.0.1:8000/v1
+    model: qwen3-local
+    max_tokens: 8000
+    extra_body:
+      chat_template_kwargs: {enable_thinking: true}   # the agent plans its searches

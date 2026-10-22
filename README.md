@@ -59,6 +59,10 @@ pip install -r requirements.txt          # requirements-dev.txt adds pytest and 
 2. Optional, to use an LLM: copy `.env.example` to `.env` and add your key (for example `ANTHROPIC_API_KEY=...`). Set the provider and model under `llm:` in `config.yaml`.
 3. Click **"בואו נמצא את המשרה הבאה"** in the sidebar, or run `python run_agent.py --no-llm` for a free first run.
 
+With Docker instead: `docker compose up --build`, then open http://localhost:8501 (your CV goes in `./cv`).
+
+To score on your own GPU instead of an API, see [`docs/LOCAL_LLM_AND_DOCKER.md`](docs/LOCAL_LLM_AND_DOCKER.md): one vLLM server (Qwen3-14B on 16 GB) for the scorer and the agent, turned on with one line in `.env`.
+
 A step-by-step guide in Hebrew, for anyone who just wants to use the tool, is in [`docs/USER_GUIDE.he.md`](docs/USER_GUIDE.he.md).
 
 ## Usage
@@ -109,6 +113,7 @@ All settings live in `config.yaml`:
 | `notify` | Desktop notification for new jobs scoring at or above `min_score` |
 | `llm` | Provider and model (`provider: none` turns the LLM off) |
 | `users/<id>/config.yaml` | Per-person overrides on top of `config.yaml` (`display_name`, `auto_from_cv`, `search.queries`) |
+| `JOBHUNTER_CONFIG` in `.env` | Extra files merged over `config.yaml`, e.g. `config.vllm.yaml` (local vLLM server) |
 
 To add companies, put their slugs in `companies.yaml` and run `--check-companies`. `scripts/sync_companies.py` pulls new boards from the Israeli Tech Map and VC job boards.
 
@@ -134,9 +139,11 @@ jobhunter/
   personalize.py    search settings derived from a CV (auto_from_cv)
   runlock.py stop.py  one run at a time, graceful stop
 ui/                 dashboard design system (tokens, CSS, components)
-scripts/            board checks, company sync
+scripts/            board checks, company sync, vllm_serve.sh
 tests/              pytest suite with recorded API responses and a fake LLM
-docs/               architecture, implementation plan, Hebrew user guide
+docs/               architecture, implementation plan, Hebrew user guide, local LLM + Docker
+Dockerfile, docker-compose*.yml   demo container (+ optional vLLM service)
+config.vllm.yaml    local vLLM scorer + agent (opt-in)
 ```
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the data model, the scoring formula and the design decisions.
@@ -146,7 +153,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the data model, the scori
 - **One broken site never stops a run.** Every collector catches its own errors and reports them in a source-health record, which the dashboard shows.
 - **The LLM sees only pre-scored jobs.** Only the top N go to the model, which keeps runs cheap and fast.
 - **Your data is protected.** Collecting or re-scoring never touches `status` or `notes`.
-- **Offline tests.** The test suite runs on recorded fixtures and a deterministic fake LLM, so it makes no network or API calls. GitHub Actions runs it on every push and pull request (Ubuntu with Python 3.11 and 3.13, Windows with Python 3.13).
+- **Offline tests.** The test suite runs on recorded fixtures and a deterministic fake LLM, so it makes no network or API calls. GitHub Actions runs it on every push and pull request (Ubuntu with Python 3.11 and 3.13, Windows with Python 3.13), and builds and smoke-tests the Docker image.
 
 ## Troubleshooting
 
