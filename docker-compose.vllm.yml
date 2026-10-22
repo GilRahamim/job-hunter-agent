@@ -10,6 +10,13 @@ services:
     entrypoint: ["bash", "/scripts/vllm_serve.sh"]          # the same settings as a WSL2 run
     environment:
       - HF_TOKEN=${HF_TOKEN:-}                              # only for gated models; Qwen3 is public
+      # Tuning from the host shell, e.g. PowerShell  $env:KV_DTYPE="auto"  before `up`; empty = the
+      # script's default (its ${VAR:-default} treats empty as unset)
+      - MODEL=${MODEL:-}
+      - MAX_LEN=${MAX_LEN:-}
+      - KV_DTYPE=${KV_DTYPE:-}
+      - GPU_UTIL=${GPU_UTIL:-}
+      - MAX_SEQS=${MAX_SEQS:-}
     volumes:
       - ./scripts/vllm_serve.sh:/scripts/vllm_serve.sh:ro
       - hf-cache:/root/.cache/huggingface

@@ -105,10 +105,15 @@ high or low, adjust `agent.min_match_score` and `notify.min_score` in `config.vl
 
 ### Tuning (environment variables of `scripts/vllm_serve.sh`)
 
+In WSL2 put them before the command (`KV_DTYPE=auto bash scripts/vllm_serve.sh`). With Docker set them
+in the shell that runs compose, which passes them in: PowerShell `$env:KV_DTYPE="auto"`, then
+`docker compose ... up vllm` (`Remove-Item Env:KV_DTYPE` to go back to the default).
+
 | Problem | Try |
 |---|---|
 | out of memory at start | `MAX_LEN=8192 bash scripts/vllm_serve.sh`, or `GPU_UTIL=0.85` |
-| fp8 KV cache refused (older GPU / vLLM) | `KV_DTYPE=auto` |
+| fp8 KV cache refused (older GPU / vLLM), or `CUDA error: unknown error` right after "Warming up FlashInfer attention" | `KV_DTYPE=auto` (fp16 cache: about half the tokens, ~4 scoring prompts at once) |
+| Docker: the container does not start, `nvidia-container-runtime-hook` crashes in `dlopen` (often after a GPU crash) | `wsl --shutdown` in PowerShell, then start Docker Desktop again |
 | still too big, or want more parallel scoring | `MODEL=Qwen/Qwen3-8B-AWQ` (more room, weaker answers); the config keeps working, the served name stays `qwen3-local` |
 | more / fewer requests at once | `MAX_SEQS=24` and `llm.max_workers: 24` in `config.vllm.yaml` (keep them equal) |
 | Windows cannot reach `127.0.0.1:8000` | in WSL2 run `hostname -I` and use `http://<that ip>:8000/v1` in `config.vllm.yaml`, or enable mirrored networking in `.wslconfig` |
