@@ -62,10 +62,19 @@ def trim_search(content: str, read_ids: set[str]) -> str:
     return "\n".join(kept) + (f"\n{READ_ROWS_CUT_NOTE.format(n=n)}" if n else "")
 
 
+def reply_text(content: Any) -> str:
+    """A reply's text: the string itself, or the text blocks of provider content blocks (thinking and
+    tool-use blocks left out)."""
+    if isinstance(content, str):
+        return content
+    return "\n".join(b if isinstance(b, str) else b.get("text", "") for b in content or []
+                     if isinstance(b, str) or (isinstance(b, dict) and b.get("type") == "text"))
+
+
 def said_done(content: Any) -> bool:
     """The reply's last line (reasoning removed) is DONE: the model says nothing promising is left.
     "I'm done with Data, moving on" is not."""
-    lines = THINK.sub("", content if isinstance(content, str) else "").strip().splitlines()
+    lines = THINK.sub("", reply_text(content)).strip().splitlines()
     return bool(lines) and lines[-1].strip().strip(".!*").upper() == "DONE"
 
 

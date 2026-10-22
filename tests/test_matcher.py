@@ -126,9 +126,36 @@ def test_retry_then_success(profile, cfg):
     ("Error code: 429 - rate_limit_error", False),
     ("Error code: 529 - overloaded_error", False),
     ("1 validation error for JobMatch: input_value='OAuth authentication and API key rotation'", False),
+    # other providers (init_chat_model): the class name comes first, as in the errors list
+    ("AuthenticationError: invalid x-api-key", True),
+    ("PermissionDenied: 403 Your project has been denied access", True),
+    ("ClientError: 403 PERMISSION_DENIED. {'error': {'code': 403}}", True),
+    ("ClientError: 400 INVALID_ARGUMENT. {'error': {'message': 'API key not valid. Please pass a valid "
+     "API key.', 'details': [{'reason': 'API_KEY_INVALID'}]}}", True),
+    ("HTTPStatusError: Client error '401 Unauthorized' for url 'https://api.mistral.ai/v1/chat'", True),
+    ("ClientError: 429 RESOURCE_EXHAUSTED. You exceeded your current quota", False),    # often per minute
+    ("ResponseError: model 'qwen3' not found (status code: 404)", False),
+    ("ValidationError: 1 validation error for JobMatch: input_value='handle 401 Unauthorized responses'",
+     False),
+    ("OutputParserException: Invalid json output: rotate keys when the API key not valid", False),
 ])
 def test_fatal_llm_errors_are_billing_and_auth_only(error, fatal):
     assert matcher.fatal_llm_error(error) is fatal
+
+
+def test_an_auth_error_known_by_its_class_is_not_retried(profile, cfg):
+    class AuthenticationError(Exception):
+        pass
+
+    calls = []
+
+    def bad_key(text):
+        calls.append(1)
+        raise AuthenticationError("invalid x-api-key")
+
+    errors: list[str] = []
+    assert matcher.llm_score(FakeLLM(bad_key), profile, [GOOD], cfg, errors) == [None]
+    assert len(calls) == 1 and errors == ["AuthenticationError: invalid x-api-key"]
 
 
 def test_failure_returns_none_and_falls_back_to_prescore(profile, cfg):

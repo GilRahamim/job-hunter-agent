@@ -751,7 +751,11 @@ def test_history_drops_read_rows_stale_notes_and_reasoning(env, monkeypatch):
     ("<think>no more ideas</think>Done.", True),
     ("I'm done with the Data group, DONE with it, moving on to Software", False),
     ("Not DONE yet: next I search NOC roles", False),
-    ([{"type": "text", "text": "DONE"}], False),               # provider blocks: nudge rather than guess
+    ([{"type": "text", "text": "DONE"}], True),                # provider blocks: only text blocks count
+    ([{"type": "thinking", "thinking": "DONE?"}, {"type": "text", "text": "Nothing left.\nDONE"}], True),
+    ([{"type": "text", "text": "Searching QA next"}, {"type": "thinking", "thinking": "DONE"}], False),
+    (["DONE"], True),
+    ([], False),
 ])
 def test_only_a_done_reply_ends_without_a_nudge(content, done):
     assert graph.said_done(content) is done

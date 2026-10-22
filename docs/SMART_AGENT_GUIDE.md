@@ -206,7 +206,7 @@ Search for the function name in the file (Ctrl+F / Ctrl+P in the editor).
 | 8 | `tools.py` `search_jobs` | the main tool | budget (`is_free`), group cap (`group_cap`), LinkedIn block (`jobspy_sites`), fetch, dedupe + filters, `_add_candidate` (#1), query log (#4) |
 | 9 | `tools.py` `read_posting` | | records the turn of the read (for the same-turn guard), checks LinkedIn "closed" |
 | 10 | `tools.py` `save_match` + `score_job` | the guardrails in order | unknown, already saved (one retry if unscored), unread, too many years, closed, not junior, same turn, then the scorer, the years backstop and the scorer-down message (#2, #3, fix) |
-| 11 | `jobhunter/matcher.py` `llm_score` | | the regular scoring call the agent now reuses (prompt in `build_messages`; `fatal_llm_error` stops retries on billing / auth errors) |
+| 11 | `jobhunter/matcher.py` `llm_score` | | the regular scoring call the agent now reuses (prompt in `build_messages`; `fatal_llm_error` stops retries on billing / auth errors from any provider) |
 | 12 | `graph.py` `trim_search`, `said_done`, `trim_reply`, `compact_history` | | what the model sees each turn (#6) |
 | 13 | `jobhunter/agent_loop/memory.py` (whole file) | | `query_stats` writes the history; `memory_text`, `group_history`, `dry_groups` read it (#4, #7) |
 | 14 | `graph.py` `role_groups_text`, `initial_messages` | | how memory and group history get into the first messages |
