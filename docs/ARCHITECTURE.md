@@ -45,7 +45,7 @@ flowchart LR
 Why a separate agent and not a node in the search pipeline: different trigger (per job, on demand), different input and output, and it needs a self-correction loop (`verify → rewrite`). The two agents share only the DB. Details in the `cv-tailoring` skill.
 
 ### Search agent loop (`run_agent.py --agent`)
-An opt-in alternative to the fixed pipeline (`jobhunter/agent_loop/`): a ReAct-style LangGraph loop in which the **model chooses the next action**. Tools: `get_profile`, `search_jobs(query, source)`, `read_posting(job_id)`, `save_match(job_id, reason)`. Goal: `agent.goal_matches` saved jobs scoring ≥ `agent.min_match_score`.
+An opt-in alternative to the fixed pipeline (`jobhunter/agent_loop/`): a ReAct-style LangGraph loop in which the **model chooses the next action**. Tools: `get_profile`, `search_jobs(query, source)`, `read_posting(job_id)`, `save_match(job_id, reason)`. Goal: `agent.goal_matches` saved jobs scoring ≥ `agent.min_match_score`. A reading guide for this code (commands with flags, reading order, where each feature lives) is in `docs/SMART_AGENT_GUIDE.md`.
 
 ```mermaid
 flowchart LR
