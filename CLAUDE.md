@@ -51,7 +51,8 @@ scripts/             check_boards.py, sync_companies.py (add boards from Israeli
                      experience_report.py (stored jobs over the experience limit, and how they got in),
                      agent_report.py (agent picks vs what the owner pursued / dismissed: precision)
 tests/               pytest + fixtures/ (recorded API responses)
-docs/                ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, USER_GUIDE.he.md (for people who just use it)
+docs/                ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, USER_GUIDE.he.md (for people who just use it),
+                     SMART_AGENT_GUIDE.md (agent changes, commands with flags, where to start reading the code)
 ```
 
 ## Commands
