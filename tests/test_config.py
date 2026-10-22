@@ -30,21 +30,25 @@ def test_a_missing_overlay_is_a_clear_error(monkeypatch):
         overlay(monkeypatch, "nope.yaml")
 
 
-def test_vllm_config_scores_and_runs_the_agent_on_one_local_server(monkeypatch):
+def test_vllm_config_scores_on_vllm_and_leaves_the_agent_on_lm_studio(monkeypatch):
+    import yaml
+    plain_agent = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))["agent"]["llm"]
     cfg = overlay(monkeypatch, "config.vllm.yaml")
     main, agent = cfg["llm"], llm.agent_llm_config(cfg)["llm"]
-    assert main["provider"] == agent["provider"] == "openai"
-    assert main["base_url"] == agent["base_url"] == "http://127.0.0.1:8000/v1"
-    assert main["model"] == agent["model"]                                   # one model on the GPU
+    assert main["provider"] == "openai" and main["base_url"] == "http://127.0.0.1:8000/v1"
     assert main["max_workers"] > 6 and cfg["matching"]["llm_top_n"] > 60
     assert main["extra_body"]["chat_template_kwargs"]["enable_thinking"] is False   # scoring: JSON only
-    assert agent["extra_body"]["chat_template_kwargs"]["enable_thinking"] is True   # the agent plans
+    for key in ("base_url", "model", "max_tokens"):                          # config.yaml's LM Studio model
+        assert agent[key] == plain_agent[key]
+    assert agent["extra_body"] == {}                                         # thinking off stays with the scorer
+    assert cfg["agent"]["scorer"] == "agent"                                 # agent runs never call vLLM
     model = llm.get_llm(cfg)                                                 # built offline, no key needed
     assert model.openai_api_base == "http://127.0.0.1:8000/v1" and model.model_name == main["model"]
     assert model.extra_body == main["extra_body"]
     assert model.openai_api_key.get_secret_value() == llm.LOCAL_API_KEY
 
 
-def test_docker_overlay_points_both_models_at_the_compose_service(monkeypatch):
+def test_docker_overlay_points_the_scorer_at_compose_and_the_agent_at_the_host(monkeypatch):
     cfg = overlay(monkeypatch, "config.vllm.yaml,config.docker.yaml")
-    assert cfg["llm"]["base_url"] == llm.agent_llm_config(cfg)["llm"]["base_url"] == "http://vllm:8000/v1"
+    assert cfg["llm"]["base_url"] == "http://vllm:8000/v1"
+    assert llm.agent_llm_config(cfg)["llm"]["base_url"] == "http://host.docker.internal:1234/v1"

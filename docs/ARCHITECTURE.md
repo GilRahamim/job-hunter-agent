@@ -141,7 +141,7 @@ Streamlit, Hebrew UI with RTL CSS. Pages/tabs: Jobs (filterable table + detail p
 ## 8. Running
 Runs are started by hand: `python run_agent.py` or the dashboard's run button. There is no scheduled task (it was removed because it opened a terminal at every boot).
 
-`JOBHUNTER_CONFIG` (environment or `.env`) names extra YAML files merged over `config.yaml` for everyone, in order (`config.overlay_paths`; a named user's own `config.yaml` still goes on top). `config.vllm.yaml` uses it to move the scorer and the smart agent to one local vLLM server (Qwen3-14B AWQ on a 16 GB GPU, `scripts/vllm_serve.sh`): free per call, so `llm.max_workers` 16 and `matching.llm_top_n` 200. The agent's model (`llm.agent_llm_config`) and the dashboard's server check follow it. Docker (`Dockerfile`, `docker-compose.yml`, optional `docker-compose.vllm.yml`) is a demo / portfolio setup, built and smoke-tested in CI; daily use stays native on Windows. Details: `docs/LOCAL_LLM_AND_DOCKER.md`.
+`JOBHUNTER_CONFIG` (environment or `.env`) names extra YAML files merged over `config.yaml` for everyone, in order (`config.overlay_paths`; a named user's own `config.yaml` still goes on top). `config.vllm.yaml` uses it to move the scorer to a local vLLM server (Qwen3-14B AWQ on a 16 GB GPU, `scripts/vllm_serve.sh`): free per call, so `llm.max_workers` 16 and `matching.llm_top_n` 200. The smart agent stays on LM Studio's 27B (`config.yaml` `agent.llm`) and scores its own picks (`agent.scorer: agent`), so an agent run never needs vLLM; one GPU holds one of them at a time. The overlay sets `agent.llm.extra_body: {}` because `llm.agent_llm_config` copies every `llm` key the agent block does not set, and the scorer's "thinking off" must not reach the agent. Docker (`Dockerfile`, `docker-compose.yml`, optional `docker-compose.vllm.yml`) is a demo / portfolio setup, built and smoke-tested in CI; daily use stays native on Windows. Details: `docs/LOCAL_LLM_AND_DOCKER.md`.
 
 ## 9. Key decisions and tradeoffs
 
@@ -152,7 +152,7 @@ Runs are started by hand: `python run_agent.py` or the dashboard's run button. T
 | Orchestration | Fixed LangGraph graph | ReAct agent with tools | Repeatable batch job; cheaper and testable |
 | Pre-score | TF-IDF + skill overlap | Embeddings (sentence-transformers) | No model download, fast; embeddings can be added later behind the same interface |
 | LLM | `init_chat_model` (Anthropic default, any provider, or none) | One vendor SDK | Swap providers via config; works offline |
-| Local LLM | vLLM, opt-in (`JOBHUNTER_CONFIG=config.vllm.yaml`) | LM Studio / Ollama for scoring too | Batches many scoring requests on one GPU; LM Studio serves one request at a time. One model for scorer + agent: a 16 GB GPU cannot hold two |
+| Local LLM | vLLM, opt-in (`JOBHUNTER_CONFIG=config.vllm.yaml`) | LM Studio / Ollama for scoring too | Batches many scoring requests on one GPU; LM Studio serves one request at a time. The agent stays on LM Studio's 27B (vLLM fits only ~14B in 16 GB, too weak to plan) and scores its own picks; a 16 GB GPU holds one of the two at a time |
 | Storage | SQLite | Postgres / ChromaDB | Single user, zero setup, easy to inspect |
 | UI | Streamlit | React | Fast to build in Python; good enough for one user |
 

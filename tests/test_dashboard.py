@@ -85,7 +85,7 @@ def test_agent_mode_blocks_run_when_local_model_server_is_down(tmp_path, monkeyp
     assert _launch(at).disabled
 
 
-def test_agent_mode_checks_the_vllm_server_when_it_serves_the_agent(tmp_path, monkeypatch):
+def test_agent_mode_checks_lm_studio_not_vllm_with_the_vllm_overlay(tmp_path, monkeypatch):
     import requests
     asked = []
 
@@ -97,7 +97,8 @@ def test_agent_mode_checks_the_vllm_server_when_it_serves_the_agent(tmp_path, mo
     monkeypatch.setattr("requests.get", down)
     at = _app(tmp_path, monkeypatch)
     next(t for t in at.toggle if t.key == "agent_mode").set_value(True).run()
-    assert "http://127.0.0.1:8000/v1/models" in asked and any("vLLM" in w.value for w in at.warning)
+    assert "http://127.0.0.1:1234/v1/models" in asked                     # the agent's LM Studio server
+    assert "http://127.0.0.1:8000/v1/models" not in asked and at.warning   # vLLM only scores
     assert _launch(at).disabled
 
 
