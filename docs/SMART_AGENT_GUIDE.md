@@ -10,9 +10,6 @@ PR #6 (https://github.com/GilRahamim/job-hunter-agent/pull/6, merged 2026-10-21)
 | `d99f222` | #5 precision report, #7 dry groups / exact DONE |
 | `1f86c9e` | follow-up: billing / API-key errors stop scoring, no re-saves, LinkedIn 429 handling |
 
-Line numbers below are as of the commit that added this guide; they drift as the code changes,
-so search for the function name if a line does not match.
-
 See also: `docs/ARCHITECTURE.md` (design, the source of truth) and `CLAUDE.md` (all commands).
 
 ---
@@ -31,7 +28,7 @@ external APIs, no database schema change.
 | 5 | **Precision report**: agent picks vs what you did with them in the dashboard | to measure whether changes really help | `scripts/agent_report.py` (new) |
 | 6 | **Smaller context**: old search results lose rows of jobs already read and stale notes; old replies lose `<think>` blocks and are cut to 300 chars | small local model, long runs | `graph.trim_search`, `graph.trim_reply` |
 | 7 | **Dry role groups** (no strong match in recent runs) get one search per run; the run ends early only on an exact `DONE` reply | budget goes to groups that produce matches | `memory.group_history`, `tools.group_cap`, `graph.said_done` |
-| fix | **Robustness** (`1f86c9e`): a billing / API-key error stops scoring for the rest of the run (no useless retries) and tells the agent to wrap up; saving a job twice changes nothing (no re-scoring); a LinkedIn 429 drops LinkedIn for the rest of the run (`linkedin` searches cover Indeed only) | real-run problems | `matcher.fatal_llm_error`, `tools.score_job` (`scorer_down`), `tools.save_match`, `tools.jobspy_sites` |
+| fix | **Robustness** (`1f86c9e`): a billing / API-key error stops scoring for the rest of the run (no useless retries) and tells the agent to wrap up; saving a job twice changes nothing (no re-scoring), except one retry when its scorer failed; a LinkedIn 429 drops LinkedIn for the rest of the run (`linkedin` searches cover Indeed only) | real-run problems | `matcher.fatal_llm_error`, `tools.score_job` (`scorer_down`), `tools.save_match`, `tools.jobspy_sites` |
 
 Precision in the report:
 
@@ -101,42 +98,47 @@ A run without `--dry-run` writes to `data/jobs.db`. Git does not track it, so sw
 | PowerShell | `Copy-Item data\jobs.db data\jobs.backup.db` | `Copy-Item data\jobs.backup.db data\jobs.db -Force` |
 | cmd | `copy data\jobs.db data\jobs.backup.db` | `copy /Y data\jobs.backup.db data\jobs.db` |
 
-`-Force` / `/Y` = overwrite without asking. Close the dashboard before restoring (it keeps the DB open).
+`-Force` / `/Y` = overwrite without asking. Stop the dashboard before restoring (Ctrl+C in its terminal;
+closing the browser tab is not enough): a status change or a "run now" during the copy would be lost or
+break the restored file.
 
 ### 2.4 Running the agent
 
 | Command | Flags |
 |---|---|
-| `python run_agent.py --agent --goal 5 --dry-run` | `--agent` = the tool-using agent (not the fixed pipeline). `--goal 5` = stop after 5 saved jobs scoring >= `agent.min_match_score` (70); default `agent.goal_matches` (10). `--dry-run` = run everything but write nothing to the DB (no jobs, no run record, so it does **not** feed the memory) |
+| `python run_agent.py --agent --goal 5 --dry-run` | `--agent` = the tool-using agent (not the fixed pipeline). `--goal 5` = stop after 5 saved jobs scoring >= `agent.min_match_score` (70); default `agent.goal_matches` (10). `--dry-run` = no jobs and no run record written, so it does **not** feed the memory. It is **not free**: with `agent.scorer: main` every save is still one paid scorer call. It can still touch `data/jobs.db`: a changed CV writes its new profile there |
 | `python run_agent.py --agent --goal 5` | the real run: saves jobs and the run's per-query results (feeds memory #4 and dry groups #7) |
 | `python run_agent.py --agent --goal 5 --max-steps 30` | `--max-steps N` = model turns before a hard stop; default `agent.max_steps` (50) |
 | `python run_agent.py` | the regular fixed pipeline (unchanged by these changes) |
 | `python run_agent.py --no-llm` | pipeline with keyword scores only, no LLM (free) |
-| `python run_agent.py --sources ats,remotive --limit 50` | pipeline on some sources only (`--sources` comma list), at most 50 jobs each (`--limit`) |
+| `python run_agent.py --sources ats,remotive --limit 50` | pipeline on some sources only (`--sources` comma list), `--limit 50` = at most 50 jobs per source, and per company board for `ats` (so `ats` can still bring thousands) |
 | `python run_agent.py --rescore` | pipeline: re-score stored jobs against the current CV |
 | `python run_agent.py --check-companies` | validate `companies.yaml` and exit |
 | `python run_agent.py --user dana` | run for a person added in the dashboard. **Not with `--agent`**: the agent is owner-only |
 | `streamlit run dashboard.py` | the dashboard (also has the "smart agent" toggle) |
 
-What to look for in the agent's log:
+What to look for in the agent's log. The console shows INFO lines; the file `data/logs/run-*.log`
+also has DEBUG lines, where tool results are logged cut to 200 characters (`tool <name> -> ...`).
 
-| Log line | Meaning |
-|---|---|
-| `agent: <model>, scorer: <model> \| goal ...` | which model searches and which model scores (#3) |
-| several `step N: read_posting(...)` with the **same N** | the model batches (#2). One per step = it does not; still works, just slower |
-| `Saved ... Scorer: 72 (good). Missing: ...` (in the tool results) | the scorer's verdict (#3) |
-| `What your searches found in the last N agent run(s)` | memory (#4), from the 2nd real run on |
-| `[DRY: 3 searches, 0 saved, 0 strong]` next to a role group | dry group (#7), after a few real runs |
-| `agent: scorer unavailable for the rest of this run: ...` | billing / API-key error: saves after it are unscored (follow-up fix) |
-| `LinkedIn is rate-limited for the rest of this run` (in a search result) | LinkedIn answered 429; `linkedin` searches now cover Indeed only (follow-up fix) |
-| `agent stopped (goal_reached / step_limit / model_stopped ...)` | why the run ended |
+| Log line | Where | Meaning |
+|---|---|---|
+| `agent: <model>, scorer: <model> \| goal ...` | console | which model searches and which model scores (#3) |
+| several `step N: read_posting(...)` with the **same N** | console | the model batches (#2). One per step = it does not; still works, just slower |
+| `agent: scorer unavailable for the rest of this run: ...` | console | billing / API-key error: saves after it are unscored (follow-up fix) |
+| `agent stopped (goal_reached / step_limit / model_stopped ...)` | console | why the run ended |
+| `tool save_match -> Saved ... Scorer: 72 (good) ...` | log file | the scorer's verdict (#3) |
+| `tool search_jobs -> LinkedIn is rate-limited for the rest of this run ...` | log file | LinkedIn answered 429; `linkedin` searches now cover Indeed only (follow-up fix) |
+
+Memory (#4) and dry groups (#7) go only into the model's first message, not into the log. To see them
+work: the run summary's `saved matches` and the dashboard after a few real runs, or
+`python scripts/agent_report.py`.
 
 ### 2.5 Reports
 
 | Command | Flags |
 |---|---|
 | `python scripts/agent_report.py` | precision of agent picks vs regular search, by score band and role group (#5) |
-| `python scripts/agent_report.py --since 2026-10-22` | `--since YYYY-MM-DD` = only jobs first seen on/after that date (compare before / after a change) |
+| `python scripts/agent_report.py --since 2026-10-22` | `--since YYYY-MM-DD` = only jobs first seen on/after that date (compare before / after a change). Dates are UTC (Israel is UTC+2/+3): for a run after midnight local time, give the day before |
 | `python scripts/experience_report.py` | existing: stored jobs over the experience limit and how they got in. `--user <id>` for another person |
 
 ### 2.6 Checking an agent change
@@ -144,11 +146,13 @@ What to look for in the agent's log:
 1. Back up `data/jobs.db` (2.3).
 2. `git fetch origin` then `git checkout <branch>` (2.1).
 3. `pytest -q`.
-4. Dry run: `python run_agent.py --agent --goal 5 --dry-run`, check the log (2.4).
-5. Check `agent.scorer` (`main` = the `llm:` model, paid; `agent` = local, free).
+4. Check `agent.scorer` in `config.yaml` (`main` = the `llm:` model, paid per saved job, also in a dry run;
+   `agent` = the local model, free).
+5. Dry run: `python run_agent.py --agent --goal 5 --dry-run`, check the log (2.4).
 6. Real run: `python run_agent.py --agent --goal 5`, check the jobs in the dashboard.
-7. 2-3 more real runs over a few days: memory and dry groups appear.
-8. Mark jobs in the dashboard, then `python scripts/agent_report.py --since <date of step 6>`.
+7. 2-3 more real runs over a few days: memory and dry groups shape the searches (2.4).
+8. Mark jobs in the dashboard, then `python scripts/agent_report.py --since <the day before step 6>`
+   (UTC dates, 2.5).
 9. Good: merge into `master` (2.1). Problem: fix on the same branch, then `git pull` there.
 
 ---
@@ -188,24 +192,26 @@ agent_loop/graph.py  run()                                     ① START READING
 
 Read top to bottom. Each step uses only what earlier steps explained.
 
-| # | File : line | Read | What to understand |
+Search for the function name in the file (Ctrl+F / Ctrl+P in the editor).
+
+| # | File : function | Read | What to understand |
 |---|---|---|---|
-| 1 | `docs/ARCHITECTURE.md`, section "Search agent loop" (~line 47) | the text + the flowchart | the design in words; every change above is described there |
-| 2 | `run_agent.py:73` `run_agent_loop` | 20 lines | how the CLI flags reach `agent_loop.run(goal, max_steps, dry_run)` |
-| 3 | `jobhunter/agent_loop/graph.py:247` `run` | whole function | the run from start to end: models, profile, memory, the loop, saving, stats |
-| 4 | `jobhunter/prompts.py:58` `AGENT_SYSTEM` (+ `:118`-`:138`) | the prompt text | what the model is told: tools, budget, batching, "you pick, the scorer scores" |
-| 5 | `jobhunter/agent_loop/graph.py:101` `build_graph` | the 4 inner functions | the loop: `agent_node`, `tools_node` (counts `ctx.turn`), `after_agent` (nudge / `said_done`), `after_tools` (goal / step limit) |
-| 6 | `jobhunter/agent_loop/tools.py:40` `AgentContext` | the fields + comments | the shared state of one run: candidates, read, matches, query_log, dry_groups, scorer, scorer_down, linkedin_blocked |
-| 7 | `tools.py:371` `make_tools` | the 4 tools | what the model can call and the argument schemas (`SearchArgs`, `ReadArgs`, `SaveArgs`) |
-| 8 | `tools.py:219` `search_jobs` | the main tool | budget (`is_free`), group cap (`group_cap`), LinkedIn block (`jobspy_sites`), fetch, dedupe + filters, `_add_candidate` (#1), query log (#4) |
-| 9 | `tools.py:271` `read_posting` | | records the turn of the read (for the same-turn guard), checks LinkedIn "closed" |
-| 10 | `tools.py:308` `save_match` + `:296` `score_job` | the guardrails in order | unknown, already saved, unread, too many years, closed, not junior, same turn, then the scorer, the years backstop and the scorer-down message (#2, #3, fix) |
-| 11 | `jobhunter/matcher.py:120` `llm_score` | | the regular scoring call the agent now reuses (prompt in `build_messages`, `:90`; `fatal_llm_error`, `:29`, stops retries on billing / auth errors) |
-| 12 | `graph.py:56`-`:100` `trim_search`, `said_done`, `trim_reply`, `compact_history` | | what the model sees each turn (#6) |
-| 13 | `jobhunter/agent_loop/memory.py` (whole file, ~90 lines) | | `query_stats` writes the history; `memory_text`, `group_history`, `dry_groups` read it (#4, #7) |
-| 14 | `graph.py:180` `role_groups_text`, `:201` `initial_messages` | | how memory and group history get into the first messages |
-| 15 | `graph.py:223` `result_rows` | | what gets stored per job: scorer result, or pre-score + agent reason |
-| 16 | `scripts/agent_report.py` (whole file, ~95 lines) | | the precision report (#5) |
+| 1 | `docs/ARCHITECTURE.md`, section "Search agent loop" | the text + the flowchart | the design in words; every change above is described there |
+| 2 | `run_agent.py` `run_agent_loop` | 20 lines | how the CLI flags reach `agent_loop.run(goal, max_steps, dry_run)` |
+| 3 | `jobhunter/agent_loop/graph.py` `run` | whole function | the run from start to end: models, profile, memory, the loop, saving, stats |
+| 4 | `jobhunter/prompts.py` `AGENT_SYSTEM` (+ `AGENT_START`, `AGENT_MEMORY`) | the prompt text | what the model is told: tools, budget, batching, "you pick, the scorer scores" |
+| 5 | `graph.py` `build_graph` | the 4 inner functions | the loop: `agent_node`, `tools_node` (counts `ctx.turn`), `after_agent` (nudge / `said_done`), `after_tools` (goal / step limit) |
+| 6 | `jobhunter/agent_loop/tools.py` `AgentContext` | the fields + comments | the shared state of one run: candidates, read, matches, query_log, dry_groups, scorer, scorer_down, linkedin_blocked |
+| 7 | `tools.py` `make_tools` | the 4 tools | what the model can call and the argument schemas (`SearchArgs`, `ReadArgs`, `SaveArgs`) |
+| 8 | `tools.py` `search_jobs` | the main tool | budget (`is_free`), group cap (`group_cap`), LinkedIn block (`jobspy_sites`), fetch, dedupe + filters, `_add_candidate` (#1), query log (#4) |
+| 9 | `tools.py` `read_posting` | | records the turn of the read (for the same-turn guard), checks LinkedIn "closed" |
+| 10 | `tools.py` `save_match` + `score_job` | the guardrails in order | unknown, already saved (one retry if unscored), unread, too many years, closed, not junior, same turn, then the scorer, the years backstop and the scorer-down message (#2, #3, fix) |
+| 11 | `jobhunter/matcher.py` `llm_score` | | the regular scoring call the agent now reuses (prompt in `build_messages`; `fatal_llm_error` stops retries on billing / auth errors) |
+| 12 | `graph.py` `trim_search`, `said_done`, `trim_reply`, `compact_history` | | what the model sees each turn (#6) |
+| 13 | `jobhunter/agent_loop/memory.py` (whole file) | | `query_stats` writes the history; `memory_text`, `group_history`, `dry_groups` read it (#4, #7) |
+| 14 | `graph.py` `role_groups_text`, `initial_messages` | | how memory and group history get into the first messages |
+| 15 | `graph.py` `result_rows` | | what gets stored per job: scorer result, or pre-score + agent reason |
+| 16 | `scripts/agent_report.py` (whole file) | | the precision report (#5) |
 | 17 | `tests/test_agent_loop.py` | `ScriptedModel` at the top, then any test | each test is a small story: scripted model turns, then asserts on what happened |
 
 Tip: the tests are the fastest way to see a feature work. Search the test file for the feature name:
@@ -239,4 +245,4 @@ Tip: the tests are the fastest way to see a feature work. Search the test file f
 | role group | a kind of job from `agent.role_groups` (Data, Software, NOC / SOC ...); `query_groups` maps a query to its groups |
 | dry group | a group with no strong match in its recent searches: 1 search per run |
 | nudge | one extra message asking the model to continue when it stops before the goal |
-| `scored_by` | who scored a stored job: `agent:<model>` (agent pick), `llm:<model>` (regular search), `heuristic` (pre-score only) |
+| `scored_by` | who scored a stored job: `agent:<model>` (agent pick, scored by that model: the scorer, not the agent), `agent:heuristic` (agent pick whose scoring failed: pre-score, scored by the next pipeline run with an LLM), `llm:<model>` (regular search), `heuristic` (pre-score only) |

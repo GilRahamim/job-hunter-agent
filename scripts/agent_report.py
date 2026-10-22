@@ -30,7 +30,8 @@ PURSUED = (*db.LIKED_STATUSES, "rejected")
 
 
 def picked_by(scored_by: str | None) -> str:
-    """agent / regular (LLM-scored) / heuristic (no LLM score; includes jobs the agent saw but skipped)."""
+    """agent (saved by the agent, scored or not) / regular (LLM-scored) / heuristic (no LLM score;
+    includes jobs the agent saw but skipped)."""
     s = scored_by or ""
     return "agent" if s.startswith("agent:") else "regular" if s.startswith("llm:") else "heuristic"
 
@@ -56,7 +57,7 @@ def report(cfg: dict, path: Path | str | None = None, since: str = "") -> dict[s
     for r in rows:
         who = picked_by(r["scored_by"])
         by["picker"].setdefault(who, []).append(r)
-        if who != "heuristic":
+        if who != "heuristic" and r["scored_by"] not in db.HEURISTIC_SCORED_BY:   # bands of LLM scores only
             band = f">= {min_score}" if (r["score"] or 0) >= min_score else f"< {min_score}"
             by["band"].setdefault(f"{who} {band}", []).append(r)
         if who == "agent":

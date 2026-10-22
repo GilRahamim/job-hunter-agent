@@ -535,8 +535,8 @@ def test_saved_jobs_are_scored_by_the_pipeline_scorer(env):
     assert out == ("Saved Junior Python Developer @ Acme. Scorer: 72 (good). Missing: Kubernetes. "
                    "Matches at or above 70: 1/1.")
     assert scorer.scored == [PY.title] and ctx.goal_reached()
-    row = graph.result_rows(ctx, "h", "qwen")[0]
-    assert row["score"] == 72 and row["scored_by"] == "agent:qwen" and row["reasons"] == f"scorer: {PY.title}"
+    row = graph.result_rows(ctx, "h", "haiku")[0]
+    assert row["score"] == 72 and row["scored_by"] == "agent:haiku" and row["reasons"] == f"scorer: {PY.title}"
 
 
 def test_scorer_reading_too_many_years_refuses_the_save(env):
@@ -565,9 +565,80 @@ def test_failed_scoring_keeps_the_job_but_not_toward_the_goal(env, monkeypatch):
     ctx = read_ctx(cfg, PY, Broken([]))
     out = tools.save_match(ctx, PY.id, "Python fits")
     assert "scorer failed" in out and not ctx.goal_reached()
-    row = graph.result_rows(ctx, "h", "qwen")[0]
-    assert row["scored_by"] == "agent:qwen" and row["score"] == 40.0 and row["reasons"] == "Python fits"
+    row = graph.result_rows(ctx, "h", "haiku")[0]
+    # the pre-score is not the scorer's: labelled so the next pipeline run with an LLM scores it
+    assert row["scored_by"] == db.AGENT_UNSCORED and row["score"] == 40.0 and row["reasons"] == "Python fits"
     assert ctx.score_errors == ["RuntimeError: bad json"]
+
+
+def test_an_unscored_save_can_retry_the_scorer_once(env, monkeypatch):
+    from jobhunter import matcher
+    cfg, _, _ = env
+    monkeypatch.setattr(matcher, "BACKOFF_SECONDS", 0)
+    fail = [True]
+
+    class Flaky(ScriptedModel):
+        def with_structured_output(self, cls):
+            inner = super().with_structured_output(cls)
+
+            class S:
+                def invoke(self, messages):
+                    if fail[0]:
+                        raise RuntimeError("429 too many requests")
+                    return inner.invoke(messages)
+            return S()
+
+    ctx = read_ctx(cfg, PY, Flaky([], scores={PY.title: 72}))
+    assert "save it once more" in tools.save_match(ctx, PY.id, "fits")
+    fail[0] = False
+    again = tools.save_match(ctx, PY.id, "fits")
+    assert again.startswith("Saved Junior Python Developer @ Acme. Scorer: 72") and ctx.goal_reached()
+    assert tools.save_match(ctx, PY.id, "fits").startswith("Already saved")   # scored: nothing to retry
+    assert graph.result_rows(ctx, "h", "haiku")[0]["scored_by"] == "agent:haiku"
+
+
+def test_an_unscored_save_retries_the_scorer_only_once(env, monkeypatch):
+    from jobhunter import matcher
+    cfg, _, _ = env
+    monkeypatch.setattr(matcher, "BACKOFF_SECONDS", 0)
+    tries = []
+
+    class Broken(ScriptedModel):
+        def with_structured_output(self, cls):
+            class S:
+                def invoke(self, messages):
+                    tries.append(1)
+                    raise RuntimeError("bad json")
+            return S()
+
+    ctx = read_ctx(cfg, PY, Broken([]))
+    tools.save_match(ctx, PY.id, "fits")
+    tools.save_match(ctx, PY.id, "fits")
+    third = tools.save_match(ctx, PY.id, "fits")
+    assert third.startswith("Already saved Junior Python Developer @ Acme (not scored)")
+    assert len(tries) == 2 * matcher.LLM_ATTEMPTS
+
+
+def test_a_retried_save_over_the_years_limit_is_dropped(env, monkeypatch):
+    from jobhunter import matcher
+    cfg, _, _ = env
+    monkeypatch.setattr(matcher, "BACKOFF_SECONDS", 0)
+    fail = [True]
+
+    class Flaky(ScriptedModel):
+        def with_structured_output(self, cls):
+            class S:
+                def invoke(self, messages):
+                    if fail[0]:
+                        raise RuntimeError("429 too many requests")
+                    return JobMatch(score=85, verdict="strong", required_years=5)
+            return S()
+
+    ctx = read_ctx(cfg, PY, Flaky([]))
+    tools.save_match(ctx, PY.id, "fits")
+    fail[0] = False
+    assert tools.save_match(ctx, PY.id, "fits").startswith("REFUSED: the scorer read 5 required years")
+    assert not ctx.matches and graph.result_rows(ctx, "h", "haiku") == []
 
 
 def test_saving_a_job_again_does_not_rescore_it(env):
@@ -644,6 +715,8 @@ def test_scorer_setting_picks_the_model(env, monkeypatch, setting, main_availabl
     used, unused = (main_model, agent_model) if expected == "main" else (agent_model, main_model)
     assert used.scored == [PY.title] and unused.scored == []
     assert result["stats"]["scorer"] == ("qwen" if expected == "agent" else cfg["llm"]["model"])
+    saved = [r for r in result["rows"] if r["id"] == PY.id]
+    assert saved[0]["scored_by"] == f"agent:{result['stats']['scorer']}"   # names the model that scored
 
 
 def test_history_drops_read_rows_stale_notes_and_reasoning(env, monkeypatch):
