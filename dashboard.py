@@ -110,6 +110,10 @@ def load_jobs(path: str, cfg: dict) -> pd.DataFrame:
     df["is_new"] = first.map(lambda d: bool(d) and now - d < timedelta(hours=24))
     df["stale"] = last.map(lambda d: bool(d) and now - d > timedelta(days=14))
     df["first_seen_il"] = first
+    # jobs first found by the newest finished run (pipeline or smart agent) go on top of the table
+    run = next((r for r in db.last_runs(5, path) if r["finished"]), None)
+    started = to_il(run["started"]) if run else None
+    df["last_run"] = first.map(lambda d: bool(started and d and d >= started))
     df["where"] = df.apply(lambda r: r["location"] or r["remote_region"] or ("Remote" if r["is_remote"] else ""), axis=1)
     df["score"] = df["score"].fillna(0).astype(float)
     df["notes"] = df["notes"].fillna("")
@@ -414,12 +418,14 @@ def jobs_tab(df: pd.DataFrame, shown: pd.DataFrame) -> None:
         st.info("אין משרות שעונות על הסינון. נסו להוריד את הציון המינימלי.")
         return
 
-    view = shown.sort_values("score", ascending=False).copy()
+    view = shown.sort_values(["last_run", "score"], ascending=False).copy()
+    if n_last := int(view["last_run"].sum()):
+        st.caption(f"{n_last} המשרות מהחיפוש האחרון מופיעות ראשונות (מסומנות ●)")
     view["verdict_he"] = [VERDICT_HE.get(v) or "ראשוני" for v in view["verdict"]]
     view["status_he"] = view["status"].map(STATUS_HE)
     view["sent"] = view["status"].isin(SENT)
     view["title_flag"] = [("● " if n else "○ " if s else "") + t
-                          for t, n, s in zip(view["title"], view["is_new"], view["stale"])]
+                          for t, n, s in zip(view["title"], view["is_new"] | view["last_run"], view["stale"])]
     cols = ["score", "title_flag", "company", "where", "source", "age_days", "verdict_he", "sent", "status_he", "url"]
     table = view[cols]
     # RTL trick: the grid stays LTR (canvas), so columns are listed right-to-left in reverse
