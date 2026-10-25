@@ -56,7 +56,8 @@ scripts/             vllm_serve.sh (local vLLM server, WSL2 or Docker), check_bo
 tests/               pytest + fixtures/ (recorded API responses)
 docs/                ARCHITECTURE.md, IMPLEMENTATION_PLAN.md, USER_GUIDE.he.md (for people who just use it),
                      LOCAL_LLM_AND_DOCKER.md (vLLM setup, Docker),
-                     SMART_AGENT_GUIDE.md (agent changes, commands with flags, where to start reading the code)
+                     SMART_AGENT_GUIDE.md (agent changes, commands with flags, where to start reading the code),
+                     CODE_READING_GUIDE.md (reading order for the whole project: pipeline, dashboard, handoff)
 ```
 
 ## Commands
