@@ -61,7 +61,7 @@ pip install -r requirements.txt          # requirements-dev.txt adds pytest and 
 
 With Docker instead: `docker compose up --build`, then open http://localhost:8501 (your CV goes in `./cv`).
 
-To score on your own GPU instead of an API, see [`docs/LOCAL_LLM_AND_DOCKER.md`](docs/LOCAL_LLM_AND_DOCKER.md): a vLLM server (Qwen3-14B on 16 GB) for the scorer while the agent stays on LM Studio's 27B, turned on with one line in `.env`.
+By default one local model in LM Studio (Qwen3.8 27B) scores jobs and runs the smart agent, free per call; Claude Haiku is the API alternative in `config.yaml`. An optional vLLM scorer (Qwen3-14B on 16 GB) is in [`docs/LOCAL_LLM_AND_DOCKER.md`](docs/LOCAL_LLM_AND_DOCKER.md), turned on with one line in `.env`.
 
 A step-by-step guide in Hebrew, for anyone who just wants to use the tool, is in [`docs/USER_GUIDE.he.md`](docs/USER_GUIDE.he.md).
 

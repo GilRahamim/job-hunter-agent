@@ -1,0 +1,5 @@
+# Inside docker compose (without vLLM), LM Studio runs on the Windows host, reached through Docker
+# Desktop's host.docker.internal instead of 127.0.0.1. Used by docker-compose.yml.
+
+llm:
+  base_url: http://host.docker.internal:1234/v1

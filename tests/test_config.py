@@ -32,7 +32,7 @@ def test_a_missing_overlay_is_a_clear_error(monkeypatch):
 
 def test_vllm_config_scores_on_vllm_and_leaves_the_agent_on_lm_studio(monkeypatch):
     import yaml
-    plain_agent = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))["agent"]["llm"]
+    plain_agent = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))["llm"]   # LM Studio
     cfg = overlay(monkeypatch, "config.vllm.yaml")
     main, agent = cfg["llm"], llm.agent_llm_config(cfg)["llm"]
     assert main["provider"] == "openai" and main["base_url"] == "http://127.0.0.1:8000/v1"

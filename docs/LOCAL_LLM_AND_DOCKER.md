@@ -7,7 +7,13 @@ Two independent, optional setups:
 - **Docker**: the dashboard and the search in a container, for a demo or a portfolio. Daily use on the
   owner's Windows PC stays `streamlit run dashboard.py`.
 
-Nothing changes until you turn one on. The default stays Claude Haiku for scoring and LM Studio for the agent.
+Nothing changes until you turn one on. The default is LM Studio for everything: one loaded model
+(Qwen3.8 27B) scores the regular search with thinking off (`llm.extra_body: {reasoning_effort: none}`)
+and runs the smart agent with thinking on. Claude Haiku is the alternative in a comment in `config.yaml`.
+
+**Status of the vLLM split (2026-10-25): set aside.** It was tried 2026-10-22..25. Switching the one GPU
+between vLLM and LM Studio by hand meant the smart agent did not run once in that time, and the 14B's
+scores bunched up (11 of the top 15 at exactly 75). It stays here as a working, documented option.
 
 ---
 
@@ -17,12 +23,12 @@ Nothing changes until you turn one on. The default stays Claude Haiku for scorin
 
 | Setting | `config.yaml` (default) | with `config.vllm.yaml` |
 |---|---|---|
-| scorer (`llm`) | Claude Haiku (API, paid per job) | `qwen3-local` on vLLM, thinking off (JSON answer only) |
-| requests at once (`llm.max_workers`) | 6 | 16 (vLLM batches them on the GPU) |
-| jobs scored per run (`matching.llm_top_n`) | 60 | 200 |
+| scorer (`llm`) | LM Studio, Qwen3.8 27B, thinking off | `qwen3-local` on vLLM, thinking off (JSON answer only) |
+| requests at once (`llm.max_workers`) | 4 | 16 (vLLM batches them on the GPU) |
+| jobs scored per run (`matching.llm_top_n`) | 40 | 200 |
 | lowest pre-score sent to the LLM (`min_prescore_for_llm`) | 15 | 10 |
-| smart agent (`agent.llm`) | LM Studio, Qwen3.8 27B | unchanged |
-| who scores the agent's picks (`agent.scorer`) | `main` (Claude Haiku) | `agent` (the 27B itself) |
+| smart agent (`agent.llm`) | LM Studio, Qwen3.8 27B (the `llm` block, thinking on) | unchanged (named in the overlay) |
+| who scores the agent's picks (`agent.scorer`) | `main` (the same 27B) | `agent` (the 27B itself) |
 
 Why the split: scoring is many short, parallel requests with a fixed rubric, where vLLM's batching pays
 off and a 14B model is enough. The agent is one long conversation that plans searches, where model
@@ -81,7 +87,7 @@ Docker instead of WSL2 pip (needs Docker Desktop with the WSL2 backend):
 ### Turn it on and off
 
 - On: add `JOBHUNTER_CONFIG=config.vllm.yaml` to `.env`.
-- Off (back to Claude Haiku as the scorer, also for the agent's picks): delete that line.
+- Off (back to LM Studio for everything): delete that line.
 
 `JOBHUNTER_CONFIG` names files merged over `config.yaml` (comma-separated, in order); only what differs
 is in them. It applies to the CLI and the dashboard (restart the dashboard after changing `.env`).
@@ -100,7 +106,7 @@ does not answer.
 
 ### Scores on a new scale
 
-Neither local model scores like Claude Haiku. `scored_by` records the model (`llm:qwen3-local` for
+The 14B does not score like the 27B. `scored_by` records the model (`llm:qwen3-local` for
 regular runs, `agent:qwen/qwen3.8-27b` for agent picks), so after a few runs and some statuses in the
 dashboard compare them: `python scripts/agent_report.py --since <first vLLM day>`. If local scores run
 high or low, adjust `agent.min_match_score` and `notify.min_score` in `config.vllm.yaml`.
@@ -131,7 +137,9 @@ docker compose up --build           # http://localhost:8501
 - Your CV: put it in `./cv` (or upload it in the dashboard's Profile tab).
 - Jobs live in the `data` Docker volume (`docker compose down -v` wipes them), not in `./data`, so a
   demo never touches your real database.
-- Keys: `.env` is passed in when it exists; without one, every job gets the free heuristic score.
+- LLM: LM Studio on the Windows host (`config.docker.lmstudio.yaml` points `llm.base_url` at
+  `http://host.docker.internal:1234`). With no model loaded there, jobs keep the free heuristic score.
+- Keys: `.env` is passed in when it exists.
 - `config.yaml` is mounted read-only: edit it on the host and start a new run, no rebuild needed.
 
 With a local vLLM server in the same compose project (NVIDIA GPU):
@@ -156,4 +164,5 @@ CI builds the image and checks that the dashboard answers (`.github/workflows/te
 | `docker-compose.yml` | the app: port 8501 on localhost, `./cv` mounted, `data` / `users` volumes |
 | `docker-compose.vllm.yml` | adds the `vllm` service (GPU) and points the app at it |
 | `config.vllm.yaml` / `config.docker.yaml` | the vLLM settings / the server's address inside compose |
+| `config.docker.lmstudio.yaml` | without vLLM: LM Studio on the host, as seen from the container |
 | `scripts/vllm_serve.sh` | the vLLM command line, shared by WSL2 and Docker |

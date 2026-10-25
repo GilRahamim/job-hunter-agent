@@ -41,7 +41,7 @@ dismissed = not relevant.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `scorer` | `main` | who scores saved jobs: `main` = the `llm:` section (Claude Haiku now: same scale as the regular search, one paid call per saved job); `agent` = the agent's own local model (free, different scale). `main` falls back to the agent's model if `llm` is off |
+| `scorer` | `main` | who scores saved jobs: `main` = the `llm:` section (LM Studio's 27B now, thinking off: same scale as the regular search, free); `agent` = the agent's own model (the same 27B, thinking on). `main` falls back to the agent's model if `llm` is off |
 | `memory_runs` | `5` | how many past agent runs the memory looks at; `0` = off |
 | `dry_group_searches` | `3` | a group searched this many times in those runs without one strong match is DRY (1 search per run); `0` = off |
 
@@ -106,7 +106,7 @@ break the restored file.
 
 | Command | Flags |
 |---|---|
-| `python run_agent.py --agent --goal 5 --dry-run` | `--agent` = the tool-using agent (not the fixed pipeline). `--goal 5` = stop after 5 saved jobs scoring >= `agent.min_match_score` (70); default `agent.goal_matches` (10). `--dry-run` = no jobs and no run record written, so it does **not** feed the memory. It is **not free**: with `agent.scorer: main` every save is still one paid scorer call. It can still touch `data/jobs.db`: a changed CV writes its new profile there |
+| `python run_agent.py --agent --goal 5 --dry-run` | `--agent` = the tool-using agent (not the fixed pipeline). `--goal 5` = stop after 5 saved jobs scoring >= `agent.min_match_score` (70); default `agent.goal_matches` (10). `--dry-run` = no jobs and no run record written, so it does **not** feed the memory. With an API model in `llm` it is **not free**: every save is still one paid scorer call. It can still touch `data/jobs.db`: a changed CV writes its new profile there |
 | `python run_agent.py --agent --goal 5` | the real run: saves jobs and the run's per-query results (feeds memory #4 and dry groups #7) |
 | `python run_agent.py --agent --goal 5 --max-steps 30` | `--max-steps N` = model turns before a hard stop; default `agent.max_steps` (50) |
 | `python run_agent.py` | the regular fixed pipeline (unchanged by these changes) |
@@ -146,8 +146,8 @@ work: the run summary's `saved matches` and the dashboard after a few real runs,
 1. Back up `data/jobs.db` (2.3).
 2. `git fetch origin` then `git checkout <branch>` (2.1).
 3. `pytest -q`.
-4. Check `agent.scorer` in `config.yaml` (`main` = the `llm:` model, paid per saved job, also in a dry run;
-   `agent` = the local model, free).
+4. Check `agent.scorer` in `config.yaml` (`main` = the `llm:` model, paid per saved job when it is an API model, also in a
+   dry run; `agent` = the agent's own model).
 5. Dry run: `python run_agent.py --agent --goal 5 --dry-run`, check the log (2.4).
 6. Real run: `python run_agent.py --agent --goal 5`, check the jobs in the dashboard.
 7. 2-3 more real runs over a few days: memory and dry groups shape the searches (2.4).

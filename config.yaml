@@ -254,7 +254,7 @@ sources:
 
 matching:
   # How many jobs (best pre-scores first) get a full LLM evaluation each run
-  llm_top_n: 60
+  llm_top_n: 40             # a local 27B is slower than an API model; raise once runs prove fast enough
   # Jobs below this pre-score are never sent to the LLM
   min_prescore_for_llm: 15
   # Jobs that arrive without a description (LinkedIn, Tech Map) get it read from their LinkedIn page,
@@ -293,8 +293,8 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
                                    Field Engineer, Technical Support Engineer, Application Engineer]
   results_per_search: 10   # results shown to the model per search
   # Who scores the jobs the agent saves, with the regular search's scoring prompt and rubric:
-  # main = the `llm` section below (same scale as the regular search; API cost per saved job),
-  # agent = the agent's own model (free when local). Falls back to the agent's model if `llm` is off.
+  # main = the `llm` section below (same scale as the regular search), agent = the agent's own model.
+  # Both are the LM Studio model now. Falls back to the agent's model if `llm` is off.
   scorer: main
   # Memory: the start message lists which queries led to saved jobs in the last N agent runs (0 = off)
   memory_runs: 5
@@ -308,14 +308,11 @@ agent:                     # tool-using agent loop:  python run_agent.py --agent
   search_limit: 30         # LinkedIn/Indeed/Google results per agent query
   max_posting_chars: 3000  # posting text shown by read_posting
   sources: [linkedin, company_pages, remote_boards]
-  # Model for the agent only (must support tool calling). Local LM Studio server (OpenAI-compatible);
-  # `model` must be the identifier shown by `lms ls` / `lms load`. Use {} to use the `llm` section below.
+  # Model for the agent only (must support tool calling). Keys not set here come from the `llm` section
+  # below (LM Studio), so one loaded model serves the search, the scoring and the agent.
   # Ollama instead:  llm: {provider: ollama, model: "qwen3:8b", num_ctx: 16384}
   llm:
-    provider: openai
-    base_url: http://127.0.0.1:1234/v1   # not "localhost": on Windows it tries IPv6 first (+2s per call)
-    model: qwen/qwen3.8-27b   # LM Studio identifier (`lms ls`); alt: openai/gpt-oss-20b
-    max_tokens: 8000         # Qwen thinks first; 4096 cut off profile extraction. Load with --context-length 32768
+    extra_body: {}           # thinking stays on for planning; only scoring turns it off
 
 notify:                    # desktop notification after a run
   enabled: false
@@ -336,9 +333,17 @@ tailoring:                 # CV Tailoring Agent (second agent)
 llm:
   # provider: anthropic | openai | google_genai | ollama | none
   # "none" = no LLM, heuristic scoring only (free, works offline)
-  provider: anthropic
-  model: claude-haiku-5-5
+  # Local LM Studio server (OpenAI-compatible) for everything: scoring, CV profile and the agent.
+  # `model` must be the identifier shown by `lms ls` / `lms load`. Load with --context-length 32768.
+  # Claude Haiku instead (API cost, frees the GPU):  provider: anthropic, model: claude-haiku-5-5, max_workers: 6
+  provider: openai
+  base_url: http://127.0.0.1:1234/v1   # not "localhost": on Windows it tries IPv6 first (+2s per call)
+  model: qwen/qwen3.8-27b   # alt: openai/gpt-oss-20b
+  max_tokens: 8000          # Qwen thinks first; 4096 cut off profile extraction
   temperature: 0
-  max_workers: 6
+  max_workers: 4            # LM Studio's parallel requests per loaded model (default 4)
+  # Scoring = a JSON answer: thinking off is ~3x faster (LM Studio ignores vLLM's chat_template_kwargs).
+  # The agent turns it back on (agent.llm.extra_body).
+  extra_body: {reasoning_effort: none}
   # Anthropic only: set when the API key is not scoped to a workspace (an ID, not a secret)
   anthropic_workspace_id: wrkspc_014GDNpoWdzWhuf7Zkkh15My

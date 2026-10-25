@@ -1,6 +1,8 @@
 # Local vLLM server for the scorer: free per call, so it can score more jobs per run and more of them at
-# once. The smart agent stays on LM Studio's 27B model (config.yaml): a 14B model that fits vLLM on a
-# 16 GB GPU plans too weakly. Merged over config.yaml (only what differs is here).
+# once. The smart agent stays on LM Studio's 27B model (config.yaml's `llm`): a 14B model that fits vLLM
+# on a 16 GB GPU plans too weakly. Merged over config.yaml (only what differs is here).
+# Tried 2026-10-22..25 and set aside: switching the one GPU between vLLM and LM Studio by hand meant
+# the agent never ran. The default is now LM Studio for everything (config.yaml).
 #
 # Turn on:   add  JOBHUNTER_CONFIG=config.vllm.yaml  to .env   (remove the line to go back)
 # Server:    bash scripts/vllm_serve.sh  in WSL2  (or Docker, see docs/LOCAL_LLM_AND_DOCKER.md)
@@ -26,6 +28,10 @@ matching:
 
 agent:
   scorer: agent                         # the agent's LM Studio model scores its picks: vLLM is down then
-  llm:                                  # config.yaml's LM Studio block, plus:
+  llm:                                  # config.yaml's `llm` block (LM Studio), since `llm` above is vLLM now
+    base_url: http://127.0.0.1:1234/v1
+    model: qwen/qwen3.8-27b
+    max_tokens: 8000
+    max_workers: 4
     extra_body: {}                      # keep the scorer's "thinking off" out of the agent (llm.agent_llm_config
                                         # copies every `llm` key the agent block does not set)
