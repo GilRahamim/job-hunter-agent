@@ -113,9 +113,11 @@ def test_llm_scoring_switch_off_keeps_the_regular_search_heuristic(env, monkeypa
     cfg, path = env
     cfg["matching"]["llm_scoring"] = False
     llm = FakeLLM()
-    monkeypatch.setattr(agent, "get_llm", lambda c: llm)          # still available for reading the CV
+    loaded = []
+    monkeypatch.setattr(agent, "get_llm", lambda c: loaded.append(1) or llm)
     state = agent.run(cfg, db_path=path)
-    assert llm.calls == 0 and state["stats"]["mode"] == "heuristic"
+    assert not loaded and llm.calls == 0                          # the model is not even loaded for the CV
+    assert state["stats"]["mode"] == "heuristic"
     assert state["stats"]["llm_scored"] == 0 and db.all_jobs(path=path)
     assert all(j["scored_by"] == "heuristic" for j in db.all_jobs(path=path))
 

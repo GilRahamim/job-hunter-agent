@@ -261,8 +261,9 @@ matching:
   # Jobs below this pre-score are never sent to the LLM
   min_prescore_for_llm: 15
   # false = the regular search only collects and filters (hard rules) and ranks with the free heuristic
-  # score: no LLM call per job, so it is fast. The LLM still reads the CV once, and the smart agent
-  # (--agent) still scores the jobs it saves. true = score the top llm_top_n jobs of every run.
+  # score and a heuristic CV profile: the regular search makes no LLM call at all, so it is fast. The
+  # smart agent (--agent) still uses the model. true = read the CV with the LLM and score the top
+  # llm_top_n jobs of every run.
   llm_scoring: false
   # Jobs that arrive without a description (LinkedIn, Tech Map) get it read from their LinkedIn page,
   # best pre-scores first, so the experience rules can be checked. ~2 s each; 0 = off.

@@ -64,18 +64,19 @@ def _db(state: PipelineState) -> str | None:
 
 def load_profile_node(state: PipelineState) -> dict:
     cfg, opts = state["config"], state["options"]
-    llm = None if opts.get("no_llm") else get_llm(cfg)
+    # llm_scoring off = the regular search never calls the model, not even to read the CV (a new CV
+    # file would otherwise start a slow 27B call before anything is collected): heuristic profile.
+    use_llm = not opts.get("no_llm") and bool(cfg["matching"].get("llm_scoring", True))
+    llm = get_llm(cfg) if use_llm else None
     profile, cv_hash, hit = load_cv_profile(cfg, llm, _db(state))
     cfg = personalize(cfg, profile)          # auto_from_cv users: search terms from their CV
     run_id = None if opts.get("dry_run") else db.start_run(_db(state))
     opts["_run_id"] = run_id          # so run() can close the row if a later node crashes
     model = cfg["llm"]["model"]
-    # The LLM may still read the CV (cached per CV hash); scoring every job is a separate switch.
-    scoring = llm is not None and bool(cfg["matching"].get("llm_scoring", True))
     log.info("mode: %s | profile: %d skills, %s (cache %s)",
-             f"LLM ({model})" if scoring else "heuristic only", len(profile.skills), profile.seniority,
+             f"LLM ({model})" if llm else "heuristic only", len(profile.skills), profile.seniority,
              "hit" if hit else "miss")
-    return {"config": cfg, "llm": llm, "llm_enabled": scoring, "model": model, "profile": profile,
+    return {"config": cfg, "llm": llm, "llm_enabled": llm is not None, "model": model, "profile": profile,
             "cv_hash": cv_hash, "run_id": run_id, "started": time.monotonic()}
 
 
