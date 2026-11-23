@@ -35,7 +35,10 @@ CASES = [
 
 @pytest.fixture(scope="module")
 def cfg():
-    return load_config()
+    import copy
+    c = copy.deepcopy(load_config())
+    c["filters"]["drop_unverified"] = False    # fixtures have short descriptions; tests opt in below
+    return c
 
 
 @pytest.fixture(scope="module")
@@ -198,6 +201,16 @@ def test_unverified_jobs_dropped_only_when_configured(cfg):
     strict["filters"]["drop_unverified"] = True
     assert junior_reason(j("Software Engineer", ""), strict) == "unverified"
     assert junior_reason(j("Junior Software Engineer", ""), strict) is None
+
+
+def test_stub_description_counts_as_unverified(cfg):
+    """techmap gives "Level: Engineer" instead of a posting: the years cannot be checked."""
+    import copy
+    strict = copy.deepcopy(cfg)
+    strict["filters"].update(drop_unverified=True, min_description_chars=80)
+    assert junior_reason(j("QA Engineer", "Level: Engineer"), strict) == "unverified"
+    assert junior_reason(j("Student Software Engineer", "Level: Student"), strict) is None   # junior title
+    assert junior_reason(j("QA Engineer", "Test web apps. " * 10), strict) is None           # real text
 
 
 def test_junior_signals_english_and_hebrew(cfg):

@@ -33,9 +33,12 @@ filters:
   max_required_years: 0
   # A title that says junior ("Junior Data Engineer, 1-2 years") may state up to this many years.
   junior_max_required_years: 0
-  # true = drop postings with no description unless the title says junior (their experience
-  # requirement cannot be checked: LinkedIn without fetch_linkedin_descriptions). false = keep them.
-  drop_unverified: false
+  # true = drop postings with no real description unless the title says junior (their experience
+  # requirement cannot be checked: LinkedIn without fetch_linkedin_descriptions, techmap stubs like
+  # "Level: Engineer"). false = keep them.
+  drop_unverified: true
+  # A description shorter than this (characters) counts as missing for drop_unverified.
+  min_description_chars: 80
   # Words that mark a junior / entry-level job (title or description). Used by the filters,
   # the agent's searches and its save guard.
   junior_keywords: [junior, jr, "jr.", "entry level", "entry-level", graduate, "new grad", "recent grad",

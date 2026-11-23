@@ -217,8 +217,10 @@ def junior_reason(job: Job, cfg: dict[str, Any]) -> str | None:
     if not experience_ok(job, f.get("max_required_years"), f.get("junior_max_required_years"),
                          words, f.get("experienced_phrases")):
         return "experience"
-    # No description: the years requirement cannot be checked, so keep it only if the title says junior.
-    if f.get("drop_unverified") and not job.description.strip() and not keyword_hits(job.title, words):
+    # No real description (empty, or a stub like techmap's "Level: Engineer"): the years requirement
+    # cannot be checked, so keep it only if the title says junior.
+    if f.get("drop_unverified") and len(job.description.strip()) < f.get("min_description_chars", 1) \
+            and not keyword_hits(job.title, words):
         return "unverified"
     return None
 
