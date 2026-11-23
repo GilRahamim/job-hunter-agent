@@ -41,7 +41,7 @@ SEA, CORAL, MIST = _T["accent"], _T["gap_text"], _T["mist"]
 STATUS_HE = {"new": "חדש", "interested": "מעניין", "applied": "הוגשה מועמדות", "interview": "ראיון",
              "offer": "הצעה", "rejected": "נדחה", "not_relevant": "לא רלוונטי"}
 HE_STATUS = {v: k for k, v in STATUS_HE.items()}
-GOAL_RANGE = (3, 10)            # agent mode: matches to find, chosen in the sidebar
+GOAL_RANGE = (3, 30)           # agent mode: matches to find, chosen in the sidebar
 STARTUP_GRACE_S = 20            # a run just launched may not have written run.lock yet
 FORCE_STOP_AFTER_S = 60         # offer a hard stop when a graceful stop takes longer than this
 WHERE = ["הכול", "ישראל", "מרחוק"]

@@ -109,6 +109,17 @@ def test_llm_run_scores_top_jobs(env, monkeypatch):
     assert again["kept"] == 0 and llm.calls == state["stats"]["llm_scored"]    # nothing re-scored
 
 
+def test_llm_scoring_switch_off_keeps_the_regular_search_heuristic(env, monkeypatch):
+    cfg, path = env
+    cfg["matching"]["llm_scoring"] = False
+    llm = FakeLLM()
+    monkeypatch.setattr(agent, "get_llm", lambda c: llm)          # still available for reading the CV
+    state = agent.run(cfg, db_path=path)
+    assert llm.calls == 0 and state["stats"]["mode"] == "heuristic"
+    assert state["stats"]["llm_scored"] == 0 and db.all_jobs(path=path)
+    assert all(j["scored_by"] == "heuristic" for j in db.all_jobs(path=path))
+
+
 def test_llm_scoring_sees_the_users_choices(env, monkeypatch):
     cfg, path = env
     agent.run(cfg, db_path=path, no_llm=True)

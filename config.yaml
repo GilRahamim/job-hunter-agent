@@ -260,6 +260,10 @@ matching:
   llm_top_n: 40             # a local 27B is slower than an API model; raise once runs prove fast enough
   # Jobs below this pre-score are never sent to the LLM
   min_prescore_for_llm: 15
+  # false = the regular search only collects and filters (hard rules) and ranks with the free heuristic
+  # score: no LLM call per job, so it is fast. The LLM still reads the CV once, and the smart agent
+  # (--agent) still scores the jobs it saves. true = score the top llm_top_n jobs of every run.
+  llm_scoring: false
   # Jobs that arrive without a description (LinkedIn, Tech Map) get it read from their LinkedIn page,
   # best pre-scores first, so the experience rules can be checked. ~2 s each; 0 = off.
   fetch_descriptions: 80
@@ -272,8 +276,8 @@ matching:
 agent:                     # tool-using agent loop:  python run_agent.py --agent
   goal_matches: 10         # stop after this many saved jobs scoring >= min_match_score
   min_match_score: 70
-  max_steps: 50            # model turns per run (hard stop)
-  max_searches: 20         # search_jobs calls per run: every role group once, then repeats
+  max_steps: 100           # model turns per run (hard stop); a goal of 30 matches needs room
+  max_searches: 30         # search_jobs calls per run: every role group once, then repeats
   max_searches_per_group: 3  # cap per role group, so one kind of job cannot use the whole budget
   # Kinds of jobs the agent must cover. Every group is searched before any group is repeated.
   # A query belongs to a group when its words match one of the group's titles.

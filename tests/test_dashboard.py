@@ -66,7 +66,7 @@ def test_agent_mode_runs_agent_with_chosen_goal(tmp_path, monkeypatch):
     at = _app(tmp_path, monkeypatch)
     next(t for t in at.toggle if t.key == "agent_mode").set_value(True).run()
     goal = next(s for s in at.slider if s.key == "agent_goal")
-    assert (goal.min, goal.max) == (3, 10) and goal.value == 10      # config goal_matches, clamped
+    assert (goal.min, goal.max) == (3, 30) and goal.value == 10      # config goal_matches, clamped
     goal.set_value(4).run()
     _launch(at).click().run()
     assert calls[-1][1:] == ["run_agent.py", "--agent", "--goal", "4"]
@@ -144,7 +144,7 @@ def test_bad_url_values_fall_back_to_valid_ones(tmp_path, monkeypatch):
     monkeypatch.setattr("requests.get", lambda *a, **kw: _Ok())
     at.run()
     assert not at.exception
-    assert at.slider(key="agent_goal").value == 10
+    assert at.slider(key="agent_goal").value == 30       # 99 is clamped to the slider's maximum
 
 
 def test_controls_do_not_live_in_the_polling_fragment():

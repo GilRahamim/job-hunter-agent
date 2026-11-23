@@ -108,7 +108,7 @@ All settings live in `config.yaml`:
 | `filters` | Location, roles, seniority, `max_required_years` (0 = junior only; `null` = no limit) |
 | `search` | Queries and `results_per_query` |
 | `sources` | Which collectors run, and their options |
-| `matching` | `llm_top_n` (how many jobs go to the LLM), `fetch_descriptions`, `feedback_examples` (how many of your marked jobs the LLM sees) |
+| `matching` | `llm_scoring` (false = the regular search does not call the LLM per job), `llm_top_n` (how many jobs go to the LLM when it is on), `fetch_descriptions`, `feedback_examples` (how many of your marked jobs the LLM sees) |
 | `agent` | Agent-loop goal, budgets, role groups and an optional separate model |
 | `notify` | Desktop notification for new jobs scoring at or above `min_score` |
 | `llm` | Provider and model (`provider: none` turns the LLM off) |

@@ -70,10 +70,12 @@ def load_profile_node(state: PipelineState) -> dict:
     run_id = None if opts.get("dry_run") else db.start_run(_db(state))
     opts["_run_id"] = run_id          # so run() can close the row if a later node crashes
     model = cfg["llm"]["model"]
+    # The LLM may still read the CV (cached per CV hash); scoring every job is a separate switch.
+    scoring = llm is not None and bool(cfg["matching"].get("llm_scoring", True))
     log.info("mode: %s | profile: %d skills, %s (cache %s)",
-             f"LLM ({model})" if llm else "heuristic only", len(profile.skills), profile.seniority,
+             f"LLM ({model})" if scoring else "heuristic only", len(profile.skills), profile.seniority,
              "hit" if hit else "miss")
-    return {"config": cfg, "llm": llm, "llm_enabled": llm is not None, "model": model, "profile": profile,
+    return {"config": cfg, "llm": llm, "llm_enabled": scoring, "model": model, "profile": profile,
             "cv_hash": cv_hash, "run_id": run_id, "started": time.monotonic()}
 
 
@@ -126,7 +128,8 @@ def prescore_node(state: PipelineState) -> dict:
     m = cfg["matching"]
     to_score = list(state["kept_jobs"])
     rescored: set[str] = set()
-    if opts.get("rescore") or m.get("rescore_on_cv_change") or state["llm_enabled"]:
+    # Rescoring needs the scorer: without it a stored LLM score would be replaced by a heuristic one.
+    if opts.get("rescore") or state["llm_enabled"]:
         rows = db.jobs_needing_rescore(
             state["cv_hash"], None, _db(state), force=bool(opts.get("rescore")),
             include_heuristic=state["llm_enabled"], min_prescore=m["min_prescore_for_llm"])

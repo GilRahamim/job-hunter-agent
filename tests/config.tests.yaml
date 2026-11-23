@@ -1,4 +1,7 @@
 # Overlay for the test suite: fixture postings have short descriptions, so the stub/empty-description
-# guard (filters.drop_unverified) is off here. Tests for that guard switch it on themselves.
+# guard (filters.drop_unverified) is off here, and the pipeline scores with the (fake) LLM like it did
+# before llm_scoring became a switch. Tests for those settings turn them on or off themselves.
 filters:
   drop_unverified: false
+matching:
+  llm_scoring: true
