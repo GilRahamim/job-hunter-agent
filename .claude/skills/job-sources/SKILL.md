@@ -51,6 +51,7 @@ def to_iso(value) -> str | None:  # handles ISO strings, unix seconds, unix ms
 | `techmap` | Israeli Tech Map daily job CSVs (github.com/mluggy/techmap, ODbL), ~470 Israeli companies | none | One download per category; title/company/level/city, **no description** (links are mostly LinkedIn). |
 | `getro` | VC portfolio job boards (Israel VC Forum ≈880 companies) | none | `POST api.getro.com/api/v2/collections/{id}/search/jobs` with `Accept: application/json` (406 without), `filters: {searchable_locations: ["Israel"]}`, 20 per page; seniority tag, no description. |
 | `serpapi_google_jobs` | Google Jobs (indexes AllJobs, Drushim, Comeet pages…) | `SERPAPI_API_KEY` | Free plan 250 searches/month, one per query: uses its own short `queries` list (falls back to `search.queries`). |
+| `board_search` | Boards of companies **not** in companies.yaml, found with Google `(site:comeet.com/jobs OR site:jobs.lever.co …) <query> israel` | `SERPAPI_API_KEY` | On request only (`collectors.ON_REQUEST`): never in the daily run. The agent's `board_search` source (one charged search each) and `scripts/discover_boards.py [--groups] [--links FILE]`. Domains and caps: `sources.board_search`. `boards_in()` here is the one parser of board links. |
 
 Exact endpoints, response shapes and field mappings for each source: **read `references/endpoints.md`** before writing a collector. Those mappings were verified against live responses on 2026-10-13.
 

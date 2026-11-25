@@ -33,35 +33,18 @@ sys.path.insert(0, str(ROOT))
 
 from jobhunter.collectors import ats, getro  # noqa: E402
 from jobhunter.collectors.base import get_session  # noqa: E402
+from jobhunter.collectors.board_search import boards_in  # noqa: E402
 from jobhunter.config import load_config  # noqa: E402
 from jobhunter.filters import is_israel  # noqa: E402
 
 TECHMAP_ZIP = "https://codeload.github.com/mluggy/techmap/zip/refs/heads/main"
 COMPANIES_YAML = ROOT / "companies.yaml"
-BOARD_PATTERNS = {                    # careers links / pages -> (ats, entry)
-    "comeet": re.compile(r"comeet\.com/jobs/([\w-]+)/([0-9A-Fa-f]{2}\.[0-9A-Fa-f]{3})"),
-    "greenhouse": re.compile(r"(?:boards|job-boards)(?:\.eu)?\.greenhouse\.io/(?:embed/job_board\?for=)?([\w-]+)"),
-    "lever": re.compile(r"jobs\.(?:eu\.)?lever\.co/([\w-]+)"),
-    "ashby": re.compile(r"jobs\.ashbyhq\.com/([\w.-]+)"),            # "monday.com" is a real slug
-}
-_SKIP_SLUGS = {"embed", "js", "jobs", "api", "v1"}
 
 
 def download_techmap() -> zipfile.ZipFile:
     resp = get_session().get(TECHMAP_ZIP, timeout=300)
     resp.raise_for_status()
     return zipfile.ZipFile(io.BytesIO(resp.content))
-
-
-def boards_in(text: str) -> set[tuple[str, str]]:
-    found = set()
-    for kind, rx in BOARD_PATTERNS.items():
-        for m in rx.finditer(text):
-            if kind == "comeet":
-                found.add((kind, f"{m.group(1).lower()}/{m.group(2).upper()}"))
-            elif m.group(1).lower() not in _SKIP_SLUGS:
-                found.add((kind, m.group(1).lower()))
-    return found
 
 
 def candidates(z: zipfile.ZipFile) -> tuple[set[tuple[str, str]], list[str]]:

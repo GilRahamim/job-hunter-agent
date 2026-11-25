@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import os
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from jobhunter.collectors import collect_all
 from jobhunter.collectors.details import fetch_posting, linkedin_job_id
+from jobhunter.config import load_env
 from jobhunter.dedupe import dedupe_batch, is_new
 from jobhunter.filters import (filter_jobs, junior_reason, junior_signals, keyword_hits, required_years,
                                years_over_limit)
@@ -28,12 +30,16 @@ AGENT_SOURCES: dict[str, list[str]] = {
     "linkedin": ["jobspy"],
     "company_pages": ["ats", "techmap", "getro"],
     "remote_boards": ["remotive", "remoteok", "himalayas", "arbeitnow", "weworkremotely"],
+    "board_search": ["board_search"],
 }
 QUERY_SOURCES = {"linkedin"}
+# Searched by query and charged to max_searches, but not LinkedIn: no JobSpy sites, no 429 block.
+# Google finds boards of companies outside companies.yaml; their jobs are matched to the query by title.
+BOARD_SEARCH = "board_search"
 _CONFIG_KEY = {"jobspy": "jobspy", "ats": "company_boards", "remotive": "remotive",
                "remoteok": "remoteok", "himalayas": "himalayas", "arbeitnow": "arbeitnow",
                "weworkremotely": "weworkremotely", "techmap": "techmap",
-               "getro": "getro"}
+               "getro": "getro", "board_search": "board_search"}
 
 
 @dataclass
@@ -118,6 +124,10 @@ def allowed_sources(config: dict[str, Any]) -> list[str]:
     out = []
     for name in config["agent"].get("sources", list(AGENT_SOURCES)):
         regs = AGENT_SOURCES.get(name, [])
+        if name == BOARD_SEARCH:                  # every search is a SerpAPI call
+            load_env()
+            if not os.environ.get("SERPAPI_API_KEY"):
+                continue
         if any((enabled.get(_CONFIG_KEY[r]) or {}).get("enabled", False) for r in regs):
             out.append(name)
     return out
@@ -137,8 +147,25 @@ def junior_query(ctx: AgentContext, query: str) -> str:
 
 # ------------------------------------------------------------ fetching
 
+def _query_words(ctx: AgentContext, query: str) -> list[str]:
+    """Title words of a query. "Junior AI Engineer" must still find "AI Engineer": the junior check runs
+    in the filters, so junior words only narrow the title match when the query has nothing else."""
+    words = _WORD.findall(query.lower())
+    junior = {w for k in _junior_words(ctx) for w in _WORD.findall(k.lower())}
+    return [w for w in words if w not in junior] or words
+
+
 def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
     cfg = ctx.config
+    if source == BOARD_SEARCH:                  # Google finds the boards, the query then filters titles
+        cfg = copy.deepcopy(cfg)
+        cfg["search"]["queries"] = [query]
+        results, health = collect_all(cfg, AGENT_SOURCES[source])
+        ctx.health.extend(health)
+        jobs = [j for r in results for j in r.jobs]
+        ctx.collected += len(jobs)
+        words = _query_words(ctx, query)
+        return [j for j in jobs if title_matches(j.title, words)]
     if source in QUERY_SOURCES:
         cfg = copy.deepcopy(cfg)
         cfg["search"]["queries"] = [query]
@@ -162,11 +189,7 @@ def _fetch(ctx: AgentContext, source: str, query: str) -> list[Job]:
         ctx.health.extend(health)
         ctx.cache[source] = [j for r in results for j in r.jobs]
         ctx.collected += len(ctx.cache[source])
-    words = _WORD.findall(query.lower())
-    # "Junior AI Engineer" must still find "AI Engineer": the junior check runs in the filters,
-    # so junior words only narrow the title match when the query has nothing else ("Student").
-    junior = {w for k in _junior_words(ctx) for w in _WORD.findall(k.lower())}
-    words = [w for w in words if w not in junior] or words
+    words = _query_words(ctx, query)
     return [j for j in ctx.cache[source] if title_matches(j.title, words)]
 
 
@@ -239,7 +262,7 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
         dry = " (dry: no strong match in recent runs)" if all(g in ctx.dry_groups for g in hit) else ""
         return (f"ERROR: role group {' / '.join(hit)} already has {ctx.group_searches[hit[0]]} "
                 f"searches{dry}.{coverage_note(ctx) or ' Search a different kind of job.'}")
-    searched = junior_query(ctx, query) if source in QUERY_SOURCES else query
+    searched = junior_query(ctx, query) if source in QUERY_SOURCES | {BOARD_SEARCH} else query
     ctx.searches += 0 if free else 1
     ctx.group_searches.update(hit)
     found = _fetch(ctx, source, searched)
@@ -260,7 +283,7 @@ def search_jobs(ctx: AgentContext, query: str, source: str) -> str:
             f"{'This search was free (list already loaded). ' if free else ''}"
             f"Searches left: {ctx.settings['max_searches'] - ctx.searches}.{coverage_note(ctx)}")
     if not top:
-        hint = " Try a broader or different query." if source not in QUERY_SOURCES else ""
+        hint = " Try a broader or different query." if source not in QUERY_SOURCES | {BOARD_SEARCH} else ""
         return head + hint
     lines = [f"{j.id} | {j.title} | {j.company} | {j.location or j.remote_region or '-'} | fit {s:.0f}"
              f" | {', '.join(junior_signals(j, _junior_words(ctx))[:3]) or '-'}"

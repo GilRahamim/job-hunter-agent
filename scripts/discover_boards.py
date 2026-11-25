@@ -25,10 +25,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from jobhunter.collectors.base import get_json  # noqa: E402
+from jobhunter.collectors.board_search import boards_in, group_dorks  # noqa: E402
 from jobhunter.collectors.serpapi import SERPAPI_URL  # noqa: E402
 from jobhunter.config import load_config, load_env  # noqa: E402
-from sync_companies import (COMPANIES_YAML, add_to_yaml, boards_in, existing,  # noqa: E402
-                            israel_jobs)
+from sync_companies import COMPANIES_YAML, add_to_yaml, existing, israel_jobs  # noqa: E402
 
 
 def search_links(query: str, key: str, num: int = 100) -> list[str]:
@@ -37,7 +37,7 @@ def search_links(query: str, key: str, num: int = 100) -> list[str]:
         data = get_json(SERPAPI_URL, params={"engine": "google", "q": query, "num": num,
                                              "hl": "en", "api_key": key})
     except Exception as e:  # noqa: BLE001 - one failed query must not stop the others
-        print(f"  {query!r}: {type(e).__name__}")
+        print(f"  {query[:60]!r}: {type(e).__name__}")
         return []
     return [r["link"] for r in data.get("organic_results", []) if r.get("link")]
 
@@ -46,6 +46,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--write", action="store_true", help="append the live boards to companies.yaml")
     parser.add_argument("--limit", type=int, help="run only the first N queries (saves quota)")
+    parser.add_argument("--groups", action="store_true",
+                        help="also run one search per agent role group over every ATS domain")
     parser.add_argument("--links", help="read result links from this text file ('-' = stdin) instead of "
                                         "calling SerpAPI, e.g. links an agent's web search returned")
     args = parser.parse_args()
@@ -63,14 +65,17 @@ def main() -> int:
         if not key:
             print("SERPAPI_API_KEY is not set in .env (or pass --links FILE)")
             return 1
-        queries = (load_config().get("sources", {}).get("discover_boards") or {}).get("queries") or []
+        config = load_config()
+        queries = list((config.get("sources", {}).get("discover_boards") or {}).get("queries") or [])
+        if args.groups:
+            queries += group_dorks(config)
         if not queries:
-            print("no queries: add them under sources.discover_boards.queries in config.yaml")
+            print("no queries: add them under sources.discover_boards.queries in config.yaml, or use --groups")
             return 1
         for query in queries[: args.limit or len(queries)]:
             links = search_links(query, key)
             hits = {b for link in links for b in boards_in(link)}
-            print(f"{query!r}: {len(links)} results, {len(hits)} boards")
+            print(f"{query[:70]!r}: {len(links)} results, {len(hits)} boards")
             found |= hits
 
     text = COMPANIES_YAML.read_text(encoding="utf-8")

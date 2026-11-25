@@ -802,3 +802,30 @@ def test_no_dry_groups_without_history_or_when_off(env, monkeypatch):
     agent_loop.run(cfg, db_path=path, dry_run=True)
     system = model.seen[0][0].content
     assert "[3 searches, 0 saved, 0 strong]" in system and "DRY" not in system
+
+
+def test_board_search_is_offered_only_with_a_serpapi_key(env, monkeypatch):
+    cfg, _, _ = env
+    monkeypatch.setattr(tools, "load_env", lambda: None)
+    monkeypatch.delenv("SERPAPI_API_KEY", raising=False)
+    assert "board_search" not in tools.allowed_sources(cfg)
+    monkeypatch.setenv("SERPAPI_API_KEY", "k")
+    assert "board_search" in tools.allowed_sources(cfg)
+
+
+def test_board_search_costs_a_search_and_matches_titles(env, monkeypatch):
+    cfg, path, calls = env
+    monkeypatch.setattr(tools, "load_env", lambda: None)
+    monkeypatch.setenv("SERPAPI_API_KEY", "k")
+    cfg["agent"].update(max_searches=1)
+    model = ScriptedModel([
+        call("search_jobs", {"query": "python developer", "source": "board_search"}),
+        call("search_jobs", {"query": "python developer", "source": "board_search"}),   # never free
+    ])
+    use(monkeypatch, model)
+    result = agent_loop.run(cfg, db_path=path, dry_run=True)
+    outs = tool_outputs(model)
+    assert calls == [(("board_search",), ["Junior python developer"])]    # the junior word is forced
+    assert PY.id in outs[0] and AI.id not in outs[0] and "Searches left: 0" in outs[0]
+    assert "budget used up" in outs[1]
+    assert result["stats"]["charged_searches"] == 1

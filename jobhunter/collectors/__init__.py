@@ -23,9 +23,12 @@ _SOURCES: dict[str, tuple[str, str, str]] = {
     "serpapi": ("serpapi", "collect_serpapi", "serpapi_google_jobs"),
     "techmap": ("techmap", "collect_techmap", "techmap"),
     "getro": ("getro", "collect_getro", "getro"),
+    "board_search": ("board_search", "collect_board_search", "board_search"),
 }
 
 SOURCE_NAMES = list(_SOURCES)
+# Never part of the daily run: each search costs a SerpAPI call and needs a query (the agent asks for it)
+ON_REQUEST = {"board_search"}
 
 
 def _load(name: str) -> Callable[..., CollectorResult]:
@@ -55,7 +58,7 @@ def collect_all(config: dict[str, Any], only: list[str] | None = None,
             raise ValueError(f"unknown source(s): {', '.join(sorted(unknown))}; known: {', '.join(SOURCE_NAMES)}")
         names = list(only)
     else:
-        names = [n for n in _SOURCES
+        names = [n for n in _SOURCES if n not in ON_REQUEST
                  if (enabled_cfg.get(_SOURCES[n][2]) or {}).get("enabled", False)]
 
     with ThreadPoolExecutor(max_workers=max(1, len(names))) as pool:

@@ -77,6 +77,10 @@ Tools:
   "linkedin" searches by your query (slow; LinkedIn, Indeed, Google Jobs).
   Other sources match your query against job titles, so short queries work best
   there (e.g. "python", "data", "ai engineer").
+  "board_search" (when listed) asks Google for career boards of companies outside the usual
+  list (Comeet, Greenhouse, Lever, Ashby, SmartRecruiters) and returns their jobs whose title
+  matches your query. Every call is a paid search: use it for role groups the other sources
+  left thin, not as the first search.
   You have {max_searches} searches in total, at most {per_group} per role group.
   A source other than linkedin costs one search the first time; after that its
   list is loaded and further searches on it are free.
