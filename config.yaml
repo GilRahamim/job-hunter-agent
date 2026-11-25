@@ -254,6 +254,10 @@ sources:
       - אנליסט SOC ללא ניסיון
       - Junior AI Engineer
       - NOC ללא ניסיון
+  discover_boards:         # scripts/discover_boards.py: Google `site:` searches that reveal company boards
+    # One SerpAPI search per query, from the same monthly quota as the source above; run it by hand.
+    queries:
+      - site:comeet.com/jobs junior ai engineer israel
 
 matching:
   # How many jobs (best pre-scores first) get a full LLM evaluation each run

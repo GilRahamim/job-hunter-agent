@@ -270,3 +270,12 @@ comeet:
   - youappi/C9.00B
   - zencity/56.00B
   - zeronetworks/39.00F
+  # added by scripts/discover_boards.py (Google site: search)
+  - allcloud/71.008
+  - audiocodes/85.004
+  - bagirasystems/47.006
+  - deloitte/F7.00B
+  - groundcover/88.008
+  - majesticlabs/AA.004
+  - rounds/59.005
+  - sygnia/78.00A
